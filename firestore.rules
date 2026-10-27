@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    function hasRole(role) {
+      return signedIn() && userDoc().data.role == role;
+    }
+    function managerOrAdmin() {
+      return signedIn() && userDoc().data.role in ['gerente', 'administrador'];
+    }
+    function admin() {
+      return hasRole('administrador');
+    }
+
+    // Cada conta precisa ter um documento users/{UID} provisionado por um administrador.
+    // Não permita que usuários criem ou alterem o próprio perfil.
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || admin());
+      allow create, update, delete: if admin();
+    }
+
+    match /sections/{id} {
+      allow read: if signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      allow create, update, delete: if managerOrAdmin();
+    }
+    match /products/{id} {
+      allow read: if signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      allow create, update, delete: if managerOrAdmin();
+    }
+    match /counts/{id} {
+      allow read: if managerOrAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+      allow create: if signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if managerOrAdmin();
+    }
+    match /inventories/{id} {
+      allow read: if managerOrAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+      allow create: if managerOrAdmin() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if managerOrAdmin();
+    }
+    match /movements/{id} {
+      allow read: if managerOrAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+      allow create: if managerOrAdmin() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if admin();
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
