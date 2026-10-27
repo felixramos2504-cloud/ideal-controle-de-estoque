@@ -1,11 +1,9 @@
-// IDEAL Controle de Estoque — configuração do Firebase
-// Cole aqui os valores EXATOS do objeto firebaseConfig exibido no Firebase Console.
-// Não coloque senhas, tokens de usuários ou chaves privadas neste arquivo.
+// IDEAL Controle de Estoque — MASTER 1.0
 window.IDEAL_FIREBASE_CONFIG = {
-  apiKey: "COLOQUE_AQUI_SUA_API_KEY",
-  authDomain: "COLOQUE_AQUI_SEU_AUTH_DOMAIN",
+  apiKey: "AIzaSyDy2KjG7_qZeNYN4Uhzjiz-oPINzZ8SJg",
+  authDomain: "ideal-controle-de-estoque.firebaseapp.com",
   projectId: "ideal-controle-de-estoque",
-  storageBucket: "COLOQUE_AQUI_SEU_STORAGE_BUCKET",
-  messagingSenderId: "COLOQUE_AQUI_SEU_MESSAGING_SENDER_ID",
-  appId: "COLOQUE_AQUI_SEU_APP_ID"
+  storageBucket: "ideal-controle-de-estoque.firebasestorage.app",
+  messagingSenderId: "566188904171",
+  appId: "1:566188904171:web:afeaf54afa83955c0338ae"
 };
