@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#14532d">
+  <meta name="description" content="Controle de estoque IDEAL com inventário e leitura de código de barras.">
+  <title>IDEAL Controle de Estoque</title>
+  <link rel="manifest" href="./manifest.json">
+  <style>
+    :root{--green:#14532d;--green2:#166534;--bg:#f3f6f4;--card:#fff;--text:#17211b;--muted:#647067;--line:#dce5de;--red:#b91c1c;--amber:#a16207}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    header{background:var(--green);color:#fff;padding:18px max(16px,calc((100% - 1180px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    header h1{font-size:20px;margin:0} header small{opacity:.85} main{max-width:1180px;margin:22px auto;padding:0 16px}
+    .panel,.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 2px 8px #17211b0a;margin-bottom:16px}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.stat{font-size:28px;font-weight:750;margin-top:4px}.muted{color:var(--muted)} .hidden{display:none!important}
+    nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}button,.button{border:0;border-radius:9px;background:var(--green2);color:#fff;padding:10px 14px;font:inherit;font-weight:650;cursor:pointer}button.secondary{background:#e7eee9;color:var(--green)}button.danger{background:var(--red)}button:disabled{opacity:.55;cursor:not-allowed}
+    input,select{width:100%;padding:10px 11px;border:1px solid #c8d5cc;border-radius:8px;font:inherit;background:white;color:var(--text)}label{display:block;font-weight:650;margin:10px 0 5px}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.notice{padding:12px;border-radius:9px;background:#eff6ff;color:#1e40af;margin-bottom:12px}.error{background:#fef2f2;color:#991b1b}.success{background:#f0fdf4;color:#166534}
+    table{width:100%;border-collapse:collapse;background:white}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:13px;color:var(--muted)}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px}
+    .section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.badge{display:inline-block;padding:3px 8px;border-radius:99px;background:#e7eee9;color:var(--green);font-size:12px;font-weight:700}
+    #scanner{max-width:480px;width:100%;margin-top:12px} .small{font-size:13px}.right{margin-left:auto}
+    @media(max-width:800px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.formgrid{grid-template-columns:1fr}header{padding:16px}main{margin:14px auto}.stat{font-size:24px}}
+    @media(max-width:420px){.grid{grid-template-columns:1fr 1fr}.panel,.card{padding:13px}button{padding:9px 11px}}
+  </style>
+</head>
+<body>
+<header>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 1.0 · Inventário e movimentações</small></div>
+  <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
+</header>
+<main>
+  <div id="message" class="notice hidden" role="status"></div>
+
+  <section id="authPanel" class="panel">
+    <h2>Acessar o sistema</h2>
+    <p class="muted">Entre com uma conta autorizada. O primeiro administrador deve ser provisionado pelo responsável do projeto Firebase.</p>
+    <form id="loginForm">
+      <label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required>
+      <label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required minlength="6">
+      <div class="actions"><button type="submit">Entrar</button></div>
+    </form>
+  </section>
+
+  <section id="appPanel" class="hidden">
+    <div class="panel">
+      <div class="section-title"><div><h2 style="margin:0">Painel de estoque</h2><span class="muted small">Os números são atualizados conforme os dados autorizados mudam no Firestore.</span></div><span id="roleBadge" class="badge">Perfil: verificando</span></div>
+      <div class="grid" style="margin-top:16px">
+        <div class="card"><div class="muted">Produtos cadastrados</div><div id="statProducts" class="stat">—</div></div>
+        <div class="card"><div class="muted">Seções cadastradas</div><div id="statSections" class="stat">—</div></div>
+        <div class="card"><div class="muted">Estoque baixo</div><div id="statLow" class="stat">—</div></div>
+        <div class="card"><div class="muted">Sem estoque</div><div id="statZero" class="stat">—</div></div>
+      </div>
+    </div>
+
+    <nav aria-label="Módulos">
+      <button data-tab="products">Produtos</button><button data-tab="sections" class="secondary">Seções</button>
+      <button data-tab="count" class="secondary">Contagem rápida</button><button data-tab="inventory" class="secondary">Inventário completo</button>
+      <button data-tab="movements" class="secondary">Entradas e saídas</button>
+    </nav>
+
+    <section id="tab-products" class="panel">
+      <h2>Cadastro de produtos</h2>
+      <form id="productForm">
+        <input type="hidden" id="productId">
+        <div class="formgrid">
+          <div><label for="pEan">Código EAN</label><input id="pEan" inputmode="numeric" autocomplete="off" placeholder="Leia ou digite o EAN"></div>
+          <div style="align-self:end"><button id="scanProductBtn" type="button" class="secondary">📷 Ler EAN pela câmera</button></div>
+          <div><label for="pName">Nome do produto *</label><input id="pName" required maxlength="160"></div>
+          <div><label for="pSection">Seção *</label><select id="pSection" required><option value="">Cadastre uma seção primeiro</option></select></div>
+          <div><label for="pUnit">Unidade</label><select id="pUnit"><option>UN</option><option>KG</option><option>G</option><option>L</option><option>ML</option><option>CX</option><option>FD</option><option>PCT</option></select></div>
+          <div><label for="pStock">Estoque atual</label><input id="pStock" type="number" min="0" step="0.001" value="0" required></div>
+          <div><label for="pMin">Estoque mínimo</label><input id="pMin" type="number" min="0" step="0.001" value="0" required></div>
+        </div>
+        <div class="actions"><button type="submit">Salvar produto</button><button id="clearProductBtn" type="button" class="secondary">Limpar</button></div>
+      </form>
+      <div id="productScannerWrap" class="hidden"><div id="productScanner"></div><div class="actions"><button id="stopProductScanner" type="button" class="danger">Fechar câmera</button></div></div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:20px 0">
+      <div class="section-title"><h3>Produtos cadastrados</h3><input id="productSearch" placeholder="Pesquisar por nome ou EAN" style="max-width:320px"></div>
+      <div class="tablewrap"><table><thead><tr><th>Produto / EAN</th><th>Seção</th><th>Estoque</th><th>Mínimo</th><th>Ações</th></tr></thead><tbody id="productsTable"><tr><td colspan="5">Carregando...</td></tr></tbody></table></div>
+    </section>
+
+    <section id="tab-sections" class="panel hidden">
+      <h2>Cadastro de seções</h2>
+      <form id="sectionForm"><div class="formgrid"><div><label for="sectionName">Nome da seção *</label><input id="sectionName" required maxlength="100"></div><div><label for="sectionDescription">Descrição</label><input id="sectionDescription" maxlength="200"></div></div><div class="actions"><button type="submit">Salvar seção</button></div></form>
+      <div class="tablewrap"><table><thead><tr><th>Seção</th><th>Descrição</th></tr></thead><tbody id="sectionsTable"></tbody></table></div>
+    </section>
+
+    <section id="tab-count" class="panel hidden">
+      <h2>Contagem rápida por EAN</h2>
+      <p class="muted">Leia um código, informe a quantidade física e registre uma contagem para conferência. A contagem rápida não altera diretamente o estoque oficial.</p>
+      <div class="formgrid"><div><label for="countEan">EAN</label><input id="countEan" inputmode="numeric" placeholder="Código de barras"></div><div style="align-self:end"><button id="scanCountBtn" type="button" class="secondary">📷 Ler EAN pela câmera</button></div><div><label for="countQty">Quantidade contada</label><input id="countQty" type="number" min="0" step="0.001" value="1"></div></div>
+      <div class="actions"><button id="lookupCountBtn" type="button" class="secondary">Localizar produto</button><button id="saveCountBtn" type="button">Registrar contagem</button></div>
+      <div id="countProductInfo" class="notice hidden"></div><div id="countScannerWrap" class="hidden"><div id="countScanner"></div><button id="stopCountScanner" type="button" class="danger">Fechar câmera</button></div>
+      <h3>Contagens recentes</h3><div class="tablewrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Estoque registrado</th><th>Contado</th><th>Diferença</th><th>Responsável</th></tr></thead><tbody id="countsTable"></tbody></table></div>
+    </section>
+
+    <section id="tab-inventory" class="panel hidden">
+      <h2>Inventário completo</h2>
+      <p class="muted">Crie uma sessão, adicione produtos por EAN ou selecione-os na lista e revise as diferenças. O estoque oficial só muda quando o inventário é finalizado por um perfil autorizado.</p>
+      <div class="formgrid"><div><label for="inventoryName">Nome do inventário</label><input id="inventoryName" placeholder="Ex.: Inventário seção mercearia"></div><div><label for="inventorySection">Filtrar por seção</label><select id="inventorySection"><option value="">Todas as seções</option></select></div></div>
+      <div class="actions"><button id="startInventoryBtn" type="button">Iniciar inventário</button><button id="scanInventoryBtn" type="button" class="secondary">📷 Ler produto</button><button id="finishInventoryBtn" type="button" class="danger" disabled>Finalizar inventário</button></div>
+      <div id="inventoryScannerWrap" class="hidden"><div id="inventoryScanner"></div><button id="stopInventoryScanner" type="button" class="danger">Fechar câmera</button></div>
+      <div class="formgrid"><div><label for="inventoryEan">EAN do produto</label><input id="inventoryEan" inputmode="numeric"></div><div><label for="inventoryQty">Quantidade contada</label><input id="inventoryQty" type="number" min="0" step="0.001" value="1"></div></div>
+      <div class="actions"><button id="addInventoryItemBtn" type="button" class="secondary">Adicionar produto contado</button></div>
+      <div id="inventoryState" class="notice">Nenhum inventário aberto.</div>
+      <div class="tablewrap"><table><thead><tr><th>Produto</th><th>Registrado</th><th>Contado</th><th>Diferença</th><th></th></tr></thead><tbody id="inventoryTable"></tbody></table></div>
+    </section>
+
+    <section id="tab-movements" class="panel hidden">
+      <h2>Entradas e saídas</h2>
+      <form id="movementForm"><div class="formgrid"><div><label for="movementEan">EAN do produto</label><input id="movementEan" inputmode="numeric" required></div><div><label for="movementType">Tipo</label><select id="movementType"><option value="entrada">Entrada</option><option value="saida">Saída</option><option value="ajuste">Ajuste</option></select></div><div><label for="movementQty">Quantidade</label><input id="movementQty" type="number" min="0.001" step="0.001" required></div><div><label for="movementReason">Motivo / documento</label><input id="movementReason" maxlength="200" required></div></div><div class="actions"><button type="submit">Registrar movimentação</button></div></form>
+      <p class="muted small">Movimentações atualizam o saldo e ficam registradas no histórico. Ajustes exigem motivo.</p>
+      <div class="tablewrap"><table><thead><tr><th>Data</th><th>Produto / EAN</th><th>Tipo</th><th>Quantidade</th><th>Responsável</th><th>Motivo</th></tr></thead><tbody id="movementsTable"></tbody></table></div>
+    </section>
+  </section>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 1.0 · Proteja as credenciais e publique apenas em HTTPS.</footer>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="./firebase-config.js"></script>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const state = { user:null, role:null, products:[], sections:[], counts:[], movements:[], inventory:null, inventoryItems:[], scanners:{} };
+  const roleRank = { colaborador:1, gerente:2, administrador:3 };
+  function message(text, type='notice') { const el=$('message'); el.textContent=text; el.className='notice '+(type==='error'?'error':type==='success'?'success':''); el.classList.remove('hidden'); window.scrollTo({top:0,behavior:'smooth'}); }
+  function clearMessage(){ $('message').classList.add('hidden'); }
+  function safe(s){ return String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function fmt(n){ return Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:3}); }
+  function dateFmt(ts){ const d=ts?.toDate?ts.toDate():new Date(ts||Date.now()); return d.toLocaleString('pt-BR'); }
+  function configValid(){ return window.IDEAL_FIREBASE_CONFIG && window.IDEAL_FIREBASE_CONFIG.apiKey && !String(window.IDEAL_FIREBASE_CONFIG.apiKey).includes('COLOQUE_'); }
+  let db, auth, unsubs=[];
+  function stopListeners(){ unsubs.forEach(fn=>{try{fn()}catch(_){}}); unsubs=[]; }
+  async function requireRole(minRole){ if(!state.user || roleRank[state.role] < roleRank[minRole]) throw new Error('Seu perfil não tem permissão para esta operação.'); }
+  function sectionName(id){ return state.sections.find(s=>s.id===id)?.name || 'Seção removida'; }
+  function findProductByEan(ean){ return state.products.find(p=>p.ean===String(ean).trim()); }
+  function validEan(v){ return /^\d{8}$|^\d{13}$/.test(v); }
+  function eanChecksum(v){
+    if(!validEan(v)) return false;
+    const digits=v.split('').map(Number), check=digits.pop();
+    let sum=0; for(let i=digits.length-1,weight=3;i>=0;i--,weight=weight===3?1:3) sum+=digits[i]*weight;
+    return (10-(sum%10))%10===check;
+  }
+  async function startScanner(key, elementId, onScan){
+    if(!window.Html5Qrcode){ message('Biblioteca de leitura não carregou. Verifique a conexão e tente novamente.','error'); return; }
+    await stopScanner(key);
+    const wrap = key==='product'?'productScannerWrap':key==='count'?'countScannerWrap':'inventoryScannerWrap'; $(wrap).classList.remove('hidden');
+    try{
+      const scanner=new Html5Qrcode(elementId); state.scanners[key]=scanner;
+      await scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:250,height:130},formatsToSupport:[Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E]},async decoded=>{
+        const value=String(decoded||'').replace(/\D/g,''); if(!value) return;
+        onScan(value); await stopScanner(key);
+      },()=>{});
+    }catch(e){ $(wrap).classList.add('hidden'); message('Não foi possível abrir a câmera. Autorize o acesso e use o site por HTTPS. '+(e.message||''),'error'); }
+  }
+  async function stopScanner(key){
+    const s=state.scanners[key]; if(s){ try{ if(s.isScanning) await s.stop(); await s.clear(); }catch(_){} delete state.scanners[key]; }
+    const wrap=key==='product'?'productScannerWrap':key==='count'?'countScannerWrap':'inventoryScannerWrap'; $(wrap).classList.add('hidden');
+  }
+  function setTab(tab){ ['products','sections','count','inventory','movements'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==tab)); document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('secondary',b.dataset.tab!==tab)}); }
+  function renderDashboard(){
+    $('statProducts').textContent=state.products.length; $('statSections').textContent=state.sections.length;
+    $('statLow').textContent=state.products.filter(p=>Number(p.stock)>0 && Number(p.stock)<=Number(p.minStock)).length;
+    $('statZero').textContent=state.products.filter(p=>Number(p.stock)<=0).length;
+  }
+  function renderSectionOptions(){
+    const opts='<option value="">Selecione a seção</option>'+state.sections.slice().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(s=>`<option value="${safe(s.id)}">${safe(s.name)}</option>`).join('');
+    $('pSection').innerHTML=opts;
+    $('inventorySection').innerHTML='<option value="">Todas as seções</option>'+state.sections.map(s=>`<option value="${safe(s.id)}">${safe(s.name)}</option>`).join('');
+    $('sectionsTable').innerHTML=state.sections.slice().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(s=>`<tr><td>${safe(s.name)}</td><td>${safe(s.description||'—')}</td></tr>`).join('')||'<tr><td colspan="2">Nenhuma seção cadastrada.</td></tr>';
+  }
+  function renderProducts(){
+    const q=$('productSearch').value.trim().toLocaleLowerCase('pt-BR');
+    const list=state.products.filter(p=>!q||p.name.toLocaleLowerCase('pt-BR').includes(q)||p.ean.includes(q));
+    $('productsTable').innerHTML=list.map(p=>`<tr><td><strong>${safe(p.name)}</strong><br><span class="muted small">${safe(p.ean||'Sem EAN')}</span></td><td>${safe(sectionName(p.sectionId))}</td><td>${fmt(p.stock)} ${safe(p.unit||'UN')}</td><td>${fmt(p.minStock)}</td><td><div class="actions"><button class="secondary" data-edit="${safe(p.id)}" type="button">Editar</button></div></td></tr>`).join('')||'<tr><td colspan="5">Nenhum produto encontrado.</td></tr>';
+    renderDashboard();
+  }
+  function renderCounts(){
+    $('countsTable').innerHTML=state.counts.slice(0,50).map(c=>`<tr><td>${safe(dateFmt(c.createdAt))}</td><td>${safe(c.productName)}</td><td>${fmt(c.systemStock)}</td><td>${fmt(c.countedQty)}</td><td>${fmt(Number(c.countedQty)-Number(c.systemStock))}</td><td>${safe(c.userEmail||'')}</td></tr>`).join('')||'<tr><td colspan="6">Nenhuma contagem registrada.</td></tr>';
+  }
+  function renderMovements(){
+    $('movementsTable').innerHTML=state.movements.slice(0,50).map(m=>`<tr><td>${safe(dateFmt(m.createdAt))}</td><td>${safe(m.productName)}<br><span class="muted small">${safe(m.ean)}</span></td><td>${safe(m.type)}</td><td>${fmt(m.quantity)}</td><td>${safe(m.userEmail||'')}</td><td>${safe(m.reason)}</td></tr>`).join('')||'<tr><td colspan="6">Nenhuma movimentação.</td></tr>';
+  }
+  function renderInventory(){
+    $('inventoryState').textContent=state.inventory?`Inventário aberto: ${state.inventory.name} · ${state.inventoryItems.length} produto(s) contado(s). Revise as diferenças antes de finalizar.`:'Nenhum inventário aberto.';
+    $('finishInventoryBtn').disabled=!state.inventory || !state.inventoryItems.length;
+    $('inventoryTable').innerHTML=state.inventoryItems.map((it,i)=>`<tr><td>${safe(it.productName)}<br><span class="muted small">${safe(it.ean)}</span></td><td>${fmt(it.systemStock)}</td><td><input type="number" min="0" step="0.001" value="${safe(it.countedQty)}" data-invqty="${i}" style="width:110px"></td><td>${fmt(Number(it.countedQty)-Number(it.systemStock))}</td><td><button type="button" class="danger" data-invremove="${i}">Remover</button></td></tr>`).join('')||'<tr><td colspan="5">Adicione os produtos contados.</td></tr>';
+  }
+  function attachListeners(){
+    stopListeners();
+    unsubs.push(db.collection('sections').orderBy('name').onSnapshot(s=>{state.sections=s.docs.map(d=>({id:d.id,...d.data()}));renderSectionOptions();renderProducts();},e=>message('Falha ao carregar seções: '+e.message,'error')));
+    unsubs.push(db.collection('products').orderBy('name').onSnapshot(s=>{state.products=s.docs.map(d=>({id:d.id,...d.data()}));renderProducts();},e=>message('Falha ao carregar produtos: '+e.message,'error')));
+    unsubs.push(db.collection('counts').orderBy('createdAt','desc').limit(50).onSnapshot(s=>{state.counts=s.docs.map(d=>({id:d.id,...d.data()}));renderCounts();},e=>message('Falha ao carregar contagens: '+e.message,'error')));
+    unsubs.push(db.collection('movements').orderBy('createdAt','desc').limit(50).onSnapshot(s=>{state.movements=s.docs.map(d=>({id:d.id,...d.data()}));renderMovements();},e=>message('Falha ao carregar movimentações: '+e.message,'error')));
+  }
+  async function loadRole(user){
+    const snap=await db.collection('users').doc(user.uid).get();
+    if(!snap.exists || !snap.data().role) throw new Error('Conta autenticada, mas sem perfil autorizado. Peça ao administrador do Firebase para provisionar seu perfil.');
+    const role=snap.data().role;
+    if(!roleRank[role]) throw new Error('Perfil inválido. Contate o administrador.');
+    state.role=role; $('roleBadge').textContent='Perfil: '+role; $('userEmail').textContent=user.email||'Usuário'; $('userBar').classList.remove('hidden');
+    document.querySelectorAll('[data-tab="sections"],#sectionForm,[data-tab="movements"],#movementForm,#finishInventoryBtn').forEach(el=>{el.classList.toggle('hidden',roleRank[role]<roleRank.gerente)});
+    $('appPanel').classList.remove('hidden'); $('authPanel').classList.add('hidden'); attachListeners();
+  }
+  async function onAuth(user){
+    stopListeners(); state.user=user; state.role=null; state.products=[]; state.sections=[]; state.counts=[]; state.movements=[];
+    if(!user){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.add('hidden');return;}
+    try{await loadRole(user);clearMessage();}catch(e){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.remove('hidden');$('userEmail').textContent=user.email||'';message(e.message,'error');}
+  }
+  async function createSection(e){e.preventDefault();try{await requireRole('gerente');const name=$('sectionName').value.trim();if(!name)throw new Error('Informe o nome da seção.');await db.collection('sections').add({name,description:$('sectionDescription').value.trim(),createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:state.user.uid});$('sectionForm').reset();message('Seção cadastrada.','success');}catch(err){message(err.message,'error');}}
+  async function saveProduct(e){
+    e.preventDefault();try{await requireRole('gerente');const id=$('productId').value;const ean=$('pEan').value.trim().replace(/\s/g,'');if(ean && (!validEan(ean)||!eanChecksum(ean)))throw new Error('EAN inválido. Confira o código de 8 ou 13 dígitos e o dígito verificador.');
+      const data={ean,name:$('pName').value.trim(),sectionId:$('pSection').value,unit:$('pUnit').value,stock:Number($('pStock').value),minStock:Number($('pMin').value),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:state.user.uid};
+      if(!data.sectionId)throw new Error('Selecione uma seção.');
+      if(state.products.some(p=>p.ean===ean && ean && p.id!==id))throw new Error('Este EAN já está cadastrado em outro produto.');
+      if(!data.name||data.stock<0||data.minStock<0)throw new Error('Confira nome e quantidades.');
+      if(id){await db.collection('products').doc(id).update(data);}else{data.createdAt=firebase.firestore.FieldValue.serverTimestamp();data.createdBy=state.user.uid;await db.collection('products').add(data);}
+      $('productForm').reset();$('productId').value='';$('pStock').value='0';$('pMin').value='0';message('Produto salvo com sucesso.','success');
+    }catch(err){message(err.message,'error');}
+  }
+  async function lookupCountProduct(){
+    const ean=$('countEan').value.trim();const p=findProductByEan(ean);if(!p){$('countProductInfo').textContent='Produto não encontrado. Verifique o EAN ou solicite o cadastro.';$('countProductInfo').classList.remove('hidden');return null;}
+    $('countProductInfo').textContent=`${p.name} · Seção: ${sectionName(p.sectionId)} · Estoque registrado: ${fmt(p.stock)} ${p.unit||'UN'}`;$('countProductInfo').classList.remove('hidden');return p;
+  }
+  async function saveQuickCount(){try{if(!state.user)throw new Error('Entre no sistema.');const p=await lookupCountProduct();if(!p)throw new Error('Produto não encontrado.');const qty=Number($('countQty').value);if(!Number.isFinite(qty)||qty<0)throw new Error('Quantidade inválida.');await db.collection('counts').add({productId:p.id,productName:p.name,ean:p.ean,systemStock:Number(p.stock),countedQty:qty,userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),inventoryId:null});message('Contagem registrada para conferência. O estoque oficial não foi alterado.','success');}catch(e){message(e.message,'error');}}
+  async function startInventory(){try{await requireRole('colaborador');if(state.inventory)throw new Error('Já existe um inventário aberto nesta sessão.');state.inventory={name:$('inventoryName').value.trim()||'Inventário sem título',sectionId:$('inventorySection').value||null,startedAt:new Date().toISOString()};state.inventoryItems=[];renderInventory();message('Inventário iniciado nesta sessão. Adicione os produtos contados.','success');}catch(e){message(e.message,'error');}}
+  async function addInventoryItem(){try{if(!state.inventory)throw new Error('Inicie um inventário primeiro.');const ean=$('inventoryEan').value.trim();const p=findProductByEan(ean);if(!p)throw new Error('Produto não encontrado pelo EAN.');if(state.inventory.sectionId&&p.sectionId!==state.inventory.sectionId)throw new Error('Este produto não pertence à seção selecionada.');const qty=Number($('inventoryQty').value);if(!Number.isFinite(qty)||qty<0)throw new Error('Quantidade inválida.');const existing=state.inventoryItems.find(i=>i.productId===p.id);if(existing)existing.countedQty=qty;else state.inventoryItems.push({productId:p.id,productName:p.name,ean:p.ean,systemStock:Number(p.stock),countedQty:qty,sectionId:p.sectionId,unit:p.unit||'UN'});$('inventoryEan').value='';$('inventoryQty').value='1';renderInventory();}catch(e){message(e.message,'error');}}
+  async function finishInventory(){try{await requireRole('gerente');if(!state.inventory||!state.inventoryItems.length)throw new Error('Não há inventário com produtos para finalizar.');const batch=db.batch();const invRef=db.collection('inventories').doc();batch.set(invRef,{name:state.inventory.name,sectionId:state.inventory.sectionId,startedAt:state.inventory.startedAt,finishedAt:firebase.firestore.FieldValue.serverTimestamp(),status:'finalizado',itemCount:state.inventoryItems.length,userId:state.user.uid,userEmail:state.user.email||''});
+      for(const it of state.inventoryItems){const pRef=db.collection('products').doc(it.productId);batch.update(pRef,{stock:Number(it.countedQty),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:state.user.uid});const cRef=db.collection('counts').doc();batch.set(cRef,{...it,systemStock:Number(it.systemStock),countedQty:Number(it.countedQty),difference:Number(it.countedQty)-Number(it.systemStock),userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),inventoryId:invRef.id});const mRef=db.collection('movements').doc();batch.set(mRef,{productId:it.productId,productName:it.productName,ean:it.ean,type:'ajuste_inventario',quantity:Number(it.countedQty)-Number(it.systemStock),beforeStock:Number(it.systemStock),afterStock:Number(it.countedQty),reason:'Finalização de inventário: '+state.inventory.name,userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),inventoryId:invRef.id});}
+      await batch.commit();state.inventory=null;state.inventoryItems=[];renderInventory();message('Inventário finalizado. Estoques atualizados e diferenças registradas no histórico.','success');
+    }catch(e){message('Não foi possível finalizar o inventário: '+e.message,'error');}}
+  async function movement(e){e.preventDefault();try{await requireRole('gerente');const ean=$('movementEan').value.trim();const p=findProductByEan(ean);if(!p)throw new Error('Produto não encontrado pelo EAN.');const type=$('movementType').value,qty=Number($('movementQty').value),reason=$('movementReason').value.trim();if(!Number.isFinite(qty)||qty<=0)throw new Error('Informe uma quantidade maior que zero.');let after=Number(p.stock);if(type==='entrada')after+=qty;else if(type==='saida')after-=qty;else after=qty;if(after<0)throw new Error('A saída não pode deixar o estoque negativo.');const batch=db.batch();batch.update(db.collection('products').doc(p.id),{stock:after,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:state.user.uid});batch.set(db.collection('movements').doc(),{productId:p.id,productName:p.name,ean:p.ean,type,quantity:qty,beforeStock:Number(p.stock),afterStock:after,reason,userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp()});await batch.commit();$('movementForm').reset();message('Movimentação registrada e estoque atualizado.','success');}catch(err){message(err.message,'error');}}
+  function bind(){
+    $('loginForm').addEventListener('submit',async e=>{e.preventDefault();try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);clearMessage();}catch(err){message('Não foi possível entrar: confira e-mail e senha e se a conta foi autorizada.','error');}});
+    $('logoutBtn').addEventListener('click',()=>auth.signOut());
+    $('productForm').addEventListener('submit',saveProduct);$('sectionForm').addEventListener('submit',createSection);$('movementForm').addEventListener('submit',movement);
+    $('productSearch').addEventListener('input',renderProducts);document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+    $('clearProductBtn').addEventListener('click',()=>{$('productForm').reset();$('productId').value='';$('pStock').value='0';$('pMin').value='0';});
+    $('productsTable').addEventListener('click',e=>{const b=e.target.closest('[data-edit]');if(!b)return;const p=state.products.find(x=>x.id===b.dataset.edit);if(!p)return;$('productId').value=p.id;$('pEan').value=p.ean||'';$('pName').value=p.name;$('pSection').value=p.sectionId;$('pUnit').value=p.unit||'UN';$('pStock').value=p.stock;$('pMin').value=p.minStock;window.scrollTo({top:0,behavior:'smooth'});});
+    $('scanProductBtn').addEventListener('click',()=>startScanner('product','productScanner',v=>{$('pEan').value=v; if(!eanChecksum(v))message('Código lido, mas o dígito verificador não passou na validação. Confira antes de salvar.','error');}));
+    $('stopProductScanner').addEventListener('click',()=>stopScanner('product'));
+    $('scanCountBtn').addEventListener('click',()=>startScanner('count','countScanner',v=>{$('countEan').value=v;lookupCountProduct();}));$('stopCountScanner').addEventListener('click',()=>stopScanner('count'));
+    $('lookupCountBtn').addEventListener('click',lookupCountProduct);$('saveCountBtn').addEventListener('click',saveQuickCount);
+    $('startInventoryBtn').addEventListener('click',startInventory);$('addInventoryItemBtn').addEventListener('click',addInventoryItem);$('finishInventoryBtn').addEventListener('click',finishInventory);
+    $('scanInventoryBtn').addEventListener('click',()=>startScanner('inventory','inventoryScanner',v=>{$('inventoryEan').value=v;addInventoryItem();}));$('stopInventoryScanner').addEventListener('click',()=>stopScanner('inventory'));
+    $('inventoryTable').addEventListener('input',e=>{const i=e.target.dataset.invqty;if(i===undefined)return;const n=Number(e.target.value);if(Number.isFinite(n)&&n>=0){state.inventoryItems[Number(i)].countedQty=n;renderInventory();}});
+    $('inventoryTable').addEventListener('click',e=>{const i=e.target.dataset.invremove;if(i===undefined)return;state.inventoryItems.splice(Number(i),1);renderInventory();});
+  }
+  async function init(){
+    if(!configValid()){message('Falta configurar firebase-config.js com os dados do seu projeto.','error');return;}
+    try{firebase.initializeApp(window.IDEAL_FIREBASE_CONFIG);auth=firebase.auth();db=firebase.firestore();bind();auth.onAuthStateChanged(onAuth);if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-worker.js').catch(()=>{});}
+    catch(e){message('Erro ao iniciar o Firebase: '+e.message,'error');}
+  }
+  init();
+})();
+</script>
+</body>
+</html>
