@@ -1,0 +1,1878 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#14532d">
+  <meta name="description" content="Controle de estoque IDEAL com inventário e leitura de código de barras.">
+  <title>IDEAL Controle de Estoque</title>
+  <link rel="manifest" href="./manifest.json">
+  <style>
+    :root{--green:#14532d;--green2:#166534;--bg:#f3f6f4;--card:#fff;--text:#17211b;--muted:#647067;--line:#dce5de;--red:#b91c1c;--amber:#a16207}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    header{background:var(--green);color:#fff;padding:18px max(16px,calc((100% - 1180px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    header h1{font-size:20px;margin:0} header small{opacity:.85} main{max-width:1180px;margin:22px auto;padding:0 16px}
+    .panel,.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 2px 8px #17211b0a;margin-bottom:16px}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.stat{font-size:28px;font-weight:750;margin-top:4px}.muted{color:var(--muted)} .hidden{display:none!important}
+    nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}button,.button{border:0;border-radius:9px;background:var(--green2);color:#fff;padding:10px 14px;font:inherit;font-weight:650;cursor:pointer}button.secondary{background:#e7eee9;color:var(--green)}button.danger{background:var(--red)}button:disabled{opacity:.55;cursor:not-allowed}
+    input,select{width:100%;padding:10px 11px;border:1px solid #c8d5cc;border-radius:8px;font:inherit;background:white;color:var(--text)}label{display:block;font-weight:650;margin:10px 0 5px}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.notice{padding:12px;border-radius:9px;background:#eff6ff;color:#1e40af;margin-bottom:12px}.error{background:#fef2f2;color:#991b1b}.success{background:#f0fdf4;color:#166534}
+    table{width:100%;border-collapse:collapse;background:white}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:13px;color:var(--muted)}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px}
+    .section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.badge{display:inline-block;padding:3px 8px;border-radius:99px;background:#e7eee9;color:var(--green);font-size:12px;font-weight:700}
+    #scanner{max-width:480px;width:100%;margin-top:12px} .small{font-size:13px}.right{margin-left:auto}
+    .lookup-status{font-size:13px;min-height:1.3em;margin-top:6px;color:var(--muted)}
+    .lookup-status.success{color:#166534}.lookup-status.warning{color:#92400e}.lookup-status.error{color:#991b1b}
+    #dashboardKpis{grid-template-columns:repeat(6,minmax(0,1fr))}
+    .dashboard-kpi{min-width:0;position:relative;overflow:hidden}
+    .dashboard-kpi .kpi-label{font-size:12px;color:var(--muted);line-height:1.35}
+    .dashboard-kpi .stat{font-size:clamp(22px,2.2vw,30px);font-variant-numeric:tabular-nums}
+    .dashboard-kpi .kpi-note{font-size:11px;color:var(--muted);margin-top:5px}
+    .dashboard-kpi.kpi-danger{border-color:#fecaca;background:linear-gradient(145deg,#fff,#fff7f7)}
+    .dashboard-kpi.kpi-danger .stat{color:#b91c1c}
+    .dashboard-kpi.kpi-good .stat{color:#166534}
+    .dashboard-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px}
+    .dashboard-shortcuts{display:flex;gap:8px;flex-wrap:wrap}
+    .dashboard-sync{font-size:12px;color:var(--muted)}
+    .dashboard-insight{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px;margin-top:14px}
+    .dashboard-insight-card{padding:14px;border:1px solid var(--line);border-radius:12px;background:#f8faf9}
+    .dashboard-insight-card strong{font-size:18px}
+    .dashboard-progress{width:100%;height:8px;border-radius:99px;background:#e5e7eb;overflow:hidden;margin:8px 0 5px}
+    .dashboard-progress > span{display:block;height:100%;border-radius:99px;background:var(--green2);transition:width .2s}
+    .dashboard-panels{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px;margin-top:14px}
+    .dashboard-card{min-width:0;margin:0}
+    .dashboard-card-wide{grid-column:1 / -1}
+    .bulk-import-help{border-left:3px solid var(--green2);padding:10px 12px;background:#f0fdf4;border-radius:6px;font-size:13px;margin:10px 0}
+    .bulk-import-summary{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+    .bulk-import-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:13px}
+    .bulk-import-summary strong{font-size:16px;margin-left:4px}
+    #bulkStockImportTable td{font-size:12px}
+    .bulk-row-error{color:#991b1b;font-weight:650}
+    .bulk-row-ok{color:#166534;font-weight:650}
+    .dashboard-card h3{margin:0 0 10px;font-size:17px}
+    .dashboard-mini-table{font-size:13px}
+    .dashboard-mini-table th,.dashboard-mini-table td{padding:8px}
+    .dashboard-list{display:flex;flex-direction:column;gap:8px}
+    .dashboard-list-item{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+    .dashboard-list-item strong{display:block}
+    .dashboard-list-item .subline{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+    .dashboard-list-item .item-right{text-align:right;white-space:nowrap;font-weight:700}
+    .status-pill{display:inline-block;padding:3px 7px;border-radius:999px;font-size:11px;font-weight:750}
+    .status-pill.zero{background:#fee2e2;color:#991b1b}
+    .status-pill.low{background:#fef3c7;color:#92400e}
+    .status-pill.ok{background:#dcfce7;color:#166534}
+    .status-pill.missing{background:#e0e7ff;color:#3730a3}
+    .report-controls{margin-top:12px}
+    .report-summary{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+    .report-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:13px}
+    .report-summary strong{font-size:16px;margin-left:4px}
+    .inventory-progress{display:block;width:100%;height:16px;margin:10px 0 8px;accent-color:var(--green2)}
+    .inventory-coverage{margin:14px 0}
+    .inventory-coverage h3{margin:0 0 8px}
+    .inventory-pending{margin-top:10px;max-height:280px;overflow:auto}
+    .inventory-pending .dashboard-list-item{padding:8px 10px}
+    .user-form-note{border-left:3px solid var(--green2);padding:10px 12px;background:#f0fdf4;border-radius:6px;font-size:13px}
+    .user-access{display:flex;align-items:center;gap:8px;white-space:nowrap}
+    .user-access input{width:auto}
+    .user-role-select{min-width:160px}
+    #usersTable td{vertical-align:middle}
+    .audit-summary{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+    .audit-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:13px}
+    .audit-summary strong{font-size:16px;margin-left:4px}
+    .audit-entity{display:block;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+    .audit-action{font-weight:700}
+    #auditTable td{vertical-align:top}
+    .integrity-summary{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+    .integrity-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:13px}
+    .integrity-summary strong{font-size:16px;margin-left:4px}
+    .backup-note{border-left:3px solid var(--green2);padding:10px 12px;background:#f0fdf4;border-radius:6px;font-size:13px}
+    .severity{display:inline-block;border-radius:999px;padding:3px 7px;font-weight:700;font-size:11px}
+    .severity.error{background:#fee2e2;color:#991b1b}
+    .severity.warning{background:#fef3c7;color:#92400e}
+    #integrityTable td{vertical-align:top}
+    .analysis-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+    .analysis-metric{padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff}
+    .analysis-metric .metric-label{font-size:12px;color:var(--muted)}
+    .analysis-metric .metric-value{font-size:25px;font-weight:800;margin-top:4px}
+    .analysis-metric .metric-note{font-size:11px;color:var(--muted);margin-top:3px}
+    .analysis-two-col{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;margin-top:14px}
+    .analysis-chart{display:flex;flex-direction:column;gap:10px}
+    .analysis-day{display:grid;grid-template-columns:70px minmax(0,1fr) 110px;align-items:center;gap:10px}
+    .analysis-day-label{font-size:12px;color:var(--muted)}
+    .analysis-bars{display:flex;flex-direction:column;gap:4px;min-width:0}
+    .analysis-bar{height:10px;min-width:2px;border-radius:4px}
+    .analysis-bar.total{background:#166534}
+    .analysis-bar.diff{background:#d97706}
+    .analysis-day-numbers{font-size:11px;color:var(--muted);text-align:right;white-space:nowrap}
+    .analysis-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:8px}
+    .analysis-legend span{display:inline-flex;align-items:center;gap:5px}
+    .analysis-legend i{display:inline-block;width:10px;height:10px;border-radius:3px}
+    .analysis-note{border-left:3px solid var(--green2);padding:10px 12px;background:#f0fdf4;border-radius:6px;font-size:13px;margin:12px 0}
+    @media(max-width:960px){#dashboardKpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media(max-width:760px){.dashboard-insight{grid-template-columns:1fr}.analysis-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.analysis-two-col{grid-template-columns:1fr}.analysis-day{grid-template-columns:60px minmax(0,1fr) 90px;gap:6px}.analysis-metric .metric-value{font-size:22px}}
+    .user-uid{display:block;max-width:360px;overflow-wrap:anywhere;font-size:11px;color:var(--muted);margin-top:3px}
+    @media print{body *{visibility:hidden!important}#tab-report,#tab-report *,#tab-history,#tab-history *{visibility:visible!important}#tab-report,#tab-history{display:block!important;position:absolute!important;left:0!important;top:0!important;width:100%!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;background:#fff!important}body:not(.print-history) #tab-history,body.print-history #tab-report{display:none!important}#tab-report .report-controls,#tab-report .actions,#tab-history .report-controls,#tab-history .actions,#message{display:none!important}#tab-report .tablewrap,#tab-history .tablewrap{overflow:visible!important;border:0!important}#tab-report table,#tab-history table{font-size:8pt}#tab-report th,#tab-report td,#tab-history th,#tab-history td{padding:4px!important;border:1px solid #ccc!important;color:#000!important}#tab-history .card{margin-top:10px!important;padding:8px!important}}
+    .dashboard-empty{padding:12px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:13px}
+    @media(max-width:760px){.dashboard-panels{grid-template-columns:1fr}.dashboard-card-wide{grid-column:auto}.dashboard-list-item{gap:8px}.dashboard-list-item .item-right{white-space:normal}}
+    body.scanner-open{overflow:hidden;overscroll-behavior:none}
+    .scanner-overlay{position:fixed;inset:0;z-index:99999;width:100vw;height:100vh;height:100dvh;background:#050806;color:#fff;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;flex-direction:column;gap:12px;overflow:hidden;margin:0;border:0;border-radius:0;box-shadow:none}
+    .scanner-header{flex:0 0 auto;text-align:center;padding:2px 8px}
+    .scanner-header h2{font-size:20px;line-height:1.2;margin:0 0 6px;color:#fff}
+    .scanner-header p{font-size:14px;margin:0;color:#d5e0d8}
+    .scanner-stage{position:relative;flex:1 1 auto;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:14px;background:#000}
+    .scanner-stage>div[id$="Scanner"]{width:100%!important;height:100%!important;max-width:none!important;min-height:0!important;display:flex;flex-direction:column;justify-content:center}
+    .scanner-stage [id$="__scan_region"]{width:100%!important;height:100%!important;min-height:0!important;display:flex!important;align-items:center;justify-content:center;overflow:hidden}
+    .scanner-stage [id$="__scan_region"] video{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:cover!important}
+    .scanner-stage [id$="__scan_region"] img{object-fit:contain}
+    .scanner-overlay>button{width:100%;max-width:560px;align-self:center;flex:0 0 auto;min-height:48px}
+    .scanner-overlay .scanner-stage button{width:auto}
+    @media(max-width:600px){.scanner-overlay{padding-left:10px;padding-right:10px;gap:10px}.scanner-header h2{font-size:18px}.scanner-stage{border-radius:8px}}
+    @media(max-width:800px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.formgrid{grid-template-columns:1fr}header{padding:16px}main{margin:14px auto}.stat{font-size:24px}}
+    @media(max-width:420px){.grid{grid-template-columns:1fr 1fr}#dashboardKpis{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-kpi .stat{font-size:23px}.panel,.card{padding:13px}button{padding:9px 11px}}
+  </style>
+</head>
+<body>
+<header>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 2.9 · Histórico de inventários e contagens</small></div>
+  <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
+</header>
+<main>
+  <div id="message" class="notice hidden" role="status"></div>
+
+  <section id="authPanel" class="panel">
+    <h2>Acessar o sistema</h2>
+    <p class="muted">Entre com uma conta autorizada. O primeiro administrador deve ser provisionado pelo responsável do projeto Firebase.</p>
+    <form id="loginForm">
+      <label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required>
+      <label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required minlength="6">
+      <div class="actions"><button type="submit">Entrar</button></div>
+    </form>
+  </section>
+
+  <section id="appPanel" class="hidden">
+    <div class="panel">
+      <div class="section-title"><div><h2 style="margin:0">Painel de estoque</h2><span class="muted small">Os números são atualizados conforme os dados autorizados mudam no Firestore.</span></div><span id="roleBadge" class="badge">Perfil: verificando</span></div>
+      <div id="dashboardKpis" class="grid" style="margin-top:16px">
+        <div class="card dashboard-kpi kpi-good"><div class="kpi-label">Produtos com saldo</div><div id="statAvailable" class="stat">—</div><div class="kpi-note">Itens atualmente no estoque</div></div>
+        <div class="card dashboard-kpi"><div class="kpi-label">Seções com produtos</div><div id="statSections" class="stat">—</div><div class="kpi-note">Seções com saldo cadastrado</div></div>
+        <div class="card dashboard-kpi"><div class="kpi-label">Saldos atualizados hoje</div><div id="statUpdatedToday" class="stat">—</div><div class="kpi-note">Produtos com saldo positivo editados hoje</div></div>
+      </div>
+      <div class="dashboard-toolbar">
+        <div id="dashboardUpdatedAt" class="dashboard-sync">Aguardando sincronização do estoque...</div>
+        <div class="dashboard-shortcuts">
+          <button id="dashboardOpenProducts" type="button" class="secondary">Cadastrar / atualizar saldo</button>
+          <button id="dashboardOpenReport" type="button" class="secondary">Relatório e exportação</button>
+        </div>
+      </div>
+      <section class="card dashboard-card" style="margin-top:14px">
+        <div class="section-title"><div><h3>Estoque atual disponível</h3><p class="muted small" style="margin:5px 0 0">Esta tela mostra somente produtos com saldo maior que zero. Atualize a quantidade cadastrada para manter a base de compras em dia.</p></div><span id="dashboardStockBadge" class="badge">Aguardando dados</span></div>
+        <div class="formgrid report-controls">
+          <div><label for="dashboardStockSearch">Pesquisar produto / EAN</label><input id="dashboardStockSearch" placeholder="Digite o nome ou leia o código EAN"></div>
+          <div><label for="dashboardStockSection">Seção</label><select id="dashboardStockSection"><option value="">Todas as seções</option></select></div>
+        </div>
+        <div id="dashboardStockSummary" class="report-summary"></div>
+        <div class="tablewrap"><table><thead><tr><th>Produto</th><th>EAN</th><th>Seção</th><th>Saldo atual</th><th>Atualizar</th></tr></thead><tbody id="dashboardCurrentStockTable"><tr><td colspan="5">Carregando estoque...</td></tr></tbody></table></div>
+        <div id="dashboardStockRowsStatus" class="muted small" style="margin-top:10px">Aguardando dados do estoque...</div>
+      </section>
+      <div class="dashboard-panels">
+        <section class="card dashboard-card">
+          <div class="section-title"><h3>Produtos em estoque por seção</h3></div>
+          <div class="tablewrap">
+            <table class="dashboard-mini-table">
+              <thead><tr><th>Seção</th><th>Produtos com saldo</th><th>Unidades utilizadas</th></tr></thead>
+              <tbody id="dashboardSections"><tr><td colspan="3">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card dashboard-card">
+          <div class="section-title"><h3>Como manter o controle de compras</h3></div>
+          <p class="muted small">1. Cadastre os produtos que você tem no estoque.</p>
+          <p class="muted small">2. Informe a quantidade atual de cada produto e sua unidade.</p>
+          <p class="muted small">3. Quando o saldo mudar, abra “Cadastrar / atualizar saldo” e edite o produto.</p>
+          <p class="muted small">4. Use “Relatório e exportação” para baixar a posição atual em CSV ou salvar em PDF.</p>
+        </section>
+      </div>
+    </div>
+
+    <nav aria-label="Módulos">
+      <button data-tab="products">Produtos</button><button data-tab="sections" class="secondary">Seções</button>
+      <button data-tab="count" class="secondary">Contagem rápida</button><button data-tab="inventory" class="secondary">Inventário completo</button>
+      <button data-tab="report" class="secondary">Relatório de estoque</button><button data-tab="history" class="secondary">Histórico de contagens</button><button id="usersTabBtn" data-tab="users" class="secondary hidden">Usuários</button><button id="auditTabBtn" data-tab="audit" class="secondary hidden">Auditoria</button><button id="backupTabBtn" data-tab="backup" class="secondary hidden">Backup</button><button id="analysisTabBtn" data-tab="analysis" class="secondary hidden">Análise gerencial</button>
+    </nav>
+
+    <section id="tab-products" class="panel">
+      <h2>Cadastro de produtos</h2>
+      <section id="bulkStockImportPanel" class="card dashboard-card" style="margin:14px 0 18px">
+        <div class="section-title"><div><h3 style="margin:0">Alimentar estoque por planilha</h3><p class="muted small" style="margin:5px 0 0">Importe em lote os produtos que você tem no estoque para montar a base de compras.</p></div><span class="badge">Gerência / administrador</span></div>
+        <div class="bulk-import-help">Use um CSV com as colunas <strong>EAN; Produto; Seção; Unidade; Saldo atual</strong>. As seções precisam existir no sistema. O saldo deve ser maior que zero. Produtos com EAN já cadastrado terão o saldo atualizado; EANs novos serão cadastrados. Produtos que não estiverem na planilha não serão excluídos nem alterados.</div>
+        <div class="formgrid report-controls">
+          <div><label for="bulkStockFile">Planilha CSV</label><input id="bulkStockFile" type="file" accept=".csv,text/csv"></div>
+          <div class="actions" style="align-items:end"><button id="downloadStockTemplateBtn" type="button" class="secondary">Baixar modelo CSV</button><button id="prepareStockImportBtn" type="button" class="secondary">Conferir planilha</button></div>
+        </div>
+        <div id="bulkStockImportStatus" class="muted small" aria-live="polite" style="margin-top:10px">Selecione um CSV para conferir os dados antes de gravar.</div>
+        <div id="bulkStockImportSummary" class="bulk-import-summary"></div>
+        <div class="actions report-controls"><button id="importStockBatchBtn" type="button" disabled>Gravar produtos válidos</button><button id="clearStockImportBtn" type="button" class="secondary">Limpar prévia</button></div>
+        <div class="tablewrap"><table><thead><tr><th>Linha</th><th>EAN</th><th>Produto</th><th>Seção</th><th>Unidade</th><th>Saldo</th><th>Resultado</th></tr></thead><tbody id="bulkStockImportTable"><tr><td colspan="7">A prévia aparecerá após conferir a planilha.</td></tr></tbody></table></div>
+        <p id="bulkStockImportFooter" class="muted small" style="margin-top:8px">Nenhum dado será gravado antes de você conferir e confirmar a importação.</p>
+      </section>
+      <form id="productForm">
+        <input type="hidden" id="productId">
+        <div class="formgrid">
+          <div><label for="pEan">Código EAN</label><input id="pEan" inputmode="numeric" autocomplete="off" placeholder="Leia ou digite o EAN"><div id="eanLookupMessage" class="lookup-status" aria-live="polite">Leia um EAN para buscar automaticamente nome e categoria do produto.</div></div>
+          <div style="align-self:end"><button id="scanProductBtn" type="button" class="secondary">📷 Ler EAN pela câmera</button></div>
+          <div><label for="pName">Nome do produto *</label><input id="pName" required maxlength="160"></div>
+          <div><label for="pSection">Seção *</label><select id="pSection" required><option value="">Cadastre uma seção primeiro</option></select></div>
+          <div><label for="pUnit">Unidade</label><select id="pUnit"><option>UN</option><option>KG</option><option>G</option><option>L</option><option>ML</option><option>CX</option><option>FD</option><option>PCT</option></select></div>
+          <div><label for="pStock">Estoque atual</label><input id="pStock" type="number" min="0" step="0.001" value="0" required></div>
+        </div>
+        <div class="actions"><button type="submit">Salvar produto</button><button id="clearProductBtn" type="button" class="secondary">Limpar</button></div>
+      </form>
+      <div id="productScannerWrap" class="scanner-overlay hidden" role="dialog" aria-modal="true" aria-label="Leitor de código EAN"><div class="scanner-header"><h2>Ler código EAN</h2><p>Centralize o código de barras na área de leitura. A câmera fechará automaticamente após a captura.</p></div><div class="scanner-stage"><div id="productScanner"></div></div><button id="stopProductScanner" type="button" class="danger">Fechar câmera</button></div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:20px 0">
+      <div class="section-title"><h3>Produtos cadastrados</h3><input id="productSearch" placeholder="Pesquisar por nome ou EAN" style="max-width:320px"></div>
+      <div class="tablewrap"><table><thead><tr><th>Produto / EAN</th><th>Seção</th><th>Estoque atual</th><th>Ações</th></tr></thead><tbody id="productsTable"><tr><td colspan="4">Carregando...</td></tr></tbody></table></div>
+    </section>
+
+    <section id="tab-sections" class="panel hidden">
+      <h2>Cadastro de seções</h2>
+      <form id="sectionForm"><div class="formgrid"><div><label for="sectionName">Nome da seção *</label><input id="sectionName" required maxlength="100"></div><div><label for="sectionDescription">Descrição</label><input id="sectionDescription" maxlength="200"></div></div><div class="actions"><button type="submit">Salvar seção</button></div></form>
+      <div class="tablewrap"><table><thead><tr><th>Seção</th><th>Descrição</th></tr></thead><tbody id="sectionsTable"></tbody></table></div>
+    </section>
+
+    <section id="tab-users" class="panel hidden">
+      <div class="section-title"><div><h2 style="margin:0">Usuários e permissões</h2><p class="muted small" style="margin:5px 0 0">Área exclusiva do administrador. Crie contas, defina perfis e controle o acesso ao sistema.</p></div><span class="badge">Somente administrador</span></div>
+      <div class="user-form-note" style="margin:14px 0">O novo usuário terá uma conta de autenticação e um perfil no sistema. A senha provisória deve ser compartilhada de forma privada. Desativar o perfil bloqueia as operações do sistema e encerra a sessão quando o bloqueio for detectado.</div>
+      <h3>Cadastrar novo usuário</h3>
+      <form id="managedUserForm">
+        <div class="formgrid">
+          <div><label for="managedUserName">Nome</label><input id="managedUserName" maxlength="120" placeholder="Nome do colaborador"></div>
+          <div><label for="managedUserEmail">E-mail de acesso *</label><input id="managedUserEmail" type="email" autocomplete="off" required></div>
+          <div><label for="managedUserPassword">Senha provisória *</label><input id="managedUserPassword" type="password" autocomplete="new-password" minlength="6" required placeholder="Mínimo de 6 caracteres"></div>
+          <div><label for="managedUserRole">Perfil *</label><select id="managedUserRole" required><option value="colaborador">Colaborador</option><option value="gerente">Gerente</option><option value="administrador">Administrador</option></select></div>
+        </div>
+        <label class="user-access" for="managedUserActive"><input id="managedUserActive" type="checkbox" checked> Criar usuário com acesso ativo</label>
+        <div class="actions"><button id="createManagedUserBtn" type="submit">Criar usuário e perfil</button></div>
+      </form>
+      <hr style="border:0;border-top:1px solid var(--line);margin:22px 0">
+      <div class="section-title"><h3>Usuários cadastrados</h3><input id="userSearch" placeholder="Pesquisar por nome, e-mail ou UID" style="max-width:360px"></div>
+      <div class="tablewrap"><table><thead><tr><th>Usuário</th><th>Perfil</th><th>Acesso</th><th>Ação</th></tr></thead><tbody id="usersTable"><tr><td colspan="4">Carregando usuários...</td></tr></tbody></table></div>
+      <p class="muted small">Por segurança, esta tela não permite alterar o próprio perfil. Mantenha pelo menos um administrador ativo.</p>
+    </section>
+
+    <section id="tab-audit" class="panel hidden">
+      <div class="section-title"><div><h2 style="margin:0">Auditoria de alterações</h2><p class="muted small" style="margin:5px 0 0">Registros de operações do sistema, com responsável, data e detalhes. A auditoria não altera o estoque.</p></div><span id="auditFreshness" class="badge">Aguardando dados</span></div>
+      <div class="formgrid report-controls">
+        <div><label for="auditSearch">Pesquisar auditoria</label><input id="auditSearch" placeholder="Responsável, EAN, produto ou detalhe"></div>
+        <div><label for="auditActionFilter">Tipo de operação</label><select id="auditActionFilter"><option value="all">Todas as operações</option><option value="product_created">Produto cadastrado</option><option value="product_updated">Produto atualizado</option><option value="stock_bulk_imported">Estoque alimentado por planilha</option><option value="section_created">Seção cadastrada</option><option value="quick_count_registered">Contagem rápida registrada</option><option value="inventory_finalized">Inventário finalizado</option><option value="user_created">Usuário criado</option><option value="user_access_updated">Perfil ou acesso alterado</option><option value="backup_exported">Backup exportado</option></select></div>
+      </div>
+      <div class="actions report-controls"><button id="exportAuditCsv" type="button">Exportar auditoria CSV</button></div>
+      <div id="auditSummary" class="audit-summary"></div>
+      <div id="auditUpdatedAt" class="muted small" style="margin:8px 0 12px">Aguardando registros de auditoria...</div>
+      <div class="actions report-controls"><button id="loadMoreAuditBtn" type="button" class="secondary" disabled>Carregar mais auditoria</button><span id="auditPageStatus" class="muted small" style="align-self:center">Carregando registros...</span></div>
+      <div class="tablewrap"><table><thead><tr><th>Data e hora</th><th>Responsável</th><th>Operação</th><th>Detalhes</th></tr></thead><tbody id="auditTable"><tr><td colspan="4">Carregando auditoria...</td></tr></tbody></table></div>
+      <p class="muted small" style="margin-top:12px">A auditoria pode ser consultada por páginas de até 500 registros. Os registros não podem ser alterados nem excluídos pelo aplicativo.</p>
+    </section>
+
+    <section id="tab-backup" class="panel hidden">
+      <div class="section-title"><div><h2 style="margin:0">Backup e integridade</h2><p class="muted small" style="margin:5px 0 0">Ferramentas administrativas para cópia de segurança e conferência da qualidade do cadastro.</p></div><span class="badge">Somente administrador</span></div>
+      <div class="backup-note" style="margin:14px 0">O backup é baixado para o seu computador em formato JSON. Ele inclui os dados do Firestore disponíveis às permissões do administrador, mas não inclui senhas nem credenciais do Firebase Authentication. Guarde o arquivo em local seguro. Esta tela não restaura nem sobrescreve dados.</div>
+      <section class="card" style="margin-top:14px">
+        <h3>1. Cópia de segurança</h3>
+        <p class="muted small">Exporta produtos, seções, perfis de usuários, contagens, inventários e auditoria. A operação apenas lê e baixa os dados; não altera o estoque.</p>
+        <div class="actions"><button id="downloadBackupBtn" type="button">Gerar e baixar backup JSON</button></div>
+        <div id="backupStatus" class="muted small" style="margin-top:10px">Nenhum backup gerado nesta sessão.</div>
+      </section>
+      <section class="card" style="margin-top:14px">
+        <h3>2. Verificação do cadastro</h3>
+        <p class="muted small">Procura EAN duplicado ou inválido, seção inexistente, saldo negativo ou inválido, nomes de seção repetidos e produtos sem nome.</p>
+        <div class="actions"><button id="runIntegrityBtn" type="button">Verificar integridade agora</button><button id="exportIntegrityCsv" type="button" class="secondary" disabled>Exportar resultado CSV</button></div>
+        <div id="integrityStatus" class="muted small" style="margin-top:10px">A verificação ainda não foi executada.</div>
+        <div id="integritySummary" class="integrity-summary"></div>
+        <div class="tablewrap"><table><thead><tr><th>Gravidade</th><th>Item</th><th>Problema encontrado</th></tr></thead><tbody id="integrityTable"><tr><td colspan="3">Execute a verificação para ver os resultados.</td></tr></tbody></table></div>
+      </section>
+      <p class="muted small">A verificação é uma fotografia dos dados no momento da execução. Corrija os avisos manualmente e rode a conferência novamente. O sistema não corrige nem apaga registros automaticamente.</p>
+    </section>
+
+    <section id="tab-analysis" class="panel hidden">
+      <div class="section-title"><div><h2 style="margin:0">Análise gerencial</h2><p class="muted small" style="margin:5px 0 0">Indicadores de divergência, produtos que mais apresentam diferença e ritmo das conferências.</p></div><span id="analysisFreshness" class="badge">Aguardando dados</span></div>
+      <div class="formgrid report-controls">
+        <div><label for="analysisPeriod">Período de análise</label><select id="analysisPeriod"><option value="7">Últimos 7 dias</option><option value="30" selected>Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="all">Todos os registros carregados</option></select></div>
+      </div>
+      <div class="analysis-note">Esta análise usa até 500 das contagens mais recentes carregadas para gerência e administração. Os percentuais são calculados sobre essas contagens disponíveis, não sobre produtos sem conferência. Unidades diferentes não são somadas entre produtos: as diferenças acumuladas por produto são apresentadas junto à unidade cadastrada.</div>
+      <div id="analysisSummary" class="analysis-metrics"></div>
+      <section class="card" style="margin-top:14px">
+        <div class="section-title"><h3>Evolução das conferências</h3><span class="muted small">Dias com registros</span></div>
+        <div class="analysis-legend"><span><i style="background:#166534"></i>Contagens realizadas</span><span><i style="background:#d97706"></i>Contagens com diferença</span></div>
+        <div id="analysisTrend" class="analysis-chart"><div class="dashboard-empty">Aguardando contagens...</div></div>
+      </section>
+      <div class="analysis-two-col">
+        <section class="card dashboard-card">
+          <h3>Produtos com mais divergências</h3>
+          <p class="muted small">Ordenados pelo número de conferências com diferença; também mostra a soma das diferenças absolutas para cada produto.</p>
+          <div class="tablewrap"><table><thead><tr><th>Produto</th><th>Diferenças</th><th>Soma das diferenças</th></tr></thead><tbody id="analysisProductsTable"><tr><td colspan="3">Carregando...</td></tr></tbody></table></div>
+        </section>
+        <section class="card dashboard-card">
+          <h3>Resumo por responsável</h3>
+          <p class="muted small">Volume de contagens e percentual de contagens sem diferença nos registros disponíveis.</p>
+          <div class="tablewrap"><table><thead><tr><th>Responsável</th><th>Contagens</th><th>Sem diferença</th></tr></thead><tbody id="analysisUsersTable"><tr><td colspan="3">Carregando...</td></tr></tbody></table></div>
+        </section>
+      </div>
+      <div class="actions report-controls"><button id="exportAnalysisCsv" type="button">Exportar análise CSV</button><button id="loadMoreAnalysisCountsBtn" type="button" class="secondary" disabled>Carregar mais contagens para análise</button></div>
+      <div id="analysisUpdatedAt" class="muted small" style="margin-top:8px">Aguardando atualização dos dados...</div>
+    </section>
+
+    <section id="tab-count" class="panel hidden">
+      <h2>Contagem rápida por EAN</h2>
+      <p class="muted">Leia um código, informe a quantidade física e registre uma contagem para conferência. A contagem rápida não altera diretamente o estoque oficial.</p>
+      <div class="formgrid"><div><label for="countEan">EAN</label><input id="countEan" inputmode="numeric" placeholder="Código de barras"></div><div style="align-self:end"><button id="scanCountBtn" type="button" class="secondary">📷 Ler EAN pela câmera</button></div><div><label for="countQty">Quantidade contada *</label><input id="countQty" type="number" min="0" step="0.001" placeholder="Informe a quantidade física" required><p class="muted small" style="margin:5px 0 0">O campo começa vazio para evitar registrar uma quantidade por engano.</p></div></div>
+      <div class="actions"><button id="lookupCountBtn" type="button" class="secondary">Localizar produto</button><button id="saveCountBtn" type="button">Registrar contagem</button></div>
+      <div id="countProductInfo" class="notice hidden"></div><div id="countScannerWrap" class="scanner-overlay hidden" role="dialog" aria-modal="true" aria-label="Leitor de EAN para contagem"><div class="scanner-header"><h2>Ler EAN para contagem</h2><p>Centralize o código de barras na área de leitura. A câmera fechará automaticamente após a captura.</p></div><div class="scanner-stage"><div id="countScanner"></div></div><button id="stopCountScanner" type="button" class="danger">Fechar câmera</button></div>
+      <h3>Contagens recentes</h3><div class="tablewrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Estoque registrado</th><th>Contado</th><th>Diferença</th><th>Responsável</th></tr></thead><tbody id="countsTable"></tbody></table></div>
+    </section>
+
+    <section id="tab-inventory" class="panel hidden">
+      <h2>Inventário completo</h2>
+      <p class="muted">Crie uma sessão, adicione produtos por EAN ou selecione-os na lista e revise as diferenças. O estoque oficial só muda quando o inventário é finalizado por um perfil autorizado.</p>
+      <div class="formgrid"><div><label for="inventoryName">Nome do inventário</label><input id="inventoryName" placeholder="Ex.: Inventário seção mercearia"></div><div><label for="inventorySection">Filtrar por seção</label><select id="inventorySection"><option value="">Todas as seções</option></select></div></div>
+      <div class="actions"><button id="startInventoryBtn" type="button">Iniciar inventário</button><button id="scanInventoryBtn" type="button" class="secondary">📷 Ler produto</button><button id="finishInventoryBtn" type="button" class="danger" disabled>Finalizar inventário</button><button id="discardInventoryBtn" type="button" class="secondary" disabled>Descartar rascunho</button></div>
+      <div id="inventoryScannerWrap" class="scanner-overlay hidden" role="dialog" aria-modal="true" aria-label="Leitor de EAN do inventário"><div class="scanner-header"><h2>Ler EAN do inventário</h2><p>Centralize o código de barras na área de leitura. A câmera fechará automaticamente após a captura.</p></div><div class="scanner-stage"><div id="inventoryScanner"></div></div><button id="stopInventoryScanner" type="button" class="danger">Fechar câmera</button></div>
+      <div class="formgrid"><div><label for="inventoryEan">EAN do produto</label><input id="inventoryEan" inputmode="numeric"></div><div><label for="inventoryQty">Quantidade contada</label><input id="inventoryQty" type="number" min="0" step="0.001" value="1"></div></div>
+      <div class="actions"><button id="addInventoryItemBtn" type="button" class="secondary">Adicionar produto contado</button></div>
+      <div id="inventoryState" class="notice">Nenhum inventário aberto.</div><p id="inventoryDraftStatus" class="muted small">O rascunho é salvo automaticamente neste navegador e neste dispositivo; não é sincronizado com outros aparelhos.</p>
+      <section id="inventoryCoverageCard" class="card inventory-coverage">
+        <div class="section-title"><h3>Cobertura da conferência</h3><span id="inventoryCoverageBadge" class="badge">Aguardando inventário</span></div>
+        <progress id="inventoryCoverageProgress" class="inventory-progress" max="100" value="0" aria-label="Percentual de produtos conferidos"></progress>
+        <div id="inventoryCoverageSummary" class="muted small">Inicie um inventário para acompanhar os produtos conferidos e os que faltam.</div>
+        <div id="inventoryMissingList" class="dashboard-list inventory-pending"></div>
+      </section>
+      <div class="tablewrap"><table><thead><tr><th>Produto</th><th>Registrado</th><th>Contado</th><th>Diferença</th><th></th></tr></thead><tbody id="inventoryTable"></tbody></table></div>
+    </section>
+
+    <section id="tab-report" class="panel hidden">
+      <div class="section-title"><div><h2 style="margin:0">Posição atual do estoque em tempo real</h2><p class="muted small" style="margin:5px 0 0">Consulta e exportação dos produtos com saldo positivo, atualizados conforme o Firestore.</p></div><span id="reportFreshness" class="badge">Aguardando dados</span></div>
+      <div class="formgrid report-controls">
+        <div><label for="reportSearch">Pesquisar produto</label><input id="reportSearch" placeholder="Nome do produto ou código EAN"></div>
+        <div><label for="stockReportSection">Seção</label><select id="stockReportSection"><option value="">Todas as seções</option></select></div>
+      </div>
+      <div class="actions report-controls"><button id="exportStockCsv" type="button">Exportar posição atual (CSV)</button><button id="printStockReport" type="button" class="secondary">Imprimir / Salvar em PDF</button></div>
+      <div id="reportSummary" class="report-summary"></div>
+      <div id="reportUpdatedAt" class="muted small" style="margin:8px 0 12px">Aguardando atualização do estoque...</div>
+      <div class="tablewrap"><table><thead><tr><th>Produto</th><th>EAN</th><th>Seção</th><th>Saldo atual</th><th>Unidade</th></tr></thead><tbody id="stockReportTable"><tr><td colspan="5">Carregando relatório...</td></tr></tbody></table></div>
+      <section class="card dashboard-card" style="margin-top:14px">
+        <h3>Resumo do estoque por seção</h3>
+        <p class="muted small">Resume apenas os produtos com saldo. Quantidades de unidades diferentes não são somadas entre si.</p>
+        <div class="tablewrap"><table><thead><tr><th>Seção</th><th>Produtos com saldo</th><th>Tipos de unidade</th></tr></thead><tbody id="stockSectionSummaryTable"><tr><td colspan="3">Carregando resumo...</td></tr></tbody></table></div>
+      </section>
+    </section>
+
+    <section id="tab-history" class="panel hidden">
+      <div class="section-title"><div><h2 style="margin:0">Histórico de inventários e contagens</h2><p class="muted small" style="margin:5px 0 0">Consulte as conferências já registradas, identifique diferenças e acompanhe inventários finalizados.</p></div><span id="historyFreshness" class="badge">Aguardando dados</span></div>
+      <div class="formgrid report-controls">
+        <div><label for="historySearch">Pesquisar produto, EAN ou inventário</label><input id="historySearch" placeholder="Digite nome, EAN ou nome do inventário"></div>
+        <div><label for="historySection">Seção</label><select id="historySection"><option value="">Todas as seções</option></select></div>
+        <div><label for="historyDateFrom">Data inicial</label><input id="historyDateFrom" type="date"></div>
+        <div><label for="historyDateTo">Data final</label><input id="historyDateTo" type="date"></div>
+        <div><label for="historyOrigin">Origem da contagem</label><select id="historyOrigin"><option value="all">Todas</option><option value="inventory">Inventário completo</option><option value="quick">Contagem rápida</option></select></div>
+        <div><label for="historyResult">Resultado da conferência</label><select id="historyResult"><option value="all">Todos</option><option value="difference">Com diferença</option><option value="match">Sem diferença</option></select></div>
+      </div>
+      <div class="actions report-controls"><button id="exportHistoryCsv" type="button">Exportar histórico CSV</button><button id="printHistoryReport" type="button" class="secondary">Imprimir / Salvar em PDF</button></div>
+      <div id="historySummary" class="report-summary"></div>
+      <div id="historyUpdatedAt" class="muted small" style="margin:8px 0 12px">Aguardando histórico...</div>
+      <div class="actions report-controls"><button id="loadMoreCountsBtn" type="button" class="secondary" disabled>Carregar mais contagens</button><span id="countsPageStatus" class="muted small" style="align-self:center">Carregando histórico...</span></div>
+      <section class="card dashboard-card" style="margin-top:14px">
+        <h3>Inventários finalizados</h3>
+        <p class="muted small">Mostra as sessões de inventário salvas, com data, seção e quantidade de produtos conferidos.</p>
+        <div class="actions report-controls"><button id="loadMoreInventoriesBtn" type="button" class="secondary" disabled>Carregar mais inventários</button><span id="inventoriesPageStatus" class="muted small" style="align-self:center">Carregando inventários...</span></div>
+        <div class="tablewrap"><table><thead><tr><th>Finalizado em</th><th>Inventário</th><th>Seção</th><th>Produtos contados</th><th>Responsável</th></tr></thead><tbody id="historyInventoriesTable"><tr><td colspan="5">Carregando...</td></tr></tbody></table></div>
+      </section>
+      <section class="card dashboard-card" style="margin-top:14px">
+        <h3>Itens contados e diferenças</h3>
+        <p class="muted small">Exibe as contagens carregadas para sua conta. A primeira página traz até 500 registros; use “Carregar mais contagens” para consultar páginas anteriores. A contagem rápida registra a conferência; o inventário completo atualiza o saldo oficial ao ser finalizado.</p>
+        <div class="tablewrap"><table><thead><tr><th>Data</th><th>Origem / inventário</th><th>Produto / EAN</th><th>Saldo registrado</th><th>Contado</th><th>Diferença</th><th>Responsável</th></tr></thead><tbody id="historyCountsTable"><tr><td colspan="7">Carregando...</td></tr></tbody></table></div>
+      </section>
+    </section>
+    </section>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 2.9 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="./firebase-config.js"></script>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const state = { user:null, role:null, products:[], productsLoaded:false, sections:[], counts:[], countsLive:[], countsBaseline:[], countsOlder:[], countsNextCursor:null, countsHasMore:false, countsLoadingMore:false, countsInitialized:false, finishedInventories:[], inventoriesLive:[], inventoriesBaseline:[], inventoriesOlder:[], inventoriesNextCursor:null, inventoriesHasMore:false, inventoriesLoadingMore:false, inventoriesInitialized:false, users:[], usersLoaded:false, auditLogs:[], auditLive:[], auditBaseline:[], auditOlder:[], auditNextCursor:null, auditHasMore:false, auditLoadingMore:false, auditInitialized:false, auditLoaded:false, auditUpdatedAt:null, integrityIssues:[], integritySummary:null, integrityCheckedAt:null, inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{}, eanLookupToken:0, eanLookupCache:{}, stockUpdatedAt:null, historyUpdatedAt:null };
+  const roleRank = { colaborador:1, gerente:2, administrador:3 };
+  function message(text, type='notice') { const el=$('message'); el.textContent=text; el.className='notice '+(type==='error'?'error':type==='success'?'success':''); el.classList.remove('hidden'); window.scrollTo({top:0,behavior:'smooth'}); }
+  function clearMessage(){ $('message').classList.add('hidden'); }
+  function safe(s){ return String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function fmt(n){ return Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:3}); }
+  function dateFmt(ts){ const d=ts?.toDate?ts.toDate():new Date(ts||Date.now()); return d.toLocaleString('pt-BR'); }
+  function configValid(){ return window.IDEAL_FIREBASE_CONFIG && window.IDEAL_FIREBASE_CONFIG.apiKey && !String(window.IDEAL_FIREBASE_CONFIG.apiKey).includes('COLOQUE_'); }
+  let db, auth, unsubs=[];
+  function stopListeners(){ unsubs.forEach(fn=>{try{fn()}catch(_){}}); unsubs=[]; }
+  async function requireRole(minRole){ if(!state.user || roleRank[state.role] < roleRank[minRole]) throw new Error('Seu perfil não tem permissão para esta operação.'); }
+  function sectionName(id){ return state.sections.find(s=>s.id===id)?.name || 'Seção removida'; }
+  function findProductByEan(ean){ return state.products.find(p=>p.ean===String(ean).trim()); }
+  function validEan(v){ return /^\d{8}$|^\d{13}$/.test(v); }
+  function normalizeBarcode(value){ const digits=String(value||'').replace(/\D/g,''); return digits.length===12?'0'+digits:digits; }
+  function normalizeLookupText(value){ return String(value??'').toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/^[a-z]{2}:/,'').replace(/[-_]/g,' ').replace(/\s+/g,' ').trim(); }
+  function setEanLookupStatus(text,type=''){ const el=$('eanLookupMessage'); if(!el)return; el.className='lookup-status'+(type?' '+type:''); el.textContent=text; }
+  function externalProductName(product){
+    const name=String(product?.product_name_pt||product?.product_name||product?.abbreviated_product_name||product?.generic_name_pt||product?.generic_name||'').trim();
+    if(!name)return '';
+    const brands=String(product?.brands||'').split(',').map(x=>x.trim()).filter(Boolean);
+    const brand=brands[0]||'';
+    return brand && !normalizeLookupText(name).includes(normalizeLookupText(brand)) ? brand+' '+name : name;
+  }
+  function categoryHints(product){
+    const out=[];
+    const keys=['categories','categories_tags','categories_hierarchy','categories_tags_pt','categories_tags_en','main_category','main_category_pt','main_category_en','food_groups','food_groups_tags','pnns_groups_1','pnns_groups_2','pnns_groups_1_tags','pnns_groups_2_tags'];
+    for(const key of keys){
+      const value=product?.[key];
+      if(Array.isArray(value)) value.forEach(item=>out.push(typeof item==='string'?item:(item?.lc_name||item?.name||item?.id||'')));
+      else if(typeof value==='string') value.split(/[;,]/).forEach(item=>out.push(item));
+    }
+    return [...new Set(out.map(normalizeLookupText).filter(Boolean))];
+  }
+  const sectionCategoryGroups=[
+    {names:['bebidas','bebida'],aliases:['beverages','beverage','drinks','drink','water','waters','mineral water','juice','juices','soft drinks','soda','sodas','cola','coffee','tea','refrigerantes','sucos','suco','agua','aguas','isotonic drinks','energy drinks']},
+    {names:['macarrao'],aliases:['pasta','noodles','spaghetti','macaroni','lasagna','instant noodles','macarrao','massa alimenticia']},
+    {names:['biscoitos e bolachas','biscoitos','bolachas'],aliases:['biscuits','cookies','crackers','wafers','biscoitos','bolachas','sweet biscuits','savory biscuits']},
+    {names:['leites','leite'],aliases:['milk','dairy','milk powder','powdered milk','milk drinks','leite','leites','lactose free milk']},
+    {names:['descartaveis'],aliases:['disposable','disposables','paper plates','paper cups','plastic cups','disposable products','descartaveis']},
+    {names:['racoes','racao'],aliases:['pet food','petfood','dog food','cat food','animal feed','dry cat food','dry dog food','racoes','racao']},
+    {names:['limpeza'],aliases:['cleaning','cleaning products','detergent','detergents','laundry','cleaner','cleaners','disinfectant','dishwashing','limpeza','detergente','amaciante']},
+    {names:['perfumaria'],aliases:['personal care','cosmetics','toiletries','perfume','perfumes','shampoo','deodorant','body care','skin care','oral care','perfumaria','hygiene products','higiene pessoal']},
+    {names:['bomboniere'],aliases:['chocolate','chocolates','candies','candy','confectionery','sweets','gummies','bonbons','balas','doces','bomboniere']},
+    {names:['salgados','salgadinho'],aliases:['snacks','crisps','chips','savory snacks','savoury snacks','salty snacks','salgadinhos','salgados']},
+    {names:['padaria'],aliases:['bread','breads','bakery','cakes','pastry','pastries','buns','baguettes','padaria','panificacao']},
+    {names:['acougue'],aliases:['meat','meats','beef','pork','chicken','poultry','sausage','sausages','bacon','ham','acougue','carnes']},
+    {names:['hortifruti'],aliases:['fruits','fruit','vegetables','vegetable','fresh produce','produce','hortifruti','legumes frescos','frutas','verduras']},
+    {names:['farinaceos'],aliases:['flour','flours','starch','cornmeal','wheat flour','manioc flour','farinaceos','farinha','fuba','polvilho']},
+    {names:['sandalias'],aliases:['sandals','flip flops','footwear','shoes','sandalias','calcados']},
+    {names:['utilidades'],aliases:['kitchenware','household utensils','utensils','home accessories','household goods','utilidades domesticas']},
+    {names:['bazar'],aliases:['stationery','stationery products','home products','household items','toys','bazar']},
+    {names:['mercearia'],aliases:['grocery','groceries','pantry','grocery products','canned foods','rice','beans','cereals','food staples','dry foods','mercearia']}
+  ];
+  function chooseSectionForProduct(product, productName=''){
+    if(!state.sections.length)return null;
+    const hints=categoryHints(product||{});
+    const normalizedName=normalizeLookupText(productName||externalProductName(product||{}));
+    const ranked=state.sections.map(section=>{
+      const sectionNorm=normalizeLookupText(section.name);
+      let score=0;
+      for(const hint of hints){
+        if(hint===sectionNorm) score=Math.max(score,100);
+        else if(sectionNorm.length>3 && hint.includes(sectionNorm)) score=Math.max(score,50);
+        else if(sectionNorm.length>3 && sectionNorm.includes(hint) && hint.length>4) score=Math.max(score,35);
+      }
+      const group=sectionCategoryGroups.find(g=>g.names.some(name=>{const n=normalizeLookupText(name);return sectionNorm===n || sectionNorm.includes(n) || (n.length>5 && n.includes(sectionNorm));}));
+      if(group){
+        for(const alias of group.aliases){
+          const a=normalizeLookupText(alias);
+          for(const hint of hints){
+            if(hint===a) score=Math.max(score,85);
+            else if(hint.includes(a) && a.length>3) score=Math.max(score,65);
+            else if(a.includes(hint) && hint.length>5) score=Math.max(score,32);
+          }
+          if(normalizedName && a.length>3 && normalizedName.includes(a)) score=Math.max(score,12);
+        }
+      }
+      return {section,score};
+    }).sort((a,b)=>b.score-a.score);
+    if(ranked[0]?.score>0)return ranked[0].section;
+    const mercearia=state.sections.find(s=>normalizeLookupText(s.name)==='mercearia');
+    if(mercearia)return mercearia;
+    if(state.sections.length===1)return state.sections[0];
+    return null;
+  }
+  async function fetchOpenFoodFactsProduct(ean){
+    const fields='code,product_name,product_name_pt,abbreviated_product_name,generic_name,generic_name_pt,brands,quantity,product_quantity,product_quantity_unit,categories,categories_tags,categories_hierarchy,categories_tags_pt,categories_tags_en,main_category,main_category_pt,main_category_en,food_groups,food_groups_tags,pnns_groups_1,pnns_groups_2,pnns_groups_1_tags,pnns_groups_2_tags,product_type';
+    const endpoints=[
+      'https://world.openfoodfacts.org/api/v3/product/'+encodeURIComponent(ean)+'?product_type=all&cc=br&lc=pt&tags_lc=pt&fields='+encodeURIComponent(fields),
+      'https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(ean)+'.json?fields='+encodeURIComponent(fields)
+    ];
+    for(const url of endpoints){
+      try{
+        const controller=new AbortController(); const timeout=setTimeout(()=>controller.abort(),7000);
+        let response;
+        try{response=await fetch(url,{method:'GET',headers:{Accept:'application/json'},cache:'no-store',signal:controller.signal});}
+        finally{clearTimeout(timeout);}
+        if(!response.ok)continue;
+        const data=await response.json();
+        const product=data?.product;
+        if(product && (externalProductName(product) || categoryHints(product).length))return product;
+      }catch(_){ /* tenta o endpoint de compatibilidade; se ambos falharem, permite preenchimento manual */ }
+    }
+    return null;
+  }
+  async function lookupProductByEan(rawEan){
+    const ean=normalizeBarcode(rawEan);
+    if(!ean)return;
+    $('pEan').value=ean;
+    const token=++state.eanLookupToken;
+    if(!/^\d{8}$|^\d{13}$/.test(ean)){
+      setEanLookupStatus('Informe um EAN-8 ou EAN-13 válido para consultar a base de produtos.','warning');
+      return;
+    }
+    const local=state.products.find(p=>p.ean===ean);
+    if(local){
+      $('productId').value=local.id;
+      $('pName').value=local.name||'';
+      $('pSection').value=local.sectionId||'';
+      $('pUnit').value=local.unit||'UN';
+      $('pStock').value=Number(local.stock||0);
+      setEanLookupStatus('Este EAN já está cadastrado. Os dados locais foram carregados para edição.','success');
+      return;
+    }
+    if(!eanChecksum(ean)){
+      setEanLookupStatus('O dígito verificador deste EAN não confere. Confira os números antes de salvar.','warning');
+    }else{
+      setEanLookupStatus('Consultando a base pública Open Food Facts…');
+    }
+    let product;
+    try{
+      if(Object.prototype.hasOwnProperty.call(state.eanLookupCache,ean)) product=state.eanLookupCache[ean];
+      else {product=await fetchOpenFoodFactsProduct(ean);state.eanLookupCache[ean]=product||null;}
+    }catch(_){product=null;}
+    if(token!==state.eanLookupToken)return;
+    if(!product){
+      const fallbackSection=chooseSectionForProduct(null,'');
+      if(fallbackSection && !$('pSection').value)$('pSection').value=fallbackSection.id;
+      setEanLookupStatus('EAN não localizado na base pública. O código foi mantido; preencha o nome e confira a seção antes de salvar.','warning');
+      return;
+    }
+    const name=externalProductName(product);
+    if(name)$('pName').value=name;
+    const section=chooseSectionForProduct(product,name);
+    if(section)$('pSection').value=section.id;
+    const category=String(product.main_category_pt||product.main_category||product.categories||'').split(',')[0].trim();
+    if(name && section){
+      setEanLookupStatus('Produto encontrado na Open Food Facts: '+name+'. Seção sugerida: '+section.name+(category?' · Categoria na base: '+category:'')+'. Confira os dados antes de salvar.','success');
+    }else if(name){
+      setEanLookupStatus('Nome encontrado: '+name+'. Não consegui relacionar a categoria a uma seção cadastrada; selecione a seção manualmente antes de salvar.','warning');
+    }else if(section){
+      setEanLookupStatus('Produto localizado, mas a base não possui nome preenchido. Seção sugerida: '+section.name+'; complete o nome manualmente.','warning');
+    }else{
+      setEanLookupStatus('Produto encontrado, mas a base não informa nome ou uma categoria compatível. Complete o cadastro manualmente.','warning');
+    }
+  }
+  function lookupProductFromEanField(){
+    const raw=$('pEan').value.trim();
+    if(!raw)return;
+    state.eanLookupToken++; // invalida uma consulta anterior se o EAN foi alterado
+    const ean=normalizeBarcode(raw);
+    $('pEan').value=ean;
+    if(!validEan(ean)){
+      setEanLookupStatus('Digite ou leia um EAN-8 ou EAN-13. Códigos UPC-A de 12 dígitos são convertidos para EAN-13.','warning');
+      return;
+    }
+    if(!eanChecksum(ean)){
+      setEanLookupStatus('O código tem 8 ou 13 dígitos, mas o dígito verificador não confere. Confira a leitura.','warning');
+      return;
+    }
+    lookupProductByEan(ean);
+  }
+
+  function eanChecksum(v){
+    if(!validEan(v)) return false;
+    const digits=v.split('').map(Number), check=digits.pop();
+    let sum=0; for(let i=digits.length-1,weight=3;i>=0;i--,weight=weight===3?1:3) sum+=digits[i]*weight;
+    return (10-(sum%10))%10===check;
+  }
+  async function startScanner(key, elementId, onScan){
+    if(!window.Html5Qrcode){ message('Biblioteca de leitura não carregou. Verifique a conexão e tente novamente.','error'); return; }
+    await stopScanner(key);
+    const wrap = key==='product'?'productScannerWrap':key==='count'?'countScannerWrap':'inventoryScannerWrap';
+    $(wrap).classList.remove('hidden');
+    document.body.classList.add('scanner-open');
+    state.scannerCaptured[key]=false;
+    try{
+      const scanner=new Html5Qrcode(elementId); state.scanners[key]=scanner;
+      await scanner.start(
+        {facingMode:'environment'},
+        {
+          fps:12,
+          qrbox:(viewfinderWidth,viewfinderHeight)=>{
+            const width=Math.max(220,Math.min(Math.floor(viewfinderWidth*0.9),700));
+            const height=Math.max(90,Math.min(Math.floor(viewfinderHeight*0.28),220));
+            return {width,height};
+          },
+          aspectRatio: 1.777,
+          disableFlip:false,
+          formatsToSupport:[Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E]
+        },
+        async decoded=>{
+          const value=String(decoded||'').replace(/\D/g,'');
+          if(!value || state.scannerCaptured[key]) return;
+          state.scannerCaptured[key]=true;
+          try{
+            // Fecha a visualização primeiro para evitar leituras duplicadas e liberar a câmera.
+            await stopScanner(key);
+            onScan(value);
+            if('vibrate' in navigator) navigator.vibrate(45);
+          }catch(scanError){
+            message('O código foi lido, mas não foi possível preencher o campo. '+(scanError.message||''),'error');
+          }
+        },
+        ()=>{}
+      );
+    }catch(e){
+      await stopScanner(key);
+      message('Não foi possível abrir a câmera. Autorize o acesso e use o site por HTTPS. '+(e.message||''),'error');
+    }
+  }
+  async function stopScanner(key){
+    const s=state.scanners[key];
+    if(s){ try{ if(s.isScanning) await s.stop(); await s.clear(); }catch(_){} delete state.scanners[key]; }
+    const wrap=key==='product'?'productScannerWrap':key==='count'?'countScannerWrap':'inventoryScannerWrap';
+    $(wrap).classList.add('hidden');
+    state.scannerCaptured[key]=false;
+    if(!Object.keys(state.scanners).length) document.body.classList.remove('scanner-open');
+  }
+  function setTab(tab){ if(tab==='users'&&state.role!=='administrador')tab='products'; if(tab==='backup'&&state.role!=='administrador')tab='products'; if(tab==='audit'&&!['administrador','gerente'].includes(state.role))tab='products'; if(tab==='analysis'&&!['administrador','gerente'].includes(state.role))tab='products'; ['products','sections','count','inventory','report','history','users','audit','backup','analysis'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==tab)); document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('secondary',b.dataset.tab!==tab)}); if(tab==='report')renderStockReport(); if(tab==='history')renderHistory(); if(tab==='users')renderUsers(); if(tab==='audit')renderAudit(); if(tab==='backup')renderIntegrity(); if(tab==='analysis')renderAnalysis(); }
+  function getStockStatus(product){
+    const stock=Number(product.stock||0);
+    if(stock<=0)return {code:'zero',label:'Sem estoque',pill:'zero'};
+    return {code:'ok',label:'Com estoque',pill:'ok'};
+  }
+  function renderDashboard(){
+    const stockedProducts=state.products.filter(p=>Number(p.stock||0)>0);
+    const stockedSectionIds=new Set(stockedProducts.map(p=>p.sectionId).filter(Boolean));
+    const query=$('dashboardStockSearch')?$('dashboardStockSearch').value.trim().toLocaleLowerCase('pt-BR'):'';
+    const selectedSection=$('dashboardStockSection')?$('dashboardStockSection').value:'';
+    const rows=stockedProducts.filter(p=>{
+      const name=String(p.name||'').toLocaleLowerCase('pt-BR'),ean=String(p.ean||'');
+      if(query&&!name.includes(query)&&!ean.includes(query))return false;
+      if(selectedSection&&p.sectionId!==selectedSection)return false;
+      return true;
+    }).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));
+    const todayKey=historyDateKey(new Date());
+    const updatedToday=stockedProducts.filter(p=>historyDateKey(p.updatedAt)===todayKey).length;
+    $('statUpdatedToday').textContent=fmt(updatedToday);
+    $('statSections').textContent=fmt(stockedSectionIds.size);
+    $('statAvailable').textContent=fmt(stockedProducts.length);
+    const sectionSelect=$('dashboardStockSection');
+    if(sectionSelect){
+      const selected=sectionSelect.value;
+      const options='<option value="">Todas as seções</option>'+state.sections.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR')).map(section=>'<option value="'+safe(section.id)+'">'+safe(section.name)+'</option>').join('');
+      if(sectionSelect.dataset.options!==options){sectionSelect.innerHTML=options;sectionSelect.dataset.options=options;}
+      if([...sectionSelect.options].some(option=>option.value===selected))sectionSelect.value=selected;
+    }
+    if($('dashboardUpdatedAt')){
+      const stockTime=state.stockUpdatedAt?state.stockUpdatedAt.toLocaleString('pt-BR'):'aguardando dados';
+      $('dashboardUpdatedAt').textContent='Última sincronização do estoque: '+stockTime+'. O painel mostra apenas os produtos que têm saldo.';
+    }
+    if($('dashboardStockBadge'))$('dashboardStockBadge').textContent=fmt(stockedProducts.length)+' produto(s) com saldo';
+    if($('dashboardStockSummary'))$('dashboardStockSummary').innerHTML='<span>Produtos com saldo <strong>'+fmt(stockedProducts.length)+'</strong></span><span>Na pesquisa atual <strong>'+fmt(rows.length)+'</strong></span><span>Seções com saldo <strong>'+fmt(stockedSectionIds.size)+'</strong></span>';
+    const tbody=$('dashboardCurrentStockTable');
+    if(tbody)tbody.innerHTML=rows.map(p=>'<tr><td><strong>'+safe(p.name||'Produto sem nome')+'</strong></td><td>'+safe(p.ean||'—')+'</td><td>'+safe(sectionName(p.sectionId))+'</td><td><strong>'+fmt(p.stock)+' '+safe(p.unit||'UN')+'</strong></td><td><button type="button" class="secondary" data-dashboard-edit="'+safe(p.id)+'">Atualizar saldo</button></td></tr>').join('')||'<tr><td colspan="5">Nenhum produto com saldo corresponde à pesquisa atual.</td></tr>';
+    if($('dashboardStockRowsStatus'))$('dashboardStockRowsStatus').textContent='Exibindo '+fmt(rows.length)+' produto(s) com saldo positivo. As quantidades são apresentadas por produto e unidade, sem somar unidades diferentes.';
+    const sectionBody=$('dashboardSections');
+    if(sectionBody){
+      const groups=new Map();
+      stockedProducts.forEach(p=>{
+        const name=sectionName(p.sectionId);
+        if(!groups.has(name))groups.set(name,{name,count:0,units:new Set()});
+        const group=groups.get(name);group.count++;group.units.add(String(p.unit||'UN').trim()||'UN');
+      });
+      sectionBody.innerHTML=[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(group=>'<tr><td>'+safe(group.name)+'</td><td>'+fmt(group.count)+'</td><td>'+fmt(group.units.size)+'</td></tr>').join('')||'<tr><td colspan="3">Nenhum produto com saldo positivo cadastrado.</td></tr>';
+    }
+  }
+  function getStockReportRows(){
+    const query=$('reportSearch').value.trim().toLocaleLowerCase('pt-BR');
+    const sectionId=$('stockReportSection').value;
+    return state.products.filter(p=>{
+      const name=String(p.name||'').toLocaleLowerCase('pt-BR');
+      const ean=String(p.ean||'');
+      if(Number(p.stock||0)<=0)return false;
+      if(query&&!name.includes(query)&&!ean.includes(query))return false;
+      if(sectionId&&p.sectionId!==sectionId)return false;
+      return true;
+    }).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));
+  }
+  function getStockSectionSummary(rows){
+    const groups=new Map();
+    rows.forEach(product=>{
+      const name=sectionName(product.sectionId);
+      if(!groups.has(name))groups.set(name,{name,total:0,units:new Set()});
+      const group=groups.get(name);group.total++;
+      group.units.add(String(product.unit||'UN').trim()||'UN');
+    });
+    return [...groups.values()].map(group=>({...group,unitCount:group.units.size}))
+      .sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+  }
+  function renderStockSectionSummary(rows){
+    const table=$('stockSectionSummaryTable');
+    if(!table)return;
+    const groups=getStockSectionSummary(rows);
+    table.innerHTML=groups.map(group=>'<tr><td><strong>'+safe(group.name)+'</strong></td><td>'+fmt(group.total)+'</td><td>'+fmt(group.unitCount)+'</td></tr>').join('')
+      ||'<tr><td colspan="3">Nenhum produto com saldo corresponde aos filtros atuais.</td></tr>';
+  }
+  function renderStockReport(){
+    if(!$('stockReportTable'))return;
+    const rows=getStockReportRows();
+    const sections=getStockSectionSummary(rows).length;
+    $('reportSummary').innerHTML='<span>Produtos com saldo <strong>'+rows.length+'</strong></span><span>Seções com saldo <strong>'+sections+'</strong></span>';
+    $('stockReportTable').innerHTML=rows.map(p=>'<tr><td><strong>'+safe(p.name||'Produto sem nome')+'</strong></td><td>'+safe(p.ean||'—')+'</td><td>'+safe(sectionName(p.sectionId))+'</td><td>'+fmt(p.stock)+'</td><td>'+safe(p.unit||'UN')+'</td></tr>').join('')||'<tr><td colspan="5">Nenhum produto com saldo corresponde aos filtros.</td></tr>';
+    renderStockSectionSummary(rows);
+    const timestamp=state.stockUpdatedAt ? state.stockUpdatedAt.toLocaleString('pt-BR') : 'aguardando dados';
+    $('reportUpdatedAt').textContent='Última atualização recebida do estoque: '+timestamp+'. O resumo por seção respeita os filtros aplicados.';
+    $('reportFreshness').textContent=state.stockUpdatedAt?'Dados sincronizados':'Aguardando dados';
+  }
+  function exportStockReportCsv(){
+    const rows=getStockReportRows();
+    const sectionRows=getStockSectionSummary(rows);
+    const sectionFilter=$('stockReportSection').value?sectionName($('stockReportSection').value):'Todas as seções';
+    const generatedAt=new Date();
+    const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
+    const matrix=[
+      ['POSIÇÃO ATUAL DO ESTOQUE IDEAL','MASTER 2.9'],
+      ['Gerado em',generatedAt.toLocaleString('pt-BR')],
+      ['Filtro de pesquisa',$('reportSearch').value.trim()||'Todos os produtos'],
+      ['Filtro de seção',sectionFilter],
+      ['Produtos com saldo no relatório',rows.length],
+      [],
+      ['RESUMO POR SEÇÃO'],
+      ['Seção','Produtos com saldo','Tipos de unidade']
+    ];
+    sectionRows.forEach(group=>matrix.push([group.name,group.total,group.unitCount]));
+    matrix.push([],['DETALHAMENTO DA POSIÇÃO ATUAL'],['Produto','EAN','Seção','Saldo atual','Unidade']);
+    rows.forEach(p=>matrix.push([p.name||'',p.ean||'',sectionName(p.sectionId),Number(p.stock||0),p.unit||'UN']));
+    const csv='\uFEFF'+matrix.map(row=>row.map(cell).join(';')).join('\r\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url;link.download='relatorio-estoque-'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  function historyMillis(value){
+    const d=value&&typeof value.toDate==='function'?value.toDate():(value instanceof Date?value:new Date(value||0));
+    return Number.isFinite(d.getTime())?d.getTime():0;
+  }
+  function historyDateKey(value){
+    const ms=historyMillis(value);
+    if(!ms)return '';
+    const d=new Date(ms);
+    return String(d.getFullYear())+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  function historyDateInRange(value){
+    const date=historyDateKey(value);
+    const from=$('historyDateFrom').value;
+    const to=$('historyDateTo').value;
+    if(!date)return !from&&!to;
+    if(from&&date<from)return false;
+    if(to&&date>to)return false;
+    return true;
+  }
+  function historyInventoryName(id){
+    if(!id)return 'Contagem rápida';
+    const inv=state.finishedInventories.find(item=>item.id===id);
+    return inv?.name||'Inventário completo';
+  }
+  function historyCountSectionId(item){
+    if(item.sectionId)return item.sectionId;
+    const product=state.products.find(p=>p.id===item.productId);
+    return product?.sectionId||'';
+  }
+  function getFilteredCountHistory(){
+    const q=$('historySearch').value.trim().toLocaleLowerCase('pt-BR');
+    const sectionId=$('historySection').value;
+    const origin=$('historyOrigin').value;
+    const result=$('historyResult').value;
+    return state.counts.filter(item=>{
+      const isInventory=!!item.inventoryId;
+      if(origin==='inventory'&&!isInventory)return false;
+      if(origin==='quick'&&isInventory)return false;
+      if(sectionId&&historyCountSectionId(item)!==sectionId)return false;
+      if(!historyDateInRange(item.createdAt))return false;
+      const name=String(item.productName||'').toLocaleLowerCase('pt-BR');
+      const ean=String(item.ean||'');
+      const inventoryName=historyInventoryName(item.inventoryId).toLocaleLowerCase('pt-BR');
+      if(q&&!name.includes(q)&&!ean.includes(q)&&!inventoryName.includes(q))return false;
+      const diff=Number(item.countedQty||0)-Number(item.systemStock||0);
+      if(result==='difference'&&diff===0)return false;
+      if(result==='match'&&diff!==0)return false;
+      return true;
+    }).sort((a,b)=>historyMillis(b.createdAt)-historyMillis(a.createdAt));
+  }
+  function getFilteredInventories(){
+    const sectionId=$('historySection').value;
+    const from=$('historyDateFrom').value;
+    const to=$('historyDateTo').value;
+    const q=$('historySearch').value.trim().toLocaleLowerCase('pt-BR');
+    const origin=$('historyOrigin').value;
+    if(origin==='quick')return [];
+    return state.finishedInventories.filter(inv=>{
+      if(!historyDateInRange(inv.finishedAt))return false;
+      if(sectionId&&inv.sectionId!==sectionId&&!state.counts.some(item=>item.inventoryId===inv.id&&historyCountSectionId(item)===sectionId))return false;
+      const name=String(inv.name||'').toLocaleLowerCase('pt-BR');
+      if(q&&!name.includes(q)&&!sectionName(inv.sectionId).toLocaleLowerCase('pt-BR').includes(q))return false;
+      return true;
+    }).sort((a,b)=>historyMillis(b.finishedAt)-historyMillis(a.finishedAt));
+  }
+  function renderCountPagingControls(){
+    const button=$('loadMoreCountsBtn'),analysisButton=$('loadMoreAnalysisCountsBtn'),status=$('countsPageStatus');
+    const canLoad=!!state.countsHasMore&&!state.countsLoadingMore&&!!state.countsNextCursor;
+    if(button){button.disabled=!canLoad;button.textContent=state.countsLoadingMore?'Carregando...':state.countsHasMore?'Carregar mais contagens':'Histórico completo carregado';}
+    if(analysisButton){analysisButton.disabled=!canLoad;analysisButton.textContent=state.countsLoadingMore?'Carregando...':state.countsHasMore?'Carregar mais contagens para análise':'Histórico disponível totalmente carregado';}
+    if(status){
+      const initial=state.countsInitialized?'Página inicial: até 500':'Aguardando primeira página';
+      const older=state.countsOlder.length?' · Páginas anteriores: '+fmt(state.countsOlder.length):'';
+      status.textContent=initial+' · Total carregado: '+fmt(state.counts.length)+older+(state.countsHasMore?' · Há mais registros':' · Fim do histórico');
+    }
+  }
+  function rebuildLoadedCountHistory(){
+    const map=new Map();
+    state.countsOlder.concat(state.countsBaseline,state.countsLive).forEach(item=>map.set(item.id,item));
+    state.counts=[...map.values()].sort((a,b)=>historyMillis(b.createdAt)-historyMillis(a.createdAt));
+  }
+  async function loadMoreCountHistory(){
+    if(state.countsLoadingMore||!state.countsHasMore||!state.countsNextCursor)return;
+    state.countsLoadingMore=true;renderCountPagingControls();
+    try{
+      const canViewAllHistory=state.role==='administrador'||state.role==='gerente';
+      let query=canViewAllHistory?db.collection('counts').orderBy('createdAt','desc'):db.collection('counts').where('userId','==',state.user.uid);
+      const snapshot=await query.startAfter(state.countsNextCursor).limit(500).get();
+      const existing=new Set(state.countsOlder.map(item=>item.id));
+      snapshot.docs.forEach(doc=>{if(!existing.has(doc.id)){state.countsOlder.push({id:doc.id,...doc.data()});existing.add(doc.id);}});
+      if(snapshot.docs.length)state.countsNextCursor=snapshot.docs[snapshot.docs.length-1];
+      state.countsHasMore=snapshot.docs.length===500;
+      rebuildLoadedCountHistory();
+      state.historyUpdatedAt=new Date();
+      renderCounts();renderAnalysis();renderCountPagingControls();
+      message(snapshot.docs.length?'Mais '+snapshot.docs.length+' contagem(ns) carregadas. Total disponível nesta sessão: '+state.counts.length+'.':'Fim do histórico: não há mais contagens para carregar.','success');
+    }catch(err){
+      message('Não foi possível carregar mais contagens: '+(err.message||err)+'. Confira as permissões e a conexão com o Firebase.','error');
+    }finally{state.countsLoadingMore=false;renderCountPagingControls();}
+  }
+  function renderInventoryPagingControls(){
+    const button=$('loadMoreInventoriesBtn'),status=$('inventoriesPageStatus');
+    const canLoad=!!state.inventoriesHasMore&&!state.inventoriesLoadingMore&&!!state.inventoriesNextCursor;
+    if(button){button.disabled=!canLoad;button.textContent=state.inventoriesLoadingMore?'Carregando...':state.inventoriesHasMore?'Carregar mais inventários':'Inventários carregados até o fim';}
+    if(status){
+      const older=state.inventoriesOlder.length?' · Páginas anteriores: '+fmt(state.inventoriesOlder.length):'';
+      status.textContent='Total carregado: '+fmt(state.finishedInventories.length)+older+(state.inventoriesHasMore?' · Há mais inventários':' · Fim do histórico');
+    }
+  }
+  function rebuildLoadedInventories(){
+    const map=new Map();
+    state.inventoriesOlder.concat(state.inventoriesBaseline,state.inventoriesLive).forEach(item=>map.set(item.id,item));
+    state.finishedInventories=[...map.values()].sort((a,b)=>historyMillis(b.finishedAt)-historyMillis(a.finishedAt));
+  }
+  async function loadMoreInventories(){
+    if(state.inventoriesLoadingMore||!state.inventoriesHasMore||!state.inventoriesNextCursor)return;
+    state.inventoriesLoadingMore=true;renderInventoryPagingControls();
+    try{
+      const canViewAllHistory=state.role==='administrador'||state.role==='gerente';
+      const query=canViewAllHistory?db.collection('inventories').orderBy('finishedAt','desc'):db.collection('inventories').where('userId','==',state.user.uid);
+      const snapshot=await query.startAfter(state.inventoriesNextCursor).limit(200).get();
+      const existing=new Set(state.inventoriesOlder.map(item=>item.id));
+      snapshot.docs.forEach(doc=>{if(!existing.has(doc.id)){state.inventoriesOlder.push({id:doc.id,...doc.data()});existing.add(doc.id);}});
+      if(snapshot.docs.length)state.inventoriesNextCursor=snapshot.docs[snapshot.docs.length-1];
+      state.inventoriesHasMore=snapshot.docs.length===200;
+      rebuildLoadedInventories();state.historyUpdatedAt=new Date();renderHistory();
+      message(snapshot.docs.length?'Mais '+snapshot.docs.length+' inventário(s) carregados. Total nesta sessão: '+state.finishedInventories.length+'.':'Fim do histórico de inventários: não há mais registros para carregar.','success');
+    }catch(err){
+      message('Não foi possível carregar mais inventários: '+(err.message||err)+'. Confira as permissões e a conexão com o Firebase.','error');
+    }finally{state.inventoriesLoadingMore=false;renderInventoryPagingControls();}
+  }
+  function renderHistory(){
+    if(!$('historyCountsTable'))return;
+    const rows=getFilteredCountHistory();
+    const inventories=getFilteredInventories();
+    const different=rows.filter(item=>Number(item.countedQty||0)!==Number(item.systemStock||0)).length;
+    $('historySummary').innerHTML='<span>Contagens filtradas <strong>'+rows.length+'</strong></span><span>Com diferença <strong>'+different+'</strong></span><span>Sem diferença <strong>'+(rows.length-different)+'</strong></span><span>Inventários finalizados <strong>'+inventories.length+'</strong></span>';
+    $('historyCountsTable').innerHTML=rows.map(item=>{
+      const diff=Number(item.countedQty||0)-Number(item.systemStock||0);
+      const diffText=(diff>0?'+':'')+fmt(diff);
+      const origin=item.inventoryId?'Inventário completo':'Contagem rápida';
+      const invName=item.inventoryId?historyInventoryName(item.inventoryId):'—';
+      const status=diff===0?'ok':'low';
+      return '<tr><td>'+safe(dateFmt(item.createdAt))+'</td><td>'+safe(origin)+(item.inventoryId?'<br><span class="muted small">'+safe(invName)+'</span>':'')+'</td><td><strong>'+safe(item.productName||'Produto')+'</strong><br><span class="muted small">'+safe(item.ean||'EAN não informado')+'</span></td><td>'+fmt(item.systemStock)+'</td><td>'+fmt(item.countedQty)+'</td><td><span class="status-pill '+status+'">'+safe(diffText)+'</span></td><td>'+safe(item.userEmail||'Não informado')+'</td></tr>';
+    }).join('')||'<tr><td colspan="7">Nenhuma contagem corresponde aos filtros.</td></tr>';
+    $('historyInventoriesTable').innerHTML=inventories.map(inv=>'<tr><td>'+safe(dateFmt(inv.finishedAt))+'</td><td>'+safe(inv.name||'Inventário sem nome')+'</td><td>'+safe(sectionName(inv.sectionId))+'</td><td>'+fmt(inv.itemCount||0)+'</td><td>'+safe(inv.userEmail||'Não informado')+'</td></tr>').join('')||'<tr><td colspan="5">Nenhum inventário finalizado corresponde aos filtros.</td></tr>';
+    const updated=state.historyUpdatedAt?state.historyUpdatedAt.toLocaleString('pt-BR'):'aguardando dados';
+    $('historyUpdatedAt').textContent='Última atualização do histórico: '+updated+'. Contagens carregadas: '+fmt(state.counts.length)+' (páginas de até 500). Inventários finalizados carregados: '+fmt(state.finishedInventories.length)+' (páginas de até 200, conforme as permissões da conta).';
+    renderInventoryPagingControls();
+    $('historyFreshness').textContent=state.historyUpdatedAt?'Histórico sincronizado':'Aguardando dados';
+  }
+  function exportHistoryCsv(){
+    const rows=getFilteredCountHistory();
+    const different=rows.filter(item=>Number(item.countedQty||0)!==Number(item.systemStock||0)).length;
+    const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
+    const matrix=[
+      ['RELATÓRIO DE CONTAGENS IDEAL','MASTER 2.9'],
+      ['Gerado em',new Date().toLocaleString('pt-BR')],
+      ['Data inicial',$('historyDateFrom').value||'Sem limite inicial'],
+      ['Data final',$('historyDateTo').value||'Sem limite final'],
+      ['Pesquisa',$('historySearch').value.trim()||'Todos os produtos'],
+      ['Seção',$('historySection').value?sectionName($('historySection').value):'Todas as seções'],
+      ['Origem',$('historyOrigin').selectedOptions[0]?.textContent||'Todas'],
+      ['Resultado',$('historyResult').selectedOptions[0]?.textContent||'Todos'],
+      ['Contagens exportadas',rows.length],
+      ['Com divergência',different],
+      ['Sem divergência',rows.length-different],
+      [],
+      ['DETALHAMENTO DAS CONTAGENS'],
+      ['Data','Origem','Inventário','Produto','EAN','Seção','Saldo registrado','Quantidade contada','Diferença','Responsável']
+    ];
+    rows.forEach(item=>{
+      const diff=Number(item.countedQty||0)-Number(item.systemStock||0);
+      matrix.push([historyDateKey(item.createdAt),item.inventoryId?'Inventário completo':'Contagem rápida',historyInventoryName(item.inventoryId),item.productName||'',item.ean||'',sectionName(historyCountSectionId(item)),Number(item.systemStock||0),Number(item.countedQty||0),diff,item.userEmail||'']);
+    });
+    const csv='\uFEFF'+matrix.map(row=>row.map(cell).join(';')).join('\r\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url;link.download='historico-contagens-'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  function printHistory(){
+    document.body.classList.add('print-history');
+    window.print();
+  }
+  function renderSectionOptions(){
+    const opts='<option value="">Selecione a seção</option>'+state.sections.slice().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(s=>`<option value="${safe(s.id)}">${safe(s.name)}</option>`).join('');
+    $('pSection').innerHTML=opts;
+    $('inventorySection').innerHTML='<option value="">Todas as seções</option>'+state.sections.map(s=>`<option value="${safe(s.id)}">${safe(s.name)}</option>`).join('');
+    $('inventorySection').value=state.inventory?.sectionId||'';
+    const reportSection=$('stockReportSection');
+    const selectedReportSection=reportSection.value;
+    reportSection.innerHTML='<option value="">Todas as seções</option>'+state.sections.map(s=>`<option value="${safe(s.id)}">${safe(s.name)}</option>`).join('');
+    if(state.sections.some(s=>s.id===selectedReportSection))reportSection.value=selectedReportSection;
+    const historySection=$('historySection');
+    const selectedHistorySection=historySection.value;
+    historySection.innerHTML='<option value="">Todas as seções</option>'+state.sections.map(s=>`<option value="${safe(s.id)}">${safe(s.name)}</option>`).join('');
+    if(state.sections.some(s=>s.id===selectedHistorySection))historySection.value=selectedHistorySection;
+    $('sectionsTable').innerHTML=state.sections.slice().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(s=>`<tr><td>${safe(s.name)}</td><td>${safe(s.description||'—')}</td></tr>`).join('')||'<tr><td colspan="2">Nenhuma seção cadastrada.</td></tr>';
+    renderDashboard();
+    renderStockReport();
+    renderHistory();
+  }
+  function renderProducts(){
+    const q=$('productSearch').value.trim().toLocaleLowerCase('pt-BR');
+    const list=state.products.filter(p=>!q||p.name.toLocaleLowerCase('pt-BR').includes(q)||p.ean.includes(q));
+    $('productsTable').innerHTML=list.map(p=>`<tr><td><strong>${safe(p.name)}</strong><br><span class="muted small">${safe(p.ean||'Sem EAN')}</span></td><td>${safe(sectionName(p.sectionId))}</td><td>${fmt(p.stock)} ${safe(p.unit||'UN')}</td><td><div class="actions"><button class="secondary" data-edit="${safe(p.id)}" type="button">Editar</button></div></td></tr>`).join('')||'<tr><td colspan="4">Nenhum produto encontrado.</td></tr>';
+    renderDashboard();
+    renderStockReport();
+  }
+  function renderCounts(){
+    $('countsTable').innerHTML=state.counts.slice(0,50).map(c=>`<tr><td>${safe(dateFmt(c.createdAt))}</td><td>${safe(c.productName)}</td><td>${fmt(c.systemStock)}</td><td>${fmt(c.countedQty)}</td><td>${fmt(Number(c.countedQty)-Number(c.systemStock))}</td><td>${safe(c.userEmail||'')}</td></tr>`).join('')||'<tr><td colspan="6">Nenhuma contagem registrada.</td></tr>';
+    renderDashboard();
+    renderHistory();
+  }
+  function calculateInventoryCoverage(){
+    if(!state.productsLoaded)return {ready:false,total:0,counted:0,missing:[],percent:0};
+    const sectionId=state.inventory?state.inventory.sectionId:($('inventorySection')?$('inventorySection').value:null);
+    const catalog=state.products.filter(p=>!sectionId||p.sectionId===sectionId);
+    const countedIds=new Set(state.inventoryItems.map(it=>it.productId));
+    const counted=catalog.filter(p=>countedIds.has(p.id)).length;
+    const missing=catalog.filter(p=>!countedIds.has(p.id)).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));
+    return {ready:true,total:catalog.length,counted:counted,missing:missing,percent:catalog.length?Math.round(counted/catalog.length*100):0};
+  }
+  function renderInventoryCoverage(){
+    const badge=$('inventoryCoverageBadge'),progress=$('inventoryCoverageProgress'),summary=$('inventoryCoverageSummary'),list=$('inventoryMissingList');
+    if(!badge||!progress||!summary||!list)return;
+    if(!state.inventory){
+      badge.textContent='Aguardando inventário';progress.value=0;
+      summary.textContent=state.productsLoaded?'Catálogo: '+state.products.length+' produto(s). Inicie um inventário para medir a cobertura da conferência.':'Carregando catálogo de produtos.';
+      list.innerHTML='';return;
+    }
+    const coverage=calculateInventoryCoverage();
+    if(!coverage.ready){
+      badge.textContent='Carregando catálogo';progress.value=0;
+      summary.textContent='Aguarde o carregamento dos produtos antes de conferir ou finalizar.';list.innerHTML='';return;
+    }
+    progress.value=coverage.percent;badge.textContent=coverage.percent+'% conferido';
+    summary.innerHTML='<strong>'+coverage.counted+'</strong> de <strong>'+coverage.total+'</strong> produto(s) conferido(s) · <strong>'+coverage.missing.length+'</strong> ainda sem contagem'+(state.inventory.sectionId?' na seção '+safe(sectionName(state.inventory.sectionId)):' no catálogo completo')+'.';
+    if(!coverage.total)list.innerHTML='<div class="dashboard-empty">Não há produtos cadastrados no escopo deste inventário.</div>';
+    else if(!coverage.missing.length)list.innerHTML='<div class="notice success" style="margin:0">Todos os produtos deste escopo foram conferidos.</div>';
+    else list.innerHTML='<div class="muted small">Produtos ainda não contados (mostrando até 12):</div>'+coverage.missing.slice(0,12).map(p=>'<div class="dashboard-list-item"><div><strong>'+safe(p.name||'Produto sem nome')+'</strong><span class="subline">EAN: '+safe(p.ean||'não informado')+' · Seção: '+safe(sectionName(p.sectionId))+'</span></div><span class="status-pill low">NÃO CONTADO</span></div>').join('')+(coverage.missing.length>12?'<div class="dashboard-empty">Mais '+(coverage.missing.length-12)+' produto(s) pendente(s) de conferência.</div>':'');
+  }
+  function renderInventory(){
+    $('inventoryState').textContent=state.inventory?`Inventário aberto: ${state.inventory.name} · ${state.inventoryItems.length} produto(s) contado(s). Revise as diferenças antes de finalizar.`:'Nenhum inventário aberto.';
+    $('finishInventoryBtn').disabled=!state.inventory || !state.inventoryItems.length || !state.productsLoaded;
+    $('discardInventoryBtn').disabled=!state.inventory;
+    $('inventoryTable').innerHTML=state.inventoryItems.map((it,i)=>`<tr><td>${safe(it.productName)}<br><span class="muted small">${safe(it.ean)}</span></td><td>${fmt(it.systemStock)}</td><td><input type="number" min="0" step="0.001" value="${safe(it.countedQty)}" data-invqty="${i}" style="width:110px"></td><td data-invdiff="${i}">${fmt(Number(it.countedQty)-Number(it.systemStock))}</td><td><button type="button" class="danger" data-invremove="${i}">Remover</button></td></tr>`).join('')||'<tr><td colspan="5">Adicione os produtos contados.</td></tr>';
+    renderInventoryCoverage();
+  }
+  function inventoryDraftKey(user=state.user){return user?.uid?'ideal-estoque-inventory-draft-v1:'+user.uid:null;}
+  function setInventoryDraftStatus(text){const el=$('inventoryDraftStatus');if(el)el.textContent=text;}
+  function persistInventoryDraft(){
+    const key=inventoryDraftKey();
+    if(!key)return;
+    try{
+      if(!state.inventory){
+        localStorage.removeItem(key);
+        setInventoryDraftStatus('Nenhum inventário salvo neste dispositivo.');
+        return;
+      }
+      const payload={
+        version:1,
+        savedAt:new Date().toISOString(),
+        inventory:{
+          name:String(state.inventory.name||'Inventário sem título'),
+          sectionId:state.inventory.sectionId||null,
+          startedAt:state.inventory.startedAt||new Date().toISOString()
+        },
+        items:state.inventoryItems.map(it=>({
+          productId:String(it.productId||''),
+          productName:String(it.productName||'Produto'),
+          ean:String(it.ean||''),
+          systemStock:Math.max(0,Number(it.systemStock)||0),
+          countedQty:Math.max(0,Number(it.countedQty)||0),
+          sectionId:it.sectionId||null,
+          unit:String(it.unit||'UN')
+        })).filter(it=>it.productId)
+      };
+      localStorage.setItem(key,JSON.stringify(payload));
+      setInventoryDraftStatus('Rascunho salvo automaticamente neste dispositivo às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'.');
+    }catch(e){
+      setInventoryDraftStatus('Não foi possível salvar o rascunho automaticamente. Verifique o espaço disponível no navegador.');
+    }
+  }
+  function restoreInventoryDraft(user){
+    const key=inventoryDraftKey(user);
+    state.inventory=null;
+    state.inventoryItems=[];
+    if(!key){setInventoryDraftStatus('Entre no sistema para recuperar o rascunho.');return;}
+    try{
+      const raw=localStorage.getItem(key);
+      if(!raw){setInventoryDraftStatus('Nenhum inventário salvo neste dispositivo.');renderInventory();return;}
+      const draft=JSON.parse(raw);
+      if(draft?.version!==1||!draft.inventory||!Array.isArray(draft.items))throw new Error('Rascunho inválido.');
+      state.inventory={
+        name:String(draft.inventory.name||'Inventário sem título'),
+        sectionId:draft.inventory.sectionId||null,
+        startedAt:draft.inventory.startedAt||new Date().toISOString()
+      };
+      state.inventoryItems=draft.items.filter(it=>it&&it.productId).map(it=>({
+        productId:String(it.productId),
+        productName:String(it.productName||'Produto'),
+        ean:String(it.ean||''),
+        systemStock:Math.max(0,Number(it.systemStock)||0),
+        countedQty:Math.max(0,Number(it.countedQty)||0),
+        sectionId:it.sectionId||null,
+        unit:String(it.unit||'UN')
+      }));
+      $('inventoryName').value=state.inventory.name;
+      setInventoryDraftStatus('Rascunho recuperado automaticamente deste dispositivo. Confira os itens antes de finalizar.');
+      renderInventory();
+    }catch(e){
+      try{localStorage.removeItem(key);}catch(_){}
+      state.inventory=null;state.inventoryItems=[];
+      setInventoryDraftStatus('O rascunho salvo estava inválido e foi descartado. Você pode iniciar um novo inventário.');
+      renderInventory();
+    }
+  }
+  function discardInventoryDraft(){
+    if(!state.inventory)return;
+    if(!window.confirm('Descartar o inventário em andamento e o rascunho salvo neste dispositivo? Esta ação não altera o estoque oficial.'))return;
+    state.inventory=null;
+    state.inventoryItems=[];
+    $('inventoryName').value='';
+    $('inventorySection').value='';
+    persistInventoryDraft();
+    renderInventory();
+    message('Rascunho descartado. O estoque oficial não foi alterado.','success');
+  }
+  const auditActionNames={
+    product_created:'Produto cadastrado',
+    product_updated:'Produto atualizado',
+    stock_bulk_imported:'Estoque alimentado por planilha',
+    section_created:'Seção cadastrada',
+    quick_count_registered:'Contagem rápida registrada',
+    inventory_finalized:'Inventário finalizado',
+    user_created:'Usuário criado',
+    user_access_updated:'Perfil ou acesso alterado',
+    backup_exported:'Backup exportado'
+  };
+  function auditDetailsText(log){
+    const d=log.details&&typeof log.details==='object'?log.details:{};
+    const parts=[];
+    if(d.productName)parts.push('Produto: '+d.productName);
+    if(d.ean)parts.push('EAN: '+d.ean);
+    if(d.sectionName)parts.push('Seção: '+d.sectionName);
+    if(d.oldStock!==undefined)parts.push('Saldo anterior: '+fmt(d.oldStock));
+    if(d.newStock!==undefined)parts.push('Novo saldo: '+fmt(d.newStock));
+    if(d.systemStock!==undefined)parts.push('Saldo registrado: '+fmt(d.systemStock));
+    if(d.countedQty!==undefined)parts.push('Contado: '+fmt(d.countedQty));
+    if(d.difference!==undefined)parts.push('Diferença: '+(Number(d.difference)>0?'+':'')+fmt(d.difference));
+    if(d.itemCount!==undefined)parts.push('Produtos contados: '+fmt(d.itemCount));
+    if(d.coveragePercent!==undefined)parts.push('Cobertura: '+fmt(d.coveragePercent)+'%');
+    if(d.targetEmail)parts.push('Usuário: '+d.targetEmail);
+    if(d.oldRole!==undefined||d.newRole!==undefined)parts.push('Perfil: '+(d.oldRole||'—')+' → '+(d.newRole||'—'));
+    if(d.oldActive!==undefined||d.newActive!==undefined)parts.push('Acesso: '+(d.oldActive===undefined?'—':d.oldActive?'ativo':'desativado')+' → '+(d.newActive===undefined?'—':d.newActive?'ativo':'desativado'));
+    if(d.description)parts.push('Descrição: '+d.description);
+    if(d.fileName)parts.push('Arquivo: '+d.fileName);
+    if(d.createdCount!==undefined)parts.push('Produtos cadastrados: '+fmt(d.createdCount));
+    if(d.updatedCount!==undefined)parts.push('Produtos atualizados: '+fmt(d.updatedCount));
+    if(d.rowsProcessed!==undefined)parts.push('Linhas importadas: '+fmt(d.rowsProcessed));
+    return parts.join(' · ')||String(log.summary||'Operação registrada');
+  }
+  async function recordAudit(action,entityType,entityId,summary,details={}){
+    try{
+      if(!state.user)return;
+      await db.collection('auditLogs').add({
+        action:String(action),
+        entityType:String(entityType),
+        entityId:String(entityId||''),
+        summary:String(summary||'Operação registrada'),
+        details:details&&typeof details==='object'?details:{},
+        userId:state.user.uid,
+        userEmail:String(state.user.email||''),
+        role:String(state.role||''),
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }catch(err){console.warn('Não foi possível gravar a auditoria:',err&&err.message||err);}
+  }
+  function getFilteredAudit(){
+    const query=$('auditSearch').value.trim().toLocaleLowerCase('pt-BR');
+    const action=$('auditActionFilter').value;
+    return state.auditLogs.filter(log=>{
+      if(action!=='all'&&log.action!==action)return false;
+      if(!query)return true;
+      const haystack=[log.userEmail,log.userId,log.action,auditActionNames[log.action]||'',log.summary,auditDetailsText(log),log.entityId].join(' ').toLocaleLowerCase('pt-BR');
+      return haystack.includes(query);
+    }).sort((a,b)=>historyMillis(b.createdAt)-historyMillis(a.createdAt));
+  }
+  function plainBackupValue(value){
+    if(value&&typeof value.toDate==='function')return value.toDate().toISOString();
+    if(value instanceof Date)return value.toISOString();
+    if(Array.isArray(value))return value.map(plainBackupValue);
+    if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,val])=>[key,plainBackupValue(val)]));
+    return value;
+  }
+  async function readCollectionForExport(name){
+    const snapshot=await db.collection(name).get();
+    return snapshot.docs.map(doc=>({id:doc.id,...plainBackupValue(doc.data())}));
+  }
+  function downloadJson(filename,data){
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8;'});
+    const url=URL.createObjectURL(blob),link=document.createElement('a');
+    link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }
+  async function downloadSystemBackup(){
+    const btn=$('downloadBackupBtn');
+    if(btn.disabled)return;
+    btn.disabled=true;
+    $('backupStatus').textContent='Lendo as coleções autorizadas do Firestore...';
+    try{
+      await requireRole('administrador');
+      await recordAudit('backup_exported','backup','system','Backup JSON exportado',{collections:['products','sections','users','counts','inventories','auditLogs']});
+      const names=['products','sections','users','counts','inventories','auditLogs'];
+      const pairs=await Promise.all(names.map(async name=>[name,await readCollectionForExport(name)]));
+      const collections=Object.fromEntries(pairs);
+      const total=Object.values(collections).reduce((sum,rows)=>sum+rows.length,0);
+      const createdAt=new Date().toISOString();
+      const backup={
+        metadata:{
+          application:'IDEAL Controle de Estoque',
+          version:'MASTER 2.9',
+          type:'firestore-data-export',
+          generatedAt:createdAt,
+          projectId:window.IDEAL_FIREBASE_CONFIG?.projectId||'não informado',
+          collectionCount:names.length,
+          documentCount:total,
+          warning:'Exportação de dados do Firestore. Não inclui senhas ou credenciais do Firebase Authentication. Este JSON não é um mecanismo automático de restauração.'
+        },
+        collections:collections
+      };
+      const stamp=createdAt.slice(0,19).replace(/[:T]/g,'-');
+      downloadJson('backup-ideal-estoque-'+stamp+'.json',backup);
+      $('backupStatus').textContent='Backup baixado: '+total.toLocaleString('pt-BR')+' documento(s), em '+names.length+' coleções. Data: '+new Date(createdAt).toLocaleString('pt-BR')+'.';
+      message('Backup JSON gerado e baixado. Guarde o arquivo em local seguro.','success');
+    }catch(err){
+      $('backupStatus').textContent='Falha ao gerar o backup. Verifique as permissões do Firestore e tente novamente.';
+      message('Não foi possível gerar o backup: '+(err.message||err),'error');
+    }finally{btn.disabled=false;}
+  }
+  function runIntegrityAnalysis(products,sections){
+    const issues=[];
+    const add=(severity,code,item,details)=>issues.push({severity:severity,code:code,item:item,details:details});
+    const sectionIds=new Set(sections.map(section=>section.id));
+    const eanGroups=new Map();
+    products.forEach(p=>{
+      const name=String(p.name||'').trim()||'(sem nome)';
+      const ean=String(p.ean||'').trim();
+      if(!String(p.name||'').trim())add('error','missing_name',name,'Produto sem nome. ID: '+p.id);
+      if(!ean)add('warning','missing_ean',name,'Produto sem EAN. ID: '+p.id);
+      else{
+        if(!validEan(ean)||!eanChecksum(ean))add('error','invalid_ean',name,'EAN inválido: '+ean+'. ID: '+p.id);
+        const normalized=ean.replace(/\s/g,'');
+        if(!eanGroups.has(normalized))eanGroups.set(normalized,[]);
+        eanGroups.get(normalized).push(p);
+      }
+      if(!p.sectionId||!sectionIds.has(p.sectionId))add('error','missing_section',name,'Seção não cadastrada ou removida. ID do produto: '+p.id+'; sectionId: '+(p.sectionId||'vazio'));
+      const stock=Number(p.stock);
+      if(!Number.isFinite(stock)||stock<0)add('error','invalid_stock',name,'Saldo inválido: '+String(p.stock)+'; ID: '+p.id);
+    });
+    eanGroups.forEach((group,ean)=>{
+      if(group.length>1)add('error','duplicate_ean',ean,'EAN repetido em '+group.length+' produtos: '+group.map(p=>String(p.name||p.id)+' [ID '+p.id+']').join('; '));
+    });
+    const sectionNameGroups=new Map();
+    sections.forEach(section=>{
+      const key=normalizeLookupText(section.name||'');
+      if(!key){add('error','empty_section_name','Seção sem nome','ID da seção: '+section.id);return;}
+      if(!sectionNameGroups.has(key))sectionNameGroups.set(key,[]);
+      sectionNameGroups.get(key).push(section);
+    });
+    sectionNameGroups.forEach((group,key)=>{
+      if(group.length>1)add('warning','duplicate_section',key,'Nome de seção duplicado ou equivalente: '+group.map(s=>String(s.name)+' [ID '+s.id+']').join('; '));
+    });
+    const errors=issues.filter(issue=>issue.severity==='error').length;
+    const warnings=issues.filter(issue=>issue.severity==='warning').length;
+    return {issues:issues,summary:{products:products.length,sections:sections.length,errors:errors,warnings:warnings,eanDuplicates:issues.filter(i=>i.code==='duplicate_ean').length},checkedAt:new Date()};
+  }
+  async function runIntegrityCheck(){
+    const btn=$('runIntegrityBtn');
+    if(btn.disabled)return;
+    btn.disabled=true;
+    $('integrityStatus').textContent='Conferindo produtos e seções no Firestore...';
+    $('integrityTable').innerHTML='<tr><td colspan="3">Verificando cadastro...</td></tr>';
+    try{
+      await requireRole('administrador');
+      const [productsSnap,sectionsSnap]=await Promise.all([db.collection('products').get(),db.collection('sections').get()]);
+      const products=productsSnap.docs.map(d=>({id:d.id,...d.data()}));
+      const sections=sectionsSnap.docs.map(d=>({id:d.id,...d.data()}));
+      const result=runIntegrityAnalysis(products,sections);
+      state.integrityIssues=result.issues;
+      state.integritySummary=result.summary;
+      state.integrityCheckedAt=result.checkedAt;
+      $('exportIntegrityCsv').disabled=!result.issues.length;
+      renderIntegrity();
+      message('Verificação concluída: '+result.summary.errors+' erro(s) e '+result.summary.warnings+' aviso(s).','success');
+    }catch(err){
+      $('integrityStatus').textContent='Falha na verificação. Confira as permissões do administrador no Firestore.';
+      $('integrityTable').innerHTML='<tr><td colspan="3">Não foi possível concluir a verificação.</td></tr>';
+      message('Não foi possível verificar o cadastro: '+(err.message||err),'error');
+    }finally{btn.disabled=false;}
+  }
+  function getAnalysisPeriodCounts(){
+    const period=$('analysisPeriod').value;
+    const now=Date.now();
+    if(period==='all')return state.counts.slice();
+    const days=Math.max(1,Number(period)||30);
+    const cutoff=now-days*24*60*60*1000;
+    return state.counts.filter(item=>historyMillis(item.createdAt)>=cutoff&&historyMillis(item.createdAt)<=now);
+  }
+  function analyzeCounts(rows){
+    const byDay=new Map(),byProduct=new Map(),byUser=new Map();
+    let different=0;
+    rows.forEach(item=>{
+      const stock=Number(item.systemStock||0),counted=Number(item.countedQty||0),diff=counted-stock;
+      const hasDiff=diff!==0;
+      if(hasDiff)different++;
+      const day=historyDateKey(item.createdAt)||'Sem data';
+      if(!byDay.has(day))byDay.set(day,{day,total:0,different:0});
+      const dayRow=byDay.get(day);dayRow.total++;if(hasDiff)dayRow.different++;
+      if(hasDiff){
+        const key=String(item.productId||item.ean||item.productName||'produto');
+        if(!byProduct.has(key))byProduct.set(key,{key,productName:item.productName||'Produto',ean:item.ean||'',unit:item.unit||'UN',occurrences:0,absoluteDifference:0,maxDifference:0});
+        const prod=byProduct.get(key);prod.occurrences++;prod.absoluteDifference+=Math.abs(diff);prod.maxDifference=Math.max(prod.maxDifference,Math.abs(diff));if(item.unit)prod.unit=item.unit;
+      }
+      const userKey=String(item.userId||item.userEmail||'unknown');
+      if(!byUser.has(userKey))byUser.set(userKey,{userId:userKey,email:item.userEmail||'Responsável não identificado',total:0,different:0});
+      const user=byUser.get(userKey);user.total++;if(hasDiff)user.different++;
+    });
+    return {
+      total:rows.length,
+      different:different,
+      matching:rows.length-different,
+      accuracy:rows.length?Math.round((rows.length-different)/rows.length*100):0,
+      uniqueProducts:new Set(rows.map(item=>String(item.productId||item.ean||item.productName||''))).size,
+      products:[...byProduct.values()].sort((a,b)=>b.occurrences-a.occurrences||b.absoluteDifference-a.absoluteDifference||a.productName.localeCompare(b.productName,'pt-BR')),
+      users:[...byUser.values()].map(u=>({...u,matching:u.total-u.different,accuracy:u.total?Math.round((u.total-u.different)/u.total*100):0})).sort((a,b)=>b.total-a.total||a.email.localeCompare(b.email,'pt-BR')),
+      days:[...byDay.values()].sort((a,b)=>a.day.localeCompare(b.day)).slice(-14)
+    };
+  }
+  function renderAnalysis(){
+    if(!$('analysisSummary'))return;
+    if(state.role!=='administrador'&&state.role!=='gerente')return;
+    const rows=getAnalysisPeriodCounts(),stats=analyzeCounts(rows);
+    $('analysisSummary').innerHTML=
+      '<div class="analysis-metric"><div class="metric-label">Contagens realizadas</div><div class="metric-value">'+fmt(stats.total)+'</div><div class="metric-note">No período selecionado</div></div>'+
+      '<div class="analysis-metric"><div class="metric-label">Com divergência</div><div class="metric-value">'+fmt(stats.different)+'</div><div class="metric-note">'+(stats.total?Math.round(stats.different/stats.total*100):0)+'% das contagens</div></div>'+
+      '<div class="analysis-metric"><div class="metric-label">Sem divergência</div><div class="metric-value">'+fmt(stats.matching)+'</div><div class="metric-note">Concordam com o saldo registrado</div></div>'+
+      '<div class="analysis-metric"><div class="metric-label">Taxa sem divergência</div><div class="metric-value">'+stats.accuracy+'%</div><div class="metric-note">'+fmt(stats.uniqueProducts)+' produto(s) distintos conferidos</div></div>';
+    const trend=$('analysisTrend');
+    const maxTotal=Math.max(1,...stats.days.map(day=>day.total));
+    trend.innerHTML=stats.days.map(day=>{
+      const totalWidth=Math.max(day.total?3:0,Math.round(day.total/maxTotal*100));
+      const diffWidth=day.different?Math.max(3,Math.round(day.different/maxTotal*100)):0;
+      const label=day.day==='Sem data'?'Sem data':day.day.slice(8,10)+'/'+day.day.slice(5,7);
+      return '<div class="analysis-day"><span class="analysis-day-label">'+safe(label)+'</span><div class="analysis-bars"><div class="analysis-bar total" style="width:'+totalWidth+'%"></div><div class="analysis-bar diff" style="width:'+diffWidth+'%"></div></div><span class="analysis-day-numbers">'+day.total+' cont. · '+day.different+' dif.</span></div>';
+    }).join('')||'<div class="dashboard-empty">Nenhuma contagem encontrada no período selecionado.</div>';
+    $('analysisProductsTable').innerHTML=stats.products.slice(0,10).map(p=>'<tr><td><strong>'+safe(p.productName)+'</strong><span class="audit-entity">EAN: '+safe(p.ean||'não informado')+'</span></td><td>'+fmt(p.occurrences)+'</td><td>'+fmt(p.absoluteDifference)+' '+safe(p.unit||'UN')+'<span class="audit-entity">Maior diferença isolada: '+fmt(p.maxDifference)+' '+safe(p.unit||'UN')+'</span></td></tr>').join('')||'<tr><td colspan="3">Nenhuma divergência neste período.</td></tr>';
+    $('analysisUsersTable').innerHTML=stats.users.map(u=>'<tr><td><strong>'+safe(u.email)+'</strong></td><td>'+fmt(u.total)+'<span class="audit-entity">'+fmt(u.different)+' com diferença</span></td><td>'+fmt(u.matching)+' ('+u.accuracy+'%)</td></tr>').join('')||'<tr><td colspan="3">Nenhuma contagem encontrada.</td></tr>';
+    $('analysisFreshness').textContent=state.historyUpdatedAt?'Dados sincronizados':'Aguardando dados';
+    $('analysisUpdatedAt').textContent='Análise gerada em '+new Date().toLocaleString('pt-BR')+'. Base: '+fmt(state.counts.length)+' contagens carregadas nesta sessão. Use “Carregar mais contagens para análise” para ampliar a base. Exibidos até 14 dias com atividade.';
+  }
+  function exportAnalysisCsv(){
+    const rows=getAnalysisPeriodCounts();
+    const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
+    const matrix=[['Data','Origem','Produto','EAN','Seção','Responsável','Saldo registrado','Quantidade contada','Diferença','Situação']];
+    rows.forEach(item=>{
+      const diff=Number(item.countedQty||0)-Number(item.systemStock||0);
+      matrix.push([dateFmt(item.createdAt),item.inventoryId?'Inventário completo':'Contagem rápida',item.productName||'',item.ean||'',sectionName(historyCountSectionId(item)),item.userEmail||'',Number(item.systemStock||0),Number(item.countedQty||0),diff,diff===0?'Sem divergência':'Com divergência']);
+    });
+    const csv='\uFEFF'+matrix.map(row=>row.map(cell).join(';')).join('\r\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),link=document.createElement('a');
+    link.href=url;link.download='analise-gerencial-estoque-'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }
+  function renderIntegrity(){
+    const tbody=$('integrityTable');
+    if(!tbody)return;
+    if(!state.integrityCheckedAt||!state.integritySummary){
+      $('integrityStatus').textContent='A verificação ainda não foi executada.';
+      $('integritySummary').innerHTML='';
+      return;
+    }
+    const result=state.integritySummary;
+    $('integrityStatus').textContent='Última verificação: '+state.integrityCheckedAt.toLocaleString('pt-BR')+'. Os resultados são uma fotografia dos dados naquele momento.';
+    $('integritySummary').innerHTML='<span>Produtos <strong>'+result.products+'</strong></span><span>Seções <strong>'+result.sections+'</strong></span><span>Erros <strong>'+result.errors+'</strong></span><span>Avisos <strong>'+result.warnings+'</strong></span><span>EAN duplicados <strong>'+result.eanDuplicates+'</strong></span>';
+    tbody.innerHTML=state.integrityIssues.slice(0,200).map(issue=>'<tr><td><span class="severity '+safe(issue.severity)+'">'+(issue.severity==='error'?'ERRO':'AVISO')+'</span></td><td><strong>'+safe(issue.item)+'</strong><span class="audit-entity">'+safe(issue.code)+'</span></td><td>'+safe(issue.details)+'</td></tr>').join('')||'<tr><td colspan="3"><div class="notice success" style="margin:0">Nenhum problema encontrado nos critérios verificados.</div></td></tr>';
+    if(state.integrityIssues.length>200)tbody.insertAdjacentHTML('beforeend','<tr><td colspan="3">Exibindo 200 de '+state.integrityIssues.length+' ocorrências. Exporte o CSV para consultar todas.</td></tr>');
+  }
+  function exportIntegrityCsv(){
+    if(!state.integrityCheckedAt)return;
+    const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
+    const matrix=[['Verificado em','Gravidade','Código','Item','Detalhes']];
+    state.integrityIssues.forEach(issue=>matrix.push([state.integrityCheckedAt.toLocaleString('pt-BR'),issue.severity,issue.code,issue.item,issue.details]));
+    if(state.integrityIssues.length===0)matrix.push([state.integrityCheckedAt.toLocaleString('pt-BR'),'OK','no_issues','Cadastro','Nenhum problema encontrado nos critérios verificados.']);
+    const csv='\uFEFF'+matrix.map(row=>row.map(cell).join(';')).join('\r\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob),link=document.createElement('a');
+    link.href=url;link.download='integridade-estoque-'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }
+  function renderAudit(){
+    if(!$('auditTable'))return;
+    if(state.role!=='administrador'&&state.role!=='gerente'){
+      $('auditTable').innerHTML='<tr><td colspan="4">Acesso restrito à gerência e ao administrador.</td></tr>';return;
+    }
+    if(!state.auditLoaded){
+      $('auditTable').innerHTML='<tr><td colspan="4">Carregando registros de auditoria...</td></tr>';
+      $('auditFreshness').textContent='Aguardando dados';renderAuditPagingControls();return;
+    }
+    const rows=getFilteredAudit();
+    $('auditSummary').innerHTML='<span>Registros carregados <strong>'+state.auditLogs.length+'</strong></span><span>Exibidos no filtro <strong>'+rows.length+'</strong></span><span>Tipos de operação <strong>'+new Set(rows.map(x=>x.action)).size+'</strong></span>';
+    $('auditTable').innerHTML=rows.map(log=>'<tr><td>'+safe(dateFmt(log.createdAt))+'</td><td><strong>'+safe(log.userEmail||'Usuário sem e-mail')+'</strong><span class="audit-entity">Perfil: '+safe(log.role||'—')+' · UID: '+safe(log.userId||'—')+'</span></td><td><span class="audit-action">'+safe(auditActionNames[log.action]||log.action||'Operação')+'</span><span class="audit-entity">'+safe(log.entityType||'')+' · '+safe(log.entityId||'')+'</span></td><td>'+safe(log.summary||'')+'<br><span class="muted small">'+safe(auditDetailsText(log))+'</span></td></tr>').join('')||'<tr><td colspan="4">Nenhum registro corresponde aos filtros.</td></tr>';
+    const updated=state.auditUpdatedAt?state.auditUpdatedAt.toLocaleString('pt-BR'):'aguardando dados';
+    $('auditUpdatedAt').textContent='Última atualização da auditoria: '+updated+'. São carregados '+fmt(state.auditLogs.length)+' registro(s) nesta sessão.';
+    $('auditFreshness').textContent=state.auditUpdatedAt?'Auditoria sincronizada':'Aguardando dados';
+    renderAuditPagingControls();
+  }
+  function renderAuditPagingControls(){
+    const button=$('loadMoreAuditBtn'),status=$('auditPageStatus');
+    const canLoad=!!state.auditHasMore&&!state.auditLoadingMore&&!!state.auditNextCursor;
+    if(button){button.disabled=!canLoad;button.textContent=state.auditLoadingMore?'Carregando...':state.auditHasMore?'Carregar mais auditoria':'Auditoria carregada até o fim';}
+    if(status){
+      const older=state.auditOlder.length?' · Páginas anteriores: '+fmt(state.auditOlder.length):'';
+      status.textContent='Total carregado: '+fmt(state.auditLogs.length)+older+(state.auditHasMore?' · Há mais registros':' · Fim da auditoria');
+    }
+  }
+  function rebuildLoadedAuditLogs(){
+    const map=new Map();
+    state.auditOlder.concat(state.auditBaseline,state.auditLive).forEach(item=>map.set(item.id,item));
+    state.auditLogs=[...map.values()].sort((a,b)=>historyMillis(b.createdAt)-historyMillis(a.createdAt));
+  }
+  async function loadMoreAuditLogs(){
+    if(state.auditLoadingMore||!state.auditHasMore||!state.auditNextCursor)return;
+    state.auditLoadingMore=true;renderAuditPagingControls();
+    try{
+      const snapshot=await db.collection('auditLogs').orderBy('createdAt','desc').startAfter(state.auditNextCursor).limit(500).get();
+      const existing=new Set(state.auditOlder.map(item=>item.id));
+      snapshot.docs.forEach(doc=>{if(!existing.has(doc.id)){state.auditOlder.push({id:doc.id,...doc.data()});existing.add(doc.id);}});
+      if(snapshot.docs.length)state.auditNextCursor=snapshot.docs[snapshot.docs.length-1];
+      state.auditHasMore=snapshot.docs.length===500;
+      rebuildLoadedAuditLogs();state.auditUpdatedAt=new Date();renderAudit();
+      message(snapshot.docs.length?'Mais '+snapshot.docs.length+' registro(s) de auditoria carregados. Total nesta sessão: '+state.auditLogs.length+'.':'Fim da auditoria: não há mais registros para carregar.','success');
+    }catch(err){
+      message('Não foi possível carregar mais auditoria: '+(err.message||err)+'. Confira as permissões e a conexão com o Firebase.','error');
+    }finally{state.auditLoadingMore=false;renderAuditPagingControls();}
+  }
+  function exportAuditCsv(){
+    const rows=getFilteredAudit();
+    const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
+    const matrix=[['Data e hora','Responsável','Perfil do responsável','Operação','Tipo de entidade','ID da entidade','Resumo','Detalhes']];
+    rows.forEach(log=>matrix.push([dateFmt(log.createdAt),log.userEmail||'',log.role||'',auditActionNames[log.action]||log.action,log.entityType||'',log.entityId||'',log.summary||'',auditDetailsText(log)]));
+    const csv='\uFEFF'+matrix.map(row=>row.map(cell).join(';')).join('\r\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob),link=document.createElement('a');
+    link.href=url;link.download='auditoria-estoque-'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  function renderUsers(){
+    const tbody=$('usersTable');
+    if(!tbody)return;
+    if(state.role!=='administrador'){tbody.innerHTML='<tr><td colspan="4">Acesso restrito ao administrador.</td></tr>';return;}
+    if(!state.usersLoaded){tbody.innerHTML='<tr><td colspan="4">Carregando usuários...</td></tr>';return;}
+    const q=$('userSearch').value.trim().toLocaleLowerCase('pt-BR');
+    const users=state.users.slice().sort((a,b)=>String(a.name||a.email||'').localeCompare(String(b.name||b.email||''),'pt-BR')).filter(u=>!q||[u.name,u.email,u.id].some(v=>String(v||'').toLocaleLowerCase('pt-BR').includes(q)));
+    tbody.innerHTML=users.map(u=>{
+      const isActive=u.ativo!==false;
+      const roles=[['colaborador','Colaborador'],['gerente','Gerente'],['administrador','Administrador']];
+      return '<tr data-user-row="'+safe(u.id)+'"><td><strong>'+safe(u.name||u.email||'Usuário sem nome')+'</strong><span class="subline">'+safe(u.email||'Sem e-mail')+'</span><span class="user-uid">UID: '+safe(u.id)+'</span></td><td><select class="user-role-select" data-user-role aria-label="Perfil de '+safe(u.email||u.id)+'">'+roles.map(([v,label])=>'<option value="'+v+'"'+(u.role===v?' selected':'')+'>'+label+'</option>').join('')+'</select></td><td><label class="user-access"><input type="checkbox" data-user-active'+(isActive?' checked':'')+'> '+(isActive?'Ativo':'Desativado')+'</label></td><td><button type="button" data-user-save="'+safe(u.id)+'">Salvar</button></td></tr>';
+    }).join('')||'<tr><td colspan="4">Nenhum usuário corresponde à pesquisa.</td></tr>';
+  }
+  async function createManagedUser(e){
+    e.preventDefault();
+    const btn=$('createManagedUserBtn');
+    if(btn.disabled)return;
+    btn.disabled=true;
+    let secondaryApp=null,secondaryAuth=null,createdUser=null;
+    try{
+      await requireRole('administrador');
+      const name=$('managedUserName').value.trim();
+      const email=$('managedUserEmail').value.trim().toLowerCase();
+      const password=$('managedUserPassword').value;
+      const role=$('managedUserRole').value;
+      const ativo=$('managedUserActive').checked;
+      if(!email)throw new Error('Informe o e-mail do novo usuário.');
+      if(password.length<6)throw new Error('A senha provisória precisa ter pelo menos 6 caracteres.');
+      if(!roleRank[role])throw new Error('Selecione um perfil válido.');
+      if(state.users.some(u=>String(u.email||'').toLowerCase()===email))throw new Error('Este e-mail já aparece na lista de usuários.');
+      try{
+        secondaryApp=firebase.apps.find(app=>app.name==='ideal-user-provisioning')||firebase.initializeApp(window.IDEAL_FIREBASE_CONFIG,'ideal-user-provisioning');
+        secondaryAuth=secondaryApp.auth();
+        const credential=await secondaryAuth.createUserWithEmailAndPassword(email,password);
+        createdUser=credential.user;
+      }catch(err){
+        if(err&&err.code==='auth/email-already-in-use')throw new Error('Este e-mail já possui uma conta no Firebase Authentication. Use a conta existente ou confira o e-mail informado.');
+        if(err&&err.code==='auth/operation-not-allowed')throw new Error('O login por e-mail e senha não está habilitado no Firebase Authentication. Ative esse método em Authentication → Sign-in method.');
+        if(err&&err.code==='auth/weak-password')throw new Error('A senha é muito fraca. Use pelo menos 6 caracteres.');
+        throw err;
+      }
+      const profile={name:name,email:email,role:role,ativo:ativo,createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:state.user.uid,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:state.user.uid};
+      try{
+        await db.collection('users').doc(createdUser.uid).set(profile);
+      }catch(err){
+        throw new Error('A conta de autenticação foi criada, mas o perfil não foi salvo. UID '+createdUser.uid+'. Confira as regras do Firestore antes de repetir o cadastro. Detalhe: '+err.message);
+      }
+      await recordAudit('user_created','user',createdUser.uid,'Usuário criado: '+email,{targetEmail:email,targetRole:role,newRole:role,newActive:ativo});
+      $('managedUserForm').reset();
+      $('managedUserActive').checked=true;
+      message('Usuário criado com sucesso, incluindo a conta de acesso e o perfil '+role+'.','success');
+      $('userSearch').value='';
+      renderUsers();
+    }catch(err){message(err.message||'Não foi possível criar o usuário.','error');}
+    finally{
+      if(secondaryAuth){try{await secondaryAuth.signOut();}catch(_){}}
+      if(secondaryApp){try{await secondaryApp.delete();}catch(_){}}
+      btn.disabled=false;
+    }
+  }
+  async function saveManagedUser(button){
+    try{
+      await requireRole('administrador');
+      const row=button.closest('tr');
+      if(!row)throw new Error('Não foi possível localizar a linha do usuário.');
+      const id=row.getAttribute('data-user-row');
+      const target=state.users.find(u=>u.id===id);
+      if(!target)throw new Error('Usuário não encontrado na lista atualizada.');
+      if(id===state.user.uid)throw new Error('Por segurança, não altere o próprio perfil. Peça a outro administrador para fazer essa alteração.');
+      const role=row.querySelector('[data-user-role]').value;
+      const ativo=row.querySelector('[data-user-active]').checked;
+      const oldRole=target.role,oldActive=target.ativo!==false;
+      if(!roleRank[role])throw new Error('Perfil selecionado inválido.');
+      const activeAdmins=state.users.filter(u=>u.role==='administrador'&&u.ativo!==false);
+      const keepsActiveAdmin=role==='administrador'&&ativo;
+      if(target.role==='administrador'&&target.ativo!==false&&!keepsActiveAdmin&&activeAdmins.length<=1)throw new Error('Não é possível remover o último administrador ativo. Promova outro usuário a administrador e mantenha-o ativo primeiro.');
+      const btn=button;btn.disabled=true;
+      await db.collection('users').doc(id).update({role:role,ativo:ativo,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:state.user.uid});
+      await recordAudit('user_access_updated','user',id,'Perfil ou acesso alterado: '+(target.email||target.name||id),{targetEmail:target.email||'',oldRole:oldRole,newRole:role,oldActive:oldActive,newActive:ativo});
+      message('Perfil e acesso atualizados para '+(target.email||target.name||id)+'.','success');
+    }catch(err){message(err.message||'Não foi possível atualizar o usuário.','error');}
+    finally{button.disabled=false;}
+  }
+  function attachListeners(){
+    stopListeners();
+    unsubs.push(db.collection('users').doc(state.user.uid).onSnapshot(doc=>{if(!doc.exists||doc.data().ativo===false){message('Seu acesso foi desativado ou o perfil foi removido. A sessão será encerrada.','error');auth.signOut();}},()=>{}));
+    if(state.role==='administrador')unsubs.push(db.collection('users').onSnapshot(s=>{state.users=s.docs.map(d=>({id:d.id,...d.data()}));state.usersLoaded=true;renderUsers();},e=>message('Falha ao carregar usuários: '+e.message,'error')));
+    if(state.role==='administrador'||state.role==='gerente')unsubs.push(db.collection('auditLogs').orderBy('createdAt','desc').limit(500).onSnapshot(s=>{
+      state.auditLive=s.docs.map(d=>({id:d.id,...d.data()}));
+      if(!state.auditInitialized){
+        state.auditInitialized=true;state.auditBaseline=state.auditLive.slice();
+        state.auditNextCursor=s.docs.length?s.docs[s.docs.length-1]:null;
+        state.auditHasMore=s.docs.length===500;
+      }
+      const liveIds=new Set(state.auditLive.map(item=>item.id));
+      state.auditOlder=state.auditOlder.filter(item=>!liveIds.has(item.id));
+      rebuildLoadedAuditLogs();state.auditLoaded=true;state.auditUpdatedAt=new Date();renderAudit();
+    },e=>message('Falha ao carregar auditoria. Confirme se as regras atualizadas do Firestore foram publicadas: '+e.message,'error')));
+    unsubs.push(db.collection('sections').orderBy('name').onSnapshot(s=>{state.sections=s.docs.map(d=>({id:d.id,...d.data()}));renderSectionOptions();renderProducts();},e=>message('Falha ao carregar seções: '+e.message,'error')));
+    unsubs.push(db.collection('products').orderBy('name').onSnapshot(s=>{state.products=s.docs.map(d=>({id:d.id,...d.data()}));state.productsLoaded=true;state.stockUpdatedAt=new Date();renderProducts();renderInventory();},e=>message('Falha ao carregar produtos: '+e.message,'error')));
+    const canViewAllHistory=state.role==='administrador'||state.role==='gerente';
+    const countQuery=canViewAllHistory?db.collection('counts').orderBy('createdAt','desc').limit(500):db.collection('counts').where('userId','==',state.user.uid).limit(500);
+    unsubs.push(countQuery.onSnapshot(s=>{
+      state.countsLive=s.docs.map(d=>({id:d.id,...d.data()}));
+      if(!state.countsInitialized){
+        state.countsInitialized=true;
+        state.countsBaseline=state.countsLive.slice();
+        state.countsNextCursor=s.docs.length?s.docs[s.docs.length-1]:null;
+        state.countsHasMore=s.docs.length===500;
+      }
+      const liveIds=new Set(state.countsLive.map(item=>item.id));
+      state.countsOlder=state.countsOlder.filter(item=>!liveIds.has(item.id));
+      rebuildLoadedCountHistory();
+      state.historyUpdatedAt=new Date();
+      renderCounts();renderAnalysis();renderCountPagingControls();
+    },e=>message('Falha ao carregar histórico de contagens: '+e.message,'error')));
+    const inventoryQuery=canViewAllHistory?db.collection('inventories').orderBy('finishedAt','desc').limit(200):db.collection('inventories').where('userId','==',state.user.uid).limit(200);
+    unsubs.push(inventoryQuery.onSnapshot(s=>{
+      state.inventoriesLive=s.docs.map(d=>({id:d.id,...d.data()}));
+      if(!state.inventoriesInitialized){
+        state.inventoriesInitialized=true;state.inventoriesBaseline=state.inventoriesLive.slice();
+        state.inventoriesNextCursor=s.docs.length?s.docs[s.docs.length-1]:null;
+        state.inventoriesHasMore=s.docs.length===200;
+      }
+      const liveIds=new Set(state.inventoriesLive.map(item=>item.id));
+      state.inventoriesOlder=state.inventoriesOlder.filter(item=>!liveIds.has(item.id));
+      rebuildLoadedInventories();state.historyUpdatedAt=new Date();renderHistory();
+    },e=>message('Falha ao carregar histórico de inventários: '+e.message,'error')));
+  }
+  async function loadRole(user){
+    const snap=await db.collection('users').doc(user.uid).get();
+    if(!snap.exists || !snap.data().role) throw new Error('Conta autenticada, mas sem perfil autorizado. Peça ao administrador do Firebase para provisionar seu perfil.');
+    const profile=snap.data();
+    if(profile.ativo===false){await auth.signOut();throw new Error('Seu acesso está desativado. Procure um administrador do sistema.');}
+    const role=profile.role;
+    if(!roleRank[role]) throw new Error('Perfil inválido. Contate o administrador.');
+    state.role=role; $('roleBadge').textContent='Perfil: '+role; $('userEmail').textContent=user.email||'Usuário'; $('userBar').classList.remove('hidden');
+    document.querySelectorAll('[data-tab="sections"],#sectionForm,#finishInventoryBtn,#bulkStockImportPanel').forEach(el=>{el.classList.toggle('hidden',roleRank[role]<roleRank.gerente)});
+    $('usersTabBtn').classList.toggle('hidden',role!=='administrador');
+    $('auditTabBtn').classList.toggle('hidden',!['administrador','gerente'].includes(role));
+    $('backupTabBtn').classList.toggle('hidden',role!=='administrador');
+    $('analysisTabBtn').classList.toggle('hidden',!['administrador','gerente'].includes(role));
+    $('tab-users').classList.add('hidden');$('tab-audit').classList.add('hidden');$('tab-backup').classList.add('hidden');$('tab-analysis').classList.add('hidden');
+    restoreInventoryDraft(user);
+    $('appPanel').classList.remove('hidden'); $('authPanel').classList.add('hidden'); attachListeners();
+  }
+  async function onAuth(user){
+    stopListeners(); state.user=user; state.role=null; state.products=[]; state.productsLoaded=false; state.sections=[]; state.counts=[];state.countsLive=[];state.countsBaseline=[];state.countsOlder=[];state.countsNextCursor=null;state.countsHasMore=false;state.countsLoadingMore=false;state.countsInitialized=false;state.finishedInventories=[];state.inventoriesLive=[];state.inventoriesBaseline=[];state.inventoriesOlder=[];state.inventoriesNextCursor=null;state.inventoriesHasMore=false;state.inventoriesLoadingMore=false;state.inventoriesInitialized=false; state.users=[]; state.usersLoaded=false; state.auditLogs=[];state.auditLive=[];state.auditBaseline=[];state.auditOlder=[];state.auditNextCursor=null;state.auditHasMore=false;state.auditLoadingMore=false;state.auditInitialized=false; state.auditLoaded=false; state.auditUpdatedAt=null; state.integrityIssues=[];state.integritySummary=null;state.integrityCheckedAt=null;state.inventory=null; state.inventoryItems=[]; state.stockUpdatedAt=null; state.historyUpdatedAt=null;
+    if(!user){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.add('hidden');return;}
+    try{await loadRole(user);clearMessage();}catch(e){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.remove('hidden');$('userEmail').textContent=user.email||'';message(e.message,'error');}
+  }
+  async function createSection(e){e.preventDefault();try{await requireRole('gerente');const name=$('sectionName').value.trim();if(!name)throw new Error('Informe o nome da seção.');const description=$('sectionDescription').value.trim();const ref=await db.collection('sections').add({name,description,createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:state.user.uid});await recordAudit('section_created','section',ref.id,'Seção cadastrada: '+name,{sectionName:name,description:description});$('sectionForm').reset();message('Seção cadastrada.','success');}catch(err){message(err.message,'error');}}
+  let bulkStockImportRows=[],bulkStockImportFileName='',bulkStockImportReady=false,bulkStockImportBusy=false;
+  function stockCsvDelimiter(headerLine){
+    const semicolon=(headerLine.match(/;/g)||[]).length;
+    const comma=(headerLine.match(/,/g)||[]).length;
+    return semicolon>=comma?';':',';
+  }
+  function parseStockCsvLine(line,delimiter){
+    const cells=[];let field='',quoted=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(ch==='"'){
+        if(quoted&&line[i+1]==='"'){field+='"';i++;}
+        else quoted=!quoted;
+      }else if(ch===delimiter&&!quoted){cells.push(field.trim());field='';}
+      else field+=ch;
+    }
+    cells.push(field.trim());return cells;
+  }
+  function stockImportHeader(value){return normalizeLookupText(value).replace(/[^a-z0-9 ]/g,'').trim();}
+  function stockImportColumn(headers,aliases){return headers.findIndex(header=>aliases.includes(header));}
+  function parseStockImportQuantity(value){
+    let text=String(value??'').trim().replace(/\s/g,'');
+    if(!text)return NaN;
+    if(text.includes(','))text=text.replace(/\./g,'').replace(',','.');
+    const number=Number(text);return Number.isFinite(number)?number:NaN;
+  }
+  function stockImportUnit(value){
+    const key=normalizeLookupText(value||'un').toUpperCase();
+    const map={'':'UN','UNIDADE':'UN','UNIDADES':'UN','UND':'UN','UN':'UN','KG':'KG','QUILO':'KG','QUILOS':'KG','KILO':'KG','G':'G','GRAMA':'G','GRAMAS':'G','L':'L','LITRO':'L','LITROS':'L','ML':'ML','MILILITRO':'ML','MILILITROS':'ML','CX':'CX','CAIXA':'CX','CAIXAS':'CX','FD':'FD','FARDO':'FD','FARDOS':'FD','PCT':'PCT','PACOTE':'PCT','PACOTES':'PCT'};
+    return map[key]||'';
+  }
+  function clearStockImportPreview(){
+    bulkStockImportRows=[];bulkStockImportFileName='';bulkStockImportReady=false;
+    if($('bulkStockFile'))$('bulkStockFile').value='';
+    if($('bulkStockImportStatus'))$('bulkStockImportStatus').textContent='Selecione um CSV para conferir os dados antes de gravar.';
+    if($('bulkStockImportSummary'))$('bulkStockImportSummary').innerHTML='';
+    if($('bulkStockImportTable'))$('bulkStockImportTable').innerHTML='<tr><td colspan="7">A prévia aparecerá após conferir a planilha.</td></tr>';
+    if($('bulkStockImportFooter'))$('bulkStockImportFooter').textContent='Nenhum dado será gravado antes de você conferir e confirmar a importação.';
+    renderStockImportControls();
+  }
+  function renderStockImportControls(){
+    const button=$('importStockBatchBtn');if(!button)return;
+    const valid=bulkStockImportRows.filter(row=>row.valid);
+    const invalid=bulkStockImportRows.length-valid.length;
+    button.disabled=bulkStockImportBusy||!bulkStockImportReady||!valid.length||invalid>0||!['administrador','gerente'].includes(state.role);
+    button.textContent=bulkStockImportBusy?'Gravando...':invalid?'Corrija todas as linhas inválidas':'Gravar '+fmt(valid.length)+' produto(s)';
+    if($('prepareStockImportBtn'))$('prepareStockImportBtn').disabled=bulkStockImportBusy;
+    if($('downloadStockTemplateBtn'))$('downloadStockTemplateBtn').disabled=bulkStockImportBusy;
+    if($('clearStockImportBtn'))$('clearStockImportBtn').disabled=bulkStockImportBusy;
+  }
+  function downloadStockTemplate(){
+    const csv='\uFEFFEAN;Produto;Seção;Unidade;Saldo atual\r\n';
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),link=document.createElement('a');
+    link.href=url;link.download='modelo_estoque_ideal.csv';
+    document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1200);
+  }
+  async function prepareStockImport(){
+    if(bulkStockImportBusy)return;
+    try{
+      await requireRole('gerente');
+      const file=$('bulkStockFile').files?.[0];
+      if(!file)throw new Error('Selecione primeiro o arquivo CSV.');
+      if(file.size>10*1024*1024)throw new Error('O arquivo ultrapassa 10 MB. Divida a planilha em arquivos menores.');
+      const content=(await file.text()).replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n');
+      const nonEmpty=content.split('\n').filter(line=>line.trim());
+      if(nonEmpty.length<2)throw new Error('A planilha precisa ter o cabeçalho e pelo menos uma linha de produto.');
+      const delimiter=stockCsvDelimiter(nonEmpty[0]),records=nonEmpty.map(line=>parseStockCsvLine(line,delimiter));
+      const headers=records.shift().map(stockImportHeader);
+      const columns={
+        ean:stockImportColumn(headers,['ean','codigo ean','codigo de barras','codigo barras','gtin','barcode']),
+        name:stockImportColumn(headers,['produto','nome','nome do produto','descricao','descricao do produto','product']),
+        section:stockImportColumn(headers,['secao','categoria','departamento','section']),
+        unit:stockImportColumn(headers,['unidade','unidade de medida','unit']),
+        stock:stockImportColumn(headers,['saldo atual','saldo','estoque atual','quantidade atual','quantidade','estoque','stock','quantity'])
+      };
+      const missing=[];
+      if(columns.ean<0)missing.push('EAN');
+      if(columns.name<0)missing.push('Produto');
+      if(columns.section<0)missing.push('Seção');
+      if(columns.stock<0)missing.push('Saldo atual');
+      if(missing.length)throw new Error('Faltam colunas obrigatórias: '+missing.join(', ')+'. Baixe o modelo CSV para ver o formato.');
+      if(records.length>10000)throw new Error('A planilha tem mais de 10.000 linhas. Divida em arquivos menores.');
+      const sectionMap=new Map(state.sections.map(section=>[normalizeLookupText(section.name),section]));
+      const productsByEan=new Map();
+      const eanDuplicatesInCatalog=new Set();
+      state.products.filter(p=>p.ean).forEach(p=>{
+        const ean=normalizeBarcode(p.ean);
+        if(productsByEan.has(ean))eanDuplicatesInCatalog.add(ean);
+        else productsByEan.set(ean,p);
+      });
+      const parsed=records.map((record,index)=>{
+        const value=col=>col>=0?String(record[col]??'').trim():'';
+        const ean=normalizeBarcode(value(columns.ean).replace(/\D/g,''));
+        const name=value(columns.name),sectionText=value(columns.section),section=sectionMap.get(normalizeLookupText(sectionText));
+        const unitRaw=value(columns.unit)||'UN',unit=stockImportUnit(unitRaw),quantity=parseStockImportQuantity(value(columns.stock)),errors=[];
+        if(!ean||!validEan(ean)||!eanChecksum(ean))errors.push('EAN inválido ou ausente');
+        if(!name)errors.push('Nome do produto ausente');
+        if(name.length>160)errors.push('Nome acima de 160 caracteres');
+        if(!section)errors.push('Seção não cadastrada: '+(sectionText||'vazia'));
+        if(!unit)errors.push('Unidade inválida: '+unitRaw);
+        if(!Number.isFinite(quantity)||quantity<=0)errors.push('Saldo deve ser numérico e maior que zero');
+        if(eanDuplicatesInCatalog.has(ean))errors.push('EAN duplicado no cadastro atual; corrija o cadastro antes de importar');
+        const existing=productsByEan.get(ean);
+        return {line:index+2,ean,name,sectionText,sectionId:section?.id||'',unit,quantity,existingId:existing?.id||'',existingName:existing?.name||'',valid:errors.length===0,errors};
+      });
+      const fileCounts=new Map();
+      parsed.forEach(row=>{if(row.ean)fileCounts.set(row.ean,(fileCounts.get(row.ean)||0)+1);});
+      parsed.forEach(row=>{if(row.ean&&fileCounts.get(row.ean)>1){row.valid=false;row.errors.push('EAN repetido nesta planilha');}});
+      bulkStockImportRows=parsed;bulkStockImportFileName=file.name;bulkStockImportReady=true;
+      renderStockImportPreview();
+      const validCount=parsed.filter(row=>row.valid).length,invalidCount=parsed.length-validCount;
+      $('bulkStockImportStatus').textContent='Arquivo conferido: '+file.name+'. '+fmt(parsed.length)+' linha(s) analisada(s). Nenhuma alteração foi gravada ainda.';
+      $('bulkStockImportFooter').textContent=invalidCount?'Corrija as '+fmt(invalidCount)+' linha(s) com erro no arquivo e confira novamente antes de importar.':'Prévia validada. A importação atualizará/cadastrará somente os itens listados, sem apagar produtos que não estão no arquivo.';
+      renderStockImportControls();
+      message(invalidCount?'A planilha tem linhas inválidas. Corrija os erros indicados e confira novamente.':fmt(validCount)+' linha(s) prontas para importação. Revise a prévia antes de gravar.','success');
+    }catch(err){
+      bulkStockImportRows=[];bulkStockImportReady=false;renderStockImportControls();
+      if($('bulkStockImportStatus'))$('bulkStockImportStatus').textContent=err.message||'Não foi possível ler a planilha.';
+      message(err.message||'Não foi possível ler a planilha.','error');
+    }
+  }
+  function renderStockImportPreview(){
+    const summary=$('bulkStockImportSummary'),table=$('bulkStockImportTable');
+    if(!summary||!table)return;
+    const rows=bulkStockImportRows,valid=rows.filter(row=>row.valid),invalid=rows.length-valid.length;
+    const created=valid.filter(row=>!row.existingId).length,updated=valid.length-created;
+    summary.innerHTML='<span>Linhas <strong>'+fmt(rows.length)+'</strong></span><span>Novos produtos <strong>'+fmt(created)+'</strong></span><span>Atualizar saldo <strong>'+fmt(updated)+'</strong></span><span>Com erro <strong>'+fmt(invalid)+'</strong></span>';
+    const preview=rows.slice(0,100);
+    table.innerHTML=preview.map(row=>'<tr><td>'+fmt(row.line)+'</td><td>'+safe(row.ean||'—')+'</td><td><strong>'+safe(row.name||'—')+'</strong>'+(row.existingId?'<br><span class="muted small">Já cadastrado: '+safe(row.existingName)+'</span>':'')+'</td><td>'+safe(row.sectionText||'—')+'</td><td>'+safe(row.unit||'—')+'</td><td>'+safe(Number.isFinite(row.quantity)?fmt(row.quantity):'—')+'</td><td class="'+(row.valid?'bulk-row-ok':'bulk-row-error')+'">'+safe(row.valid?(row.existingId?'Atualizar saldo':'Cadastrar novo'):row.errors.join('; '))+'</td></tr>').join('')||'<tr><td colspan="7">Nenhuma linha encontrada.</td></tr>';
+    if(rows.length>preview.length)table.insertAdjacentHTML('beforeend','<tr><td colspan="7" class="muted">Mostrando '+fmt(preview.length)+' de '+fmt(rows.length)+' linhas; todas foram validadas.</td></tr>');
+    renderStockImportControls();
+  }
+  async function importStockBatch(){
+    if(bulkStockImportBusy)return;
+    bulkStockImportBusy=true;renderStockImportControls();
+    let createdCount=0,updatedCount=0,processed=0;
+    try{
+      await requireRole('gerente');
+      if(!bulkStockImportReady||!bulkStockImportRows.length)throw new Error('Confira uma planilha antes de importar.');
+      if(bulkStockImportRows.some(row=>!row.valid))throw new Error('A importação foi bloqueada. Corrija todas as linhas inválidas e confira novamente.');
+      if(!window.confirm('Confirma alimentar o estoque com '+bulkStockImportRows.length+' produto(s) do arquivo "'+bulkStockImportFileName+'"? Os itens não presentes no arquivo não serão excluídos.'))return;
+      const chunkSize=400;
+      for(let offset=0;offset<bulkStockImportRows.length;offset+=chunkSize){
+        const batch=db.batch(),chunk=bulkStockImportRows.slice(offset,offset+chunkSize);
+        chunk.forEach(row=>{
+          const data={ean:row.ean,name:row.name,sectionId:row.sectionId,unit:row.unit,stock:row.quantity,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:state.user.uid};
+          if(row.existingId){batch.update(db.collection('products').doc(row.existingId),data);updatedCount++;}
+          else{const ref=db.collection('products').doc();batch.set(ref,{...data,createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:state.user.uid});createdCount++;}
+        });
+        await batch.commit();processed+=chunk.length;
+        $('bulkStockImportStatus').textContent='Gravando no Firestore: '+fmt(processed)+' de '+fmt(bulkStockImportRows.length)+' produto(s)...';
+      }
+      await recordAudit('stock_bulk_imported','products','bulk-import','Estoque alimentado por planilha: '+bulkStockImportFileName,{fileName:bulkStockImportFileName,createdCount,updatedCount,rowsProcessed:processed});
+      bulkStockImportRows=[];bulkStockImportReady=false;bulkStockImportFileName='';$('bulkStockFile').value='';$('bulkStockImportSummary').innerHTML='';
+      $('bulkStockImportTable').innerHTML='<tr><td colspan="7">Importação concluída. Os dados serão atualizados no painel em tempo real.</td></tr>';
+      $('bulkStockImportFooter').textContent='Importação concluída. Confira o saldo atual no dashboard e no relatório.';
+      $('bulkStockImportStatus').textContent='Concluído: '+fmt(createdCount)+' produto(s) cadastrado(s) e '+fmt(updatedCount)+' saldo(s) atualizado(s).';
+      message('Estoque alimentado com sucesso: '+fmt(createdCount)+' produto(s) novo(s) e '+fmt(updatedCount)+' atualizado(s).','success');
+      renderStockImportControls();renderDashboard();renderStockReport();renderProducts();
+    }catch(err){
+      message('A importação não foi concluída integralmente: '+(err.message||err)+'. Se já houver páginas gravadas, confira o estoque antes de tentar novamente.','error');
+      if($('bulkStockImportStatus'))$('bulkStockImportStatus').textContent='Falha após '+fmt(processed)+' linha(s) gravada(s). '+(err.message||err);
+    }finally{bulkStockImportBusy=false;renderStockImportControls();}
+  }
+  async function saveProduct(e){
+    e.preventDefault();try{
+      await requireRole('gerente');
+      const id=$('productId').value,oldProduct=id?state.products.find(p=>p.id===id):null;
+      const ean=$('pEan').value.trim().replace(/\s/g,'');
+      if(ean&&(!validEan(ean)||!eanChecksum(ean)))throw new Error('EAN inválido. Confira o código de 8 ou 13 dígitos e o dígito verificador.');
+      const data={ean,name:$('pName').value.trim(),sectionId:$('pSection').value,unit:$('pUnit').value,stock:Number($('pStock').value),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:state.user.uid};
+      if(!data.sectionId)throw new Error('Selecione uma seção.');
+      if(state.products.some(p=>p.ean===ean&&ean&&p.id!==id))throw new Error('Este EAN já está cadastrado em outro produto.');
+      if(!data.name||data.stock<0)throw new Error('Confira nome e quantidade de estoque.');
+      let productId=id;
+      if(id){await db.collection('products').doc(id).update(data);}
+      else{data.createdAt=firebase.firestore.FieldValue.serverTimestamp();data.createdBy=state.user.uid;const ref=await db.collection('products').add(data);productId=ref.id;}
+      await recordAudit(id?'product_updated':'product_created','product',productId,(id?'Produto atualizado: ':'Produto cadastrado: ')+data.name,{productName:data.name,ean:data.ean,sectionName:sectionName(data.sectionId),oldStock:oldProduct?Number(oldProduct.stock||0):null,newStock:Number(data.stock),unit:data.unit});
+      $('productForm').reset();$('productId').value='';$('pStock').value='0';setEanLookupStatus('Produto salvo. Leia outro EAN para consultar automaticamente o próximo produto.','success');message('Produto salvo com sucesso.','success');
+    }catch(err){message(err.message,'error');}
+  }
+  async function lookupCountProduct(){
+    const ean=$('countEan').value.trim();const p=findProductByEan(ean);if(!p){$('countProductInfo').textContent='Produto não encontrado. Verifique o EAN ou solicite o cadastro.';$('countProductInfo').classList.remove('hidden');return null;}
+    $('countProductInfo').textContent=`${p.name} · Seção: ${sectionName(p.sectionId)} · Estoque registrado: ${fmt(p.stock)} ${p.unit||'UN'}`;$('countProductInfo').classList.remove('hidden');return p;
+  }
+  async function saveQuickCount(){
+    const btn=$('saveCountBtn');
+    if(btn.disabled)return;
+    btn.disabled=true;
+    try{
+      if(!state.user)throw new Error('Entre no sistema.');
+      const rawQty=$('countQty').value.trim();
+      if(rawQty==='')throw new Error('Informe a quantidade física contada antes de registrar.');
+      const qty=Number(rawQty);
+      if(!Number.isFinite(qty)||qty<0)throw new Error('Quantidade inválida. Informe zero ou um número positivo.');
+      const p=await lookupCountProduct();
+      if(!p)throw new Error('Produto não encontrado. Verifique o EAN ou solicite o cadastro.');
+      const systemStock=Number(p.stock||0);
+      const difference=qty-systemStock;
+      if(difference!==0){
+        const sign=difference>0?'+':'';
+        const ok=window.confirm('CONFIRME A CONTAGEM\n\nProduto: '+p.name+'\nEstoque cadastrado: '+fmt(systemStock)+' '+(p.unit||'UN')+'\nQuantidade física informada: '+fmt(qty)+' '+(p.unit||'UN')+'\nDiferença: '+sign+fmt(difference)+' '+(p.unit||'UN')+'\n\nA contagem rápida apenas registra a conferência; não altera o estoque oficial.\n\nDeseja registrar esses números?');
+        if(!ok)return;
+      }
+      await db.collection('counts').add({productId:p.id,productName:p.name,ean:p.ean,sectionId:p.sectionId,unit:p.unit||'UN',systemStock:systemStock,countedQty:qty,difference:difference,userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),inventoryId:null});
+      await recordAudit('quick_count_registered','count',p.id,'Contagem rápida registrada: '+p.name,{productName:p.name,ean:p.ean,sectionName:sectionName(p.sectionId),systemStock:systemStock,countedQty:qty,difference:difference,unit:p.unit||'UN'});
+      $('countEan').value='';
+      $('countQty').value='';
+      $('countProductInfo').classList.add('hidden');
+      message('Contagem registrada para conferência. O estoque oficial não foi alterado.','success');
+    }catch(e){message(e.message,'error');}
+    finally{btn.disabled=false;}
+  }
+  async function startInventory(){try{await requireRole('colaborador');if(state.inventory)throw new Error('Já existe um inventário aberto. Continue o inventário recuperado ou descarte o rascunho antes de iniciar outro.');state.inventory={name:$('inventoryName').value.trim()||'Inventário sem título',sectionId:$('inventorySection').value||null,startedAt:new Date().toISOString()};state.inventoryItems=[];persistInventoryDraft();renderInventory();message('Inventário iniciado. O rascunho será salvo automaticamente neste dispositivo.','success');}catch(e){message(e.message,'error');}}
+  async function addInventoryItem(){try{if(!state.inventory)throw new Error('Inicie um inventário primeiro.');const ean=$('inventoryEan').value.trim();const p=findProductByEan(ean);if(!p)throw new Error('Produto não encontrado pelo EAN.');if(state.inventory.sectionId&&p.sectionId!==state.inventory.sectionId)throw new Error('Este produto não pertence à seção selecionada.');const qty=Number($('inventoryQty').value);if(!Number.isFinite(qty)||qty<0)throw new Error('Quantidade inválida.');const existing=state.inventoryItems.find(i=>i.productId===p.id);if(existing)existing.countedQty=qty;else state.inventoryItems.push({productId:p.id,productName:p.name,ean:p.ean,systemStock:Number(p.stock),countedQty:qty,sectionId:p.sectionId,unit:p.unit||'UN'});$('inventoryEan').value='';$('inventoryQty').value='1';persistInventoryDraft();renderInventory();}catch(e){message(e.message,'error');}}
+  async function finishInventory(){try{
+      await requireRole('gerente');
+      if(!state.inventory||!state.inventoryItems.length)throw new Error('Não há inventário com produtos para finalizar.');
+      if(!state.productsLoaded)throw new Error('Aguarde o carregamento do catálogo antes de finalizar.');
+      const coverage=calculateInventoryCoverage();
+      if(!coverage.total)throw new Error('Não há produtos no escopo do inventário. Confira a seção selecionada.');
+      if(coverage.missing.length){
+        const preview=coverage.missing.slice(0,5).map(p=>p.name||p.ean||'Produto').join(', ');
+        const more=coverage.missing.length>5?' e mais '+(coverage.missing.length-5)+' produto(s)':'';
+        const approved=window.confirm('ATENÇÃO: este inventário cobre '+coverage.counted+' de '+coverage.total+' produto(s). Ainda faltam '+coverage.missing.length+' produto(s) sem contagem.\n\nPendentes: '+preview+more+'.\n\nSe finalizar agora, somente os produtos contados terão seus saldos atualizados. Os produtos não contados NÃO serão zerados nem alterados.\n\nDeseja finalizar mesmo assim?');
+        if(!approved)return;
+      }
+      const batch=db.batch(),invRef=db.collection('inventories').doc();
+      batch.set(invRef,{name:state.inventory.name,sectionId:state.inventory.sectionId,startedAt:state.inventory.startedAt,finishedAt:firebase.firestore.FieldValue.serverTimestamp(),status:'finalizado',itemCount:state.inventoryItems.length,coverageTotal:coverage.total,coverageCounted:coverage.counted,coveragePercent:coverage.percent,userId:state.user.uid,userEmail:state.user.email||''});
+      for(const it of state.inventoryItems){
+        const pRef=db.collection('products').doc(it.productId);
+        batch.update(pRef,{stock:Number(it.countedQty),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:state.user.uid});
+        const cRef=db.collection('counts').doc();
+        batch.set(cRef,{...it,systemStock:Number(it.systemStock),countedQty:Number(it.countedQty),difference:Number(it.countedQty)-Number(it.systemStock),userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),inventoryId:invRef.id});
+      }
+      await batch.commit();
+      await recordAudit('inventory_finalized','inventory',invRef.id,'Inventário finalizado: '+state.inventory.name,{inventoryName:state.inventory.name,sectionName:state.inventory.sectionId?sectionName(state.inventory.sectionId):'Todas as seções',itemCount:state.inventoryItems.length,coverageTotal:coverage.total,coverageCounted:coverage.counted,coveragePercent:coverage.percent});
+      state.inventory=null;state.inventoryItems=[];persistInventoryDraft();renderInventory();message('Inventário finalizado. Estoques atualizados e diferenças registradas no histórico; o rascunho local foi removido.','success');
+    }catch(e){message('Não foi possível finalizar o inventário: '+e.message,'error');}}
+  function bind(){
+    $('loginForm').addEventListener('submit',async e=>{e.preventDefault();try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);clearMessage();}catch(err){message('Não foi possível entrar: confira e-mail e senha e se a conta foi autorizada.','error');}});
+    $('logoutBtn').addEventListener('click',()=>auth.signOut());
+    $('managedUserForm').addEventListener('submit',createManagedUser);
+    $('downloadBackupBtn').addEventListener('click',downloadSystemBackup);
+    $('runIntegrityBtn').addEventListener('click',runIntegrityCheck);
+    $('exportIntegrityCsv').addEventListener('click',exportIntegrityCsv);
+    $('analysisPeriod').addEventListener('change',renderAnalysis);
+    $('exportAnalysisCsv').addEventListener('click',exportAnalysisCsv);
+    $('loadMoreCountsBtn').addEventListener('click',loadMoreCountHistory);
+    $('loadMoreAnalysisCountsBtn').addEventListener('click',loadMoreCountHistory);
+    $('loadMoreAuditBtn').addEventListener('click',loadMoreAuditLogs);
+    $('loadMoreInventoriesBtn').addEventListener('click',loadMoreInventories);
+    $('auditSearch').addEventListener('input',renderAudit);
+    $('auditActionFilter').addEventListener('change',renderAudit);
+    $('exportAuditCsv').addEventListener('click',exportAuditCsv);
+    $('userSearch').addEventListener('input',renderUsers);
+    $('usersTable').addEventListener('click',e=>{const btn=e.target.closest('[data-user-save]');if(btn)saveManagedUser(btn);});
+    $('usersTable').addEventListener('change',e=>{const row=e.target.closest('[data-user-row]');if(row&&e.target.matches('[data-user-active]')){const label=e.target.closest('label');if(label)label.lastChild.textContent=e.target.checked?' Ativo':' Desativado';}});
+    $('productForm').addEventListener('submit',saveProduct);$('sectionForm').addEventListener('submit',createSection);
+    $('downloadStockTemplateBtn').addEventListener('click',downloadStockTemplate);
+    $('prepareStockImportBtn').addEventListener('click',prepareStockImport);
+    $('importStockBatchBtn').addEventListener('click',importStockBatch);
+    $('clearStockImportBtn').addEventListener('click',clearStockImportPreview);
+    $('bulkStockFile').addEventListener('change',()=>{
+      bulkStockImportRows=[];bulkStockImportReady=false;
+      const file=$('bulkStockFile').files?.[0];
+      $('bulkStockImportStatus').textContent=file?'Arquivo selecionado: '+file.name+'. Clique em “Conferir planilha” para validar sem gravar.':'Selecione um CSV para conferir os dados antes de gravar.';
+      $('bulkStockImportSummary').innerHTML='';
+      $('bulkStockImportTable').innerHTML='<tr><td colspan="7">A prévia aparecerá após conferir a planilha.</td></tr>';
+      renderStockImportControls();
+    });
+    $('productSearch').addEventListener('input',renderProducts);document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+    $('reportSearch').addEventListener('input',renderStockReport);
+    $('stockReportSection').addEventListener('change',renderStockReport);
+    $('dashboardOpenProducts').addEventListener('click',()=>{setTab('products');window.scrollTo({top:0,behavior:'smooth'});$('pEan').focus();});
+    $('dashboardOpenReport').addEventListener('click',()=>setTab('report'));
+    $('dashboardStockSearch').addEventListener('input',renderDashboard);
+    $('dashboardStockSection').addEventListener('change',renderDashboard);
+    $('dashboardCurrentStockTable').addEventListener('click',e=>{
+      const button=e.target.closest('[data-dashboard-edit]');if(!button)return;
+      const p=state.products.find(item=>item.id===button.dataset.dashboardEdit);if(!p)return;
+      setTab('products');$('productId').value=p.id;$('pEan').value=p.ean||'';$('pName').value=p.name||'';
+      $('pSection').value=p.sectionId||'';$('pUnit').value=p.unit||'UN';$('pStock').value=p.stock;
+      window.scrollTo({top:0,behavior:'smooth'});$('pStock').focus();
+    });
+    $('exportStockCsv').addEventListener('click',exportStockReportCsv);
+    $('printStockReport').addEventListener('click',()=>{document.body.classList.remove('print-history');window.print();});
+    ['historySearch','historyDateFrom','historyDateTo','historySection','historyOrigin','historyResult'].forEach(id=>$(id).addEventListener(id==='historySearch'?'input':'change',renderHistory));
+    $('exportHistoryCsv').addEventListener('click',exportHistoryCsv);
+    $('printHistoryReport').addEventListener('click',printHistory);
+    window.addEventListener('afterprint',()=>document.body.classList.remove('print-history'));
+    $('clearProductBtn').addEventListener('click',()=>{$('productForm').reset();$('productId').value='';$('pStock').value='0';});
+    $('productsTable').addEventListener('click',e=>{const b=e.target.closest('[data-edit]');if(!b)return;const p=state.products.find(x=>x.id===b.dataset.edit);if(!p)return;$('productId').value=p.id;$('pEan').value=p.ean||'';$('pName').value=p.name;$('pSection').value=p.sectionId;$('pUnit').value=p.unit||'UN';$('pStock').value=p.stock;window.scrollTo({top:0,behavior:'smooth'});});
+    $('pEan').addEventListener('change',lookupProductFromEanField);
+    $('pEan').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lookupProductFromEanField();}});
+    $('scanProductBtn').addEventListener('click',()=>startScanner('product','productScanner',v=>{const ean=normalizeBarcode(v);$('pEan').value=ean;lookupProductByEan(ean);}));
+    $('stopProductScanner').addEventListener('click',()=>stopScanner('product'));
+    $('scanCountBtn').addEventListener('click',()=>startScanner('count','countScanner',v=>{$('countEan').value=v;lookupCountProduct();}));$('stopCountScanner').addEventListener('click',()=>stopScanner('count'));
+    $('lookupCountBtn').addEventListener('click',lookupCountProduct);$('saveCountBtn').addEventListener('click',saveQuickCount);
+    $('startInventoryBtn').addEventListener('click',startInventory);$('addInventoryItemBtn').addEventListener('click',addInventoryItem);$('finishInventoryBtn').addEventListener('click',finishInventory);$('discardInventoryBtn').addEventListener('click',discardInventoryDraft);
+    $('scanInventoryBtn').addEventListener('click',()=>startScanner('inventory','inventoryScanner',v=>{$('inventoryEan').value=v;addInventoryItem();}));$('stopInventoryScanner').addEventListener('click',()=>stopScanner('inventory'));
+    $('inventoryTable').addEventListener('input',e=>{const raw=e.target.dataset.invqty;if(raw===undefined)return;const i=Number(raw);if(!Number.isInteger(i)||!state.inventoryItems[i])return;const n=Number(e.target.value);if(e.target.value!==''&&Number.isFinite(n)&&n>=0){state.inventoryItems[i].countedQty=n;const diff=$('inventoryTable').querySelector('[data-invdiff="'+i+'"]');if(diff)diff.textContent=fmt(n-Number(state.inventoryItems[i].systemStock));persistInventoryDraft();}});
+    $('inventoryTable').addEventListener('change',e=>{const raw=e.target.dataset.invqty;if(raw===undefined)return;const i=Number(raw);if(!Number.isInteger(i)||!state.inventoryItems[i])return;const n=e.target.value===''?0:Number(e.target.value);if(Number.isFinite(n)&&n>=0){state.inventoryItems[i].countedQty=n;e.target.value=String(n);const diff=$('inventoryTable').querySelector('[data-invdiff="'+i+'"]');if(diff)diff.textContent=fmt(n-Number(state.inventoryItems[i].systemStock));persistInventoryDraft();}});
+    $('inventoryTable').addEventListener('click',e=>{const i=e.target.dataset.invremove;if(i===undefined)return;const index=Number(i);if(!Number.isInteger(index)||!state.inventoryItems[index])return;state.inventoryItems.splice(index,1);persistInventoryDraft();renderInventory();});
+  }
+  async function init(){
+    if(!configValid()){message('Falta configurar firebase-config.js com os dados do seu projeto.','error');return;}
+    try{firebase.initializeApp(window.IDEAL_FIREBASE_CONFIG);auth=firebase.auth();db=firebase.firestore();bind();auth.onAuthStateChanged(onAuth);if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-worker.js').catch(()=>{});}
+    catch(e){message('Erro ao iniciar o Firebase: '+e.message,'error');}
+  }
+  init();
+})();
+</script>
+</body>
+</html>
