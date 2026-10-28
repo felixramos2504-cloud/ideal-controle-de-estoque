@@ -108,7 +108,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 2.5 · Histórico de inventários e contagens</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 2.6 · Histórico de inventários e contagens</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -307,6 +307,11 @@
       <div id="reportSummary" class="report-summary"></div>
       <div id="reportUpdatedAt" class="muted small" style="margin:8px 0 12px">Aguardando atualização do estoque...</div>
       <div class="tablewrap"><table><thead><tr><th>Produto</th><th>EAN</th><th>Seção</th><th>Estoque atual</th><th>Situação</th></tr></thead><tbody id="stockReportTable"><tr><td colspan="5">Carregando relatório...</td></tr></tbody></table></div>
+      <section class="card dashboard-card" style="margin-top:14px">
+        <h3>Resumo do estoque por seção</h3>
+        <p class="muted small">Resume os produtos que correspondem aos filtros atuais. Não soma quantidades de unidades diferentes.</p>
+        <div class="tablewrap"><table><thead><tr><th>Seção</th><th>Produtos</th><th>Com estoque</th><th>Sem estoque</th><th>Unidades cadastradas</th></tr></thead><tbody id="stockSectionSummaryTable"><tr><td colspan="5">Carregando resumo...</td></tr></tbody></table></div>
+      </section>
     </section>
 
     <section id="tab-history" class="panel hidden">
@@ -336,7 +341,7 @@
       </section>
     </section>
     </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 2.5 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 2.6 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -634,24 +639,64 @@
       return true;
     }).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));
   }
+  function getStockSectionSummary(rows){
+    const groups=new Map();
+    rows.forEach(product=>{
+      const name=sectionName(product.sectionId);
+      if(!groups.has(name))groups.set(name,{name,total:0,withStock:0,zero:0,units:new Set()});
+      const group=groups.get(name);
+      group.total++;
+      if(getStockStatus(product).code==='zero')group.zero++;else group.withStock++;
+      group.units.add(String(product.unit||'UN').trim()||'UN');
+    });
+    return [...groups.values()].map(group=>({...group,unitCount:group.units.size}))
+      .sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+  }
+  function renderStockSectionSummary(rows){
+    const table=$('stockSectionSummaryTable');
+    if(!table)return;
+    const groups=getStockSectionSummary(rows);
+    table.innerHTML=groups.map(group=>'<tr><td><strong>'+safe(group.name)+'</strong></td><td>'+fmt(group.total)+'</td><td>'+fmt(group.withStock)+'</td><td>'+fmt(group.zero)+'</td><td>'+fmt(group.unitCount)+'</td></tr>').join('')
+      ||'<tr><td colspan="5">Nenhum produto corresponde aos filtros atuais.</td></tr>';
+  }
   function renderStockReport(){
     if(!$('stockReportTable'))return;
     const rows=getStockReportRows();
-    const all=state.products;
-    const counts={zero:all.filter(p=>getStockStatus(p).code==='zero').length,ok:all.filter(p=>getStockStatus(p).code==='ok').length};
-    $('reportSummary').innerHTML='<span>Produtos filtrados <strong>'+rows.length+'</strong></span><span>Sem estoque <strong>'+counts.zero+'</strong></span><span>Com estoque <strong>'+counts.ok+'</strong></span>';
+    const counts={zero:rows.filter(p=>getStockStatus(p).code==='zero').length,ok:rows.filter(p=>getStockStatus(p).code==='ok').length};
+    const sections=getStockSectionSummary(rows).length;
+    $('reportSummary').innerHTML='<span>Produtos filtrados <strong>'+rows.length+'</strong></span><span>Sem estoque <strong>'+counts.zero+'</strong></span><span>Com estoque <strong>'+counts.ok+'</strong></span><span>Seções no filtro <strong>'+sections+'</strong></span>';
     $('stockReportTable').innerHTML=rows.map(p=>{
       const status=getStockStatus(p);
       return '<tr><td>'+safe(p.name||'Produto sem nome')+'</td><td>'+safe(p.ean||'—')+'</td><td>'+safe(sectionName(p.sectionId))+'</td><td>'+fmt(p.stock)+' '+safe(p.unit||'UN')+'</td><td><span class="status-pill '+status.pill+'">'+status.label+'</span></td></tr>';
     }).join('')||'<tr><td colspan="5">Nenhum produto corresponde aos filtros.</td></tr>';
+    renderStockSectionSummary(rows);
     const timestamp=state.stockUpdatedAt ? state.stockUpdatedAt.toLocaleString('pt-BR') : 'aguardando dados';
-    $('reportUpdatedAt').textContent='Última atualização recebida do estoque: '+timestamp+'. O relatório acompanha as mudanças publicadas no Firestore.';
+    $('reportUpdatedAt').textContent='Última atualização recebida do estoque: '+timestamp+'. O resumo por seção respeita os filtros aplicados.';
     $('reportFreshness').textContent=state.stockUpdatedAt?'Dados sincronizados':'Aguardando dados';
   }
   function exportStockReportCsv(){
     const rows=getStockReportRows();
+    const counts={zero:rows.filter(p=>getStockStatus(p).code==='zero').length,ok:rows.filter(p=>getStockStatus(p).code==='ok').length};
+    const sectionRows=getStockSectionSummary(rows);
+    const sectionFilter=$('stockReportSection').value?sectionName($('stockReportSection').value):'Todas as seções';
+    const statusFilter=$('stockReportStatus').selectedOptions[0]?.textContent||'Todas as situações';
+    const generatedAt=new Date();
     const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
-    const matrix=[['Produto','EAN','Seção','Estoque atual','Unidade','Situação']];
+    const matrix=[
+      ['RELATÓRIO DE ESTOQUE IDEAL','MASTER 2.6'],
+      ['Gerado em',generatedAt.toLocaleString('pt-BR')],
+      ['Filtro de pesquisa',$('reportSearch').value.trim()||'Todos os produtos'],
+      ['Filtro de seção',sectionFilter],
+      ['Filtro de situação',statusFilter],
+      ['Produtos no relatório',rows.length],
+      ['Produtos com estoque',counts.ok],
+      ['Produtos sem estoque',counts.zero],
+      [],
+      ['RESUMO POR SEÇÃO'],
+      ['Seção','Produtos','Com estoque','Sem estoque','Unidades cadastradas']
+    ];
+    sectionRows.forEach(group=>matrix.push([group.name,group.total,group.withStock,group.zero,group.unitCount]));
+    matrix.push([],['DETALHAMENTO DOS PRODUTOS'],['Produto','EAN','Seção','Estoque atual','Unidade','Situação']);
     rows.forEach(p=>matrix.push([p.name||'',p.ean||'',sectionName(p.sectionId),Number(p.stock||0),p.unit||'UN',getStockStatus(p).label]));
     const csv='\uFEFF'+matrix.map(row=>row.map(cell).join(';')).join('\r\n');
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
@@ -813,8 +858,24 @@
   }
   function exportHistoryCsv(){
     const rows=getFilteredCountHistory();
+    const different=rows.filter(item=>Number(item.countedQty||0)!==Number(item.systemStock||0)).length;
     const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
-    const matrix=[['Data','Origem','Inventário','Produto','EAN','Seção','Saldo registrado','Quantidade contada','Diferença','Responsável']];
+    const matrix=[
+      ['RELATÓRIO DE CONTAGENS IDEAL','MASTER 2.6'],
+      ['Gerado em',new Date().toLocaleString('pt-BR')],
+      ['Data inicial',$('historyDateFrom').value||'Sem limite inicial'],
+      ['Data final',$('historyDateTo').value||'Sem limite final'],
+      ['Pesquisa',$('historySearch').value.trim()||'Todos os produtos'],
+      ['Seção',$('historySection').value?sectionName($('historySection').value):'Todas as seções'],
+      ['Origem',$('historyOrigin').selectedOptions[0]?.textContent||'Todas'],
+      ['Resultado',$('historyResult').selectedOptions[0]?.textContent||'Todos'],
+      ['Contagens exportadas',rows.length],
+      ['Com divergência',different],
+      ['Sem divergência',rows.length-different],
+      [],
+      ['DETALHAMENTO DAS CONTAGENS'],
+      ['Data','Origem','Inventário','Produto','EAN','Seção','Saldo registrado','Quantidade contada','Diferença','Responsável']
+    ];
     rows.forEach(item=>{
       const diff=Number(item.countedQty||0)-Number(item.systemStock||0);
       matrix.push([historyDateKey(item.createdAt),item.inventoryId?'Inventário completo':'Contagem rápida',historyInventoryName(item.inventoryId),item.productName||'',item.ean||'',sectionName(historyCountSectionId(item)),Number(item.systemStock||0),Number(item.countedQty||0),diff,item.userEmail||'']);
@@ -1062,7 +1123,7 @@
       const backup={
         metadata:{
           application:'IDEAL Controle de Estoque',
-          version:'MASTER 2.5',
+          version:'MASTER 2.6',
           type:'firestore-data-export',
           generatedAt:createdAt,
           projectId:window.IDEAL_FIREBASE_CONFIG?.projectId||'não informado',
