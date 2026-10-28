@@ -346,7 +346,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { user:null, role:null, products:[], productsLoaded:false, sections:[], counts:[], countsLive:[], countsOlder:[], countsNextCursor:null, countsHasMore:false, countsLoadingMore:false, countsInitialized:false, finishedInventories:[], users:[], usersLoaded:false, auditLogs:[], auditLoaded:false, auditUpdatedAt:null, integrityIssues:[], integritySummary:null, integrityCheckedAt:null, inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{}, eanLookupToken:0, eanLookupCache:{}, stockUpdatedAt:null, historyUpdatedAt:null };
+  const state = { user:null, role:null, products:[], productsLoaded:false, sections:[], counts:[], countsLive:[], countsBaseline:[], countsOlder:[], countsNextCursor:null, countsHasMore:false, countsLoadingMore:false, countsInitialized:false, finishedInventories:[], users:[], usersLoaded:false, auditLogs:[], auditLoaded:false, auditUpdatedAt:null, integrityIssues:[], integritySummary:null, integrityCheckedAt:null, inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{}, eanLookupToken:0, eanLookupCache:{}, stockUpdatedAt:null, historyUpdatedAt:null };
   const roleRank = { colaborador:1, gerente:2, administrador:3 };
   function message(text, type='notice') { const el=$('message'); el.textContent=text; el.className='notice '+(type==='error'?'error':type==='success'?'success':''); el.classList.remove('hidden'); window.scrollTo({top:0,behavior:'smooth'}); }
   function clearMessage(){ $('message').classList.add('hidden'); }
@@ -736,7 +736,7 @@
   }
   function rebuildLoadedCountHistory(){
     const map=new Map();
-    state.countsLive.concat(state.countsOlder).forEach(item=>map.set(item.id,item));
+    state.countsOlder.concat(state.countsBaseline,state.countsLive).forEach(item=>map.set(item.id,item));
     state.counts=[...map.values()].sort((a,b)=>historyMillis(b.createdAt)-historyMillis(a.createdAt));
   }
   async function loadMoreCountHistory(){
@@ -1330,6 +1330,7 @@
       state.countsLive=s.docs.map(d=>({id:d.id,...d.data()}));
       if(!state.countsInitialized){
         state.countsInitialized=true;
+        state.countsBaseline=state.countsLive.slice();
         state.countsNextCursor=s.docs.length?s.docs[s.docs.length-1]:null;
         state.countsHasMore=s.docs.length===500;
       }
@@ -1360,7 +1361,7 @@
     $('appPanel').classList.remove('hidden'); $('authPanel').classList.add('hidden'); attachListeners();
   }
   async function onAuth(user){
-    stopListeners(); state.user=user; state.role=null; state.products=[]; state.productsLoaded=false; state.sections=[]; state.counts=[];state.countsLive=[];state.countsOlder=[];state.countsNextCursor=null;state.countsHasMore=false;state.countsLoadingMore=false;state.countsInitialized=false;state.finishedInventories=[]; state.users=[]; state.usersLoaded=false; state.auditLogs=[]; state.auditLoaded=false; state.auditUpdatedAt=null; state.integrityIssues=[];state.integritySummary=null;state.integrityCheckedAt=null;state.inventory=null; state.inventoryItems=[]; state.stockUpdatedAt=null; state.historyUpdatedAt=null;
+    stopListeners(); state.user=user; state.role=null; state.products=[]; state.productsLoaded=false; state.sections=[]; state.counts=[];state.countsLive=[];state.countsBaseline=[];state.countsOlder=[];state.countsNextCursor=null;state.countsHasMore=false;state.countsLoadingMore=false;state.countsInitialized=false;state.finishedInventories=[]; state.users=[]; state.usersLoaded=false; state.auditLogs=[]; state.auditLoaded=false; state.auditUpdatedAt=null; state.integrityIssues=[];state.integritySummary=null;state.integrityCheckedAt=null;state.inventory=null; state.inventoryItems=[]; state.stockUpdatedAt=null; state.historyUpdatedAt=null;
     if(!user){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.add('hidden');return;}
     try{await loadRole(user);clearMessage();}catch(e){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.remove('hidden');$('userEmail').textContent=user.email||'';message(e.message,'error');}
   }
