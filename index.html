@@ -20,6 +20,19 @@
     table{width:100%;border-collapse:collapse;background:white}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:13px;color:var(--muted)}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px}
     .section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.badge{display:inline-block;padding:3px 8px;border-radius:99px;background:#e7eee9;color:var(--green);font-size:12px;font-weight:700}
     #scanner{max-width:480px;width:100%;margin-top:12px} .small{font-size:13px}.right{margin-left:auto}
+    body.scanner-open{overflow:hidden;overscroll-behavior:none}
+    .scanner-overlay{position:fixed;inset:0;z-index:99999;width:100vw;height:100vh;height:100dvh;background:#050806;color:#fff;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;flex-direction:column;gap:12px;overflow:hidden;margin:0;border:0;border-radius:0;box-shadow:none}
+    .scanner-header{flex:0 0 auto;text-align:center;padding:2px 8px}
+    .scanner-header h2{font-size:20px;line-height:1.2;margin:0 0 6px;color:#fff}
+    .scanner-header p{font-size:14px;margin:0;color:#d5e0d8}
+    .scanner-stage{position:relative;flex:1 1 auto;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:14px;background:#000}
+    .scanner-stage>div[id$="Scanner"]{width:100%!important;height:100%!important;max-width:none!important;min-height:0!important;display:flex;flex-direction:column;justify-content:center}
+    .scanner-stage [id$="__scan_region"]{width:100%!important;height:100%!important;min-height:0!important;display:flex!important;align-items:center;justify-content:center;overflow:hidden}
+    .scanner-stage [id$="__scan_region"] video{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:cover!important}
+    .scanner-stage [id$="__scan_region"] img{object-fit:contain}
+    .scanner-overlay>button{width:100%;max-width:560px;align-self:center;flex:0 0 auto;min-height:48px}
+    .scanner-overlay .scanner-stage button{width:auto}
+    @media(max-width:600px){.scanner-overlay{padding-left:10px;padding-right:10px;gap:10px}.scanner-header h2{font-size:18px}.scanner-stage{border-radius:8px}}
     @media(max-width:800px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.formgrid{grid-template-columns:1fr}header{padding:16px}main{margin:14px auto}.stat{font-size:24px}}
     @media(max-width:420px){.grid{grid-template-columns:1fr 1fr}.panel,.card{padding:13px}button{padding:9px 11px}}
   </style>
@@ -74,7 +87,7 @@
         </div>
         <div class="actions"><button type="submit">Salvar produto</button><button id="clearProductBtn" type="button" class="secondary">Limpar</button></div>
       </form>
-      <div id="productScannerWrap" class="hidden"><div id="productScanner"></div><div class="actions"><button id="stopProductScanner" type="button" class="danger">Fechar câmera</button></div></div>
+      <div id="productScannerWrap" class="scanner-overlay hidden" role="dialog" aria-modal="true" aria-label="Leitor de código EAN"><div class="scanner-header"><h2>Ler código EAN</h2><p>Centralize o código de barras na área de leitura. A câmera fechará automaticamente após a captura.</p></div><div class="scanner-stage"><div id="productScanner"></div></div><button id="stopProductScanner" type="button" class="danger">Fechar câmera</button></div>
       <hr style="border:0;border-top:1px solid var(--line);margin:20px 0">
       <div class="section-title"><h3>Produtos cadastrados</h3><input id="productSearch" placeholder="Pesquisar por nome ou EAN" style="max-width:320px"></div>
       <div class="tablewrap"><table><thead><tr><th>Produto / EAN</th><th>Seção</th><th>Estoque</th><th>Mínimo</th><th>Ações</th></tr></thead><tbody id="productsTable"><tr><td colspan="5">Carregando...</td></tr></tbody></table></div>
@@ -91,7 +104,7 @@
       <p class="muted">Leia um código, informe a quantidade física e registre uma contagem para conferência. A contagem rápida não altera diretamente o estoque oficial.</p>
       <div class="formgrid"><div><label for="countEan">EAN</label><input id="countEan" inputmode="numeric" placeholder="Código de barras"></div><div style="align-self:end"><button id="scanCountBtn" type="button" class="secondary">📷 Ler EAN pela câmera</button></div><div><label for="countQty">Quantidade contada</label><input id="countQty" type="number" min="0" step="0.001" value="1"></div></div>
       <div class="actions"><button id="lookupCountBtn" type="button" class="secondary">Localizar produto</button><button id="saveCountBtn" type="button">Registrar contagem</button></div>
-      <div id="countProductInfo" class="notice hidden"></div><div id="countScannerWrap" class="hidden"><div id="countScanner"></div><button id="stopCountScanner" type="button" class="danger">Fechar câmera</button></div>
+      <div id="countProductInfo" class="notice hidden"></div><div id="countScannerWrap" class="scanner-overlay hidden" role="dialog" aria-modal="true" aria-label="Leitor de EAN para contagem"><div class="scanner-header"><h2>Ler EAN para contagem</h2><p>Centralize o código de barras na área de leitura. A câmera fechará automaticamente após a captura.</p></div><div class="scanner-stage"><div id="countScanner"></div></div><button id="stopCountScanner" type="button" class="danger">Fechar câmera</button></div>
       <h3>Contagens recentes</h3><div class="tablewrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Estoque registrado</th><th>Contado</th><th>Diferença</th><th>Responsável</th></tr></thead><tbody id="countsTable"></tbody></table></div>
     </section>
 
@@ -100,7 +113,7 @@
       <p class="muted">Crie uma sessão, adicione produtos por EAN ou selecione-os na lista e revise as diferenças. O estoque oficial só muda quando o inventário é finalizado por um perfil autorizado.</p>
       <div class="formgrid"><div><label for="inventoryName">Nome do inventário</label><input id="inventoryName" placeholder="Ex.: Inventário seção mercearia"></div><div><label for="inventorySection">Filtrar por seção</label><select id="inventorySection"><option value="">Todas as seções</option></select></div></div>
       <div class="actions"><button id="startInventoryBtn" type="button">Iniciar inventário</button><button id="scanInventoryBtn" type="button" class="secondary">📷 Ler produto</button><button id="finishInventoryBtn" type="button" class="danger" disabled>Finalizar inventário</button></div>
-      <div id="inventoryScannerWrap" class="hidden"><div id="inventoryScanner"></div><button id="stopInventoryScanner" type="button" class="danger">Fechar câmera</button></div>
+      <div id="inventoryScannerWrap" class="scanner-overlay hidden" role="dialog" aria-modal="true" aria-label="Leitor de EAN do inventário"><div class="scanner-header"><h2>Ler EAN do inventário</h2><p>Centralize o código de barras na área de leitura. A câmera fechará automaticamente após a captura.</p></div><div class="scanner-stage"><div id="inventoryScanner"></div></div><button id="stopInventoryScanner" type="button" class="danger">Fechar câmera</button></div>
       <div class="formgrid"><div><label for="inventoryEan">EAN do produto</label><input id="inventoryEan" inputmode="numeric"></div><div><label for="inventoryQty">Quantidade contada</label><input id="inventoryQty" type="number" min="0" step="0.001" value="1"></div></div>
       <div class="actions"><button id="addInventoryItemBtn" type="button" class="secondary">Adicionar produto contado</button></div>
       <div id="inventoryState" class="notice">Nenhum inventário aberto.</div>
@@ -126,7 +139,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { user:null, role:null, products:[], sections:[], counts:[], movements:[], inventory:null, inventoryItems:[], scanners:{} };
+  const state = { user:null, role:null, products:[], sections:[], counts:[], movements:[], inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{} };
   const roleRank = { colaborador:1, gerente:2, administrador:3 };
   function message(text, type='notice') { const el=$('message'); el.textContent=text; el.className='notice '+(type==='error'?'error':type==='success'?'success':''); el.classList.remove('hidden'); window.scrollTo({top:0,behavior:'smooth'}); }
   function clearMessage(){ $('message').classList.add('hidden'); }
@@ -149,18 +162,52 @@
   async function startScanner(key, elementId, onScan){
     if(!window.Html5Qrcode){ message('Biblioteca de leitura não carregou. Verifique a conexão e tente novamente.','error'); return; }
     await stopScanner(key);
-    const wrap = key==='product'?'productScannerWrap':key==='count'?'countScannerWrap':'inventoryScannerWrap'; $(wrap).classList.remove('hidden');
+    const wrap = key==='product'?'productScannerWrap':key==='count'?'countScannerWrap':'inventoryScannerWrap';
+    $(wrap).classList.remove('hidden');
+    document.body.classList.add('scanner-open');
+    state.scannerCaptured[key]=false;
     try{
       const scanner=new Html5Qrcode(elementId); state.scanners[key]=scanner;
-      await scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:250,height:130},formatsToSupport:[Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E]},async decoded=>{
-        const value=String(decoded||'').replace(/\D/g,''); if(!value) return;
-        onScan(value); await stopScanner(key);
-      },()=>{});
-    }catch(e){ $(wrap).classList.add('hidden'); message('Não foi possível abrir a câmera. Autorize o acesso e use o site por HTTPS. '+(e.message||''),'error'); }
+      await scanner.start(
+        {facingMode:'environment'},
+        {
+          fps:12,
+          qrbox:(viewfinderWidth,viewfinderHeight)=>{
+            const width=Math.max(220,Math.min(Math.floor(viewfinderWidth*0.9),700));
+            const height=Math.max(90,Math.min(Math.floor(viewfinderHeight*0.28),220));
+            return {width,height};
+          },
+          aspectRatio: 1.777,
+          disableFlip:false,
+          formatsToSupport:[Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E]
+        },
+        async decoded=>{
+          const value=String(decoded||'').replace(/\D/g,'');
+          if(!value || state.scannerCaptured[key]) return;
+          state.scannerCaptured[key]=true;
+          try{
+            // Fecha a visualização primeiro para evitar leituras duplicadas e liberar a câmera.
+            await stopScanner(key);
+            onScan(value);
+            if('vibrate' in navigator) navigator.vibrate(45);
+          }catch(scanError){
+            message('O código foi lido, mas não foi possível preencher o campo. '+(scanError.message||''),'error');
+          }
+        },
+        ()=>{}
+      );
+    }catch(e){
+      await stopScanner(key);
+      message('Não foi possível abrir a câmera. Autorize o acesso e use o site por HTTPS. '+(e.message||''),'error');
+    }
   }
   async function stopScanner(key){
-    const s=state.scanners[key]; if(s){ try{ if(s.isScanning) await s.stop(); await s.clear(); }catch(_){} delete state.scanners[key]; }
-    const wrap=key==='product'?'productScannerWrap':key==='count'?'countScannerWrap':'inventoryScannerWrap'; $(wrap).classList.add('hidden');
+    const s=state.scanners[key];
+    if(s){ try{ if(s.isScanning) await s.stop(); await s.clear(); }catch(_){} delete state.scanners[key]; }
+    const wrap=key==='product'?'productScannerWrap':key==='count'?'countScannerWrap':'inventoryScannerWrap';
+    $(wrap).classList.add('hidden');
+    state.scannerCaptured[key]=false;
+    if(!Object.keys(state.scanners).length) document.body.classList.remove('scanner-open');
   }
   function setTab(tab){ ['products','sections','count','inventory','movements'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==tab)); document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('secondary',b.dataset.tab!==tab)}); }
   function renderDashboard(){
