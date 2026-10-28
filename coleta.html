@@ -58,16 +58,16 @@ body.scanner-open{overflow:hidden;overscroll-behavior:none}
 </section>
 <section id="appPanel" class="hidden">
 <div class="card">
-<div class="toolbar"><div><h2>Coletar produtos</h2><div class="muted small">A quantidade informada será o novo saldo oficial do produto.</div></div><span id="roleBadge" class="status-pill">Conta autorizada</span></div>
+<div class="toolbar"><div><h2>Coletar produtos</h2><div class="muted small">Leia o código de barras, informe a quantidade real e envie. Você não precisa cadastrar nem pesquisar o produto.</div></div><span id="roleBadge" class="status-pill">Conta autorizada</span></div>
 <div class="actions"><button id="collectBtn" type="button">Coletar — abrir câmera</button></div>
 <div id="scannerWrap" class="scanner-overlay hidden" role="dialog" aria-modal="true" aria-label="Leitor de código de barras">
   <div class="scanner-header"><h2>Coleta IDEAL</h2><p>Posicione o código de barras dentro da área de leitura.</p></div>
   <div id="reader"></div>
   <div class="scanner-footer"><span>Leitura de EAN</span><button id="stopCameraBtn" type="button" class="camera-close hidden">Fechar câmera</button></div>
 </div>
-<div class="formgrid" style="margin-top:12px"><div><label for="eanInput">EAN do produto</label><input id="eanInput" inputmode="numeric" autocomplete="off" placeholder="Leia ou digite o código de barras"></div><div style="align-self:end"><button id="lookupBtn" type="button" class="secondary" style="width:100%">Localizar produto</button></div></div>
-<div id="selectedProductCard" class="product-found hidden"><div class="product-name" id="selectedProductName"></div><div class="product-meta" id="selectedProductMeta"></div><div class="formgrid"><div><label for="quantityInput">Quantidade encontrada</label><input id="quantityInput" type="number" min="0.001" step="0.001" inputmode="decimal" placeholder="Informe o saldo contado"></div><div><label for="selectedUnit">Unidade cadastrada</label><input id="selectedUnit" readonly></div></div><div class="actions"><button id="addItemBtn" type="button" class="secondary">Adicionar à lista</button><button id="addAndCollectNextBtn" type="button">Adicionar e coletar próximo</button></div></div>
-<p class="muted small" style="margin:12px 0 0">O leitor fecha após cada leitura para evitar duplicidade. Reabra a câmera para o próximo produto. Produtos não cadastrados precisam ser cadastrados primeiro no sistema principal.</p>
+<div style="margin-top:12px"><label for="eanInput">Código de barras lido</label><input id="eanInput" inputmode="numeric" autocomplete="off" placeholder="Use a câmera para ler o EAN"></div>
+<div id="selectedProductCard" class="product-found hidden"><div class="product-name" id="selectedProductName"></div><div class="product-meta" id="selectedProductMeta"></div><div class="formgrid"><div><label for="quantityInput">Quantidade encontrada</label><input id="quantityInput" type="number" min="0.001" step="0.001" inputmode="decimal" placeholder="Informe o saldo contado"></div><div><label for="selectedUnit">Unidade</label><input id="selectedUnit" readonly></div></div><div class="actions"><button id="addItemBtn" type="button" class="secondary">Adicionar à lista</button><button id="addAndCollectNextBtn" type="button">Adicionar e coletar próximo</button></div></div>
+<p class="muted small" style="margin:12px 0 0">O leitor fecha após cada leitura. Reabra a câmera para o próximo produto. Se o EAN ainda não existir no estoque, o sistema o inclui automaticamente pelo código; não é necessário cadastrar o produto.</p>
 </div>
 <div class="card">
 <div class="toolbar"><div><h2>Lista da coleta</h2><div class="muted small">Confira as quantidades antes de enviar.</div></div><span id="collectionCount" class="status-pill">0 produtos</span></div>
@@ -77,7 +77,7 @@ body.scanner-open{overflow:hidden;overscroll-behavior:none}
 </div>
 <div class="card"><h3>Como o envio funciona</h3><p class="muted small">Ao enviar, os saldos dos produtos listados serão substituídos pelas quantidades coletadas. O dashboard principal acompanha as alterações pelo Firestore. Produtos que não estão na lista permanecem iguais. Confirme a quantidade real antes de enviar.</p></div>
 </section>
-<footer>IDEAL Controle de Estoque · Coleta MASTER 1.4</footer>
+<footer>IDEAL Controle de Estoque · Coleta MASTER 1.5</footer>
 </main>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
@@ -132,7 +132,7 @@ body.scanner-open{overflow:hidden;overscroll-behavior:none}
     const key=collectionDraftKey();if(!key)return;
     try{
       if(!collectionItems.length){localStorage.removeItem(key);if($('draftStatus'))$('draftStatus').textContent='Nenhum rascunho pendente neste dispositivo.';return;}
-      localStorage.setItem(key,JSON.stringify({savedAt:new Date().toISOString(),items:collectionItems.map(item=>({id:item.id,ean:item.ean,name:item.name,sectionId:item.sectionId,unit:item.unit,currentStock:item.currentStock,quantity:item.quantity}))}));
+      localStorage.setItem(key,JSON.stringify({savedAt:new Date().toISOString(),items:collectionItems.map(item=>({id:item.id,ean:item.ean,name:item.name,sectionId:item.sectionId,unit:item.unit,currentStock:item.currentStock,quantity:item.quantity,isNew:!!item.isNew}))}));
       if($('draftStatus'))$('draftStatus').textContent='Rascunho salvo neste dispositivo · '+fmt(collectionItems.length)+' produto(s).';
     }catch(_){if($('draftStatus'))$('draftStatus').textContent='Não foi possível salvar o rascunho neste dispositivo.';}
   }
@@ -143,10 +143,11 @@ body.scanner-open{overflow:hidden;overscroll-behavior:none}
       const saved=JSON.parse(raw);if(!Array.isArray(saved.items))return;
       const seen=new Set(),restored=[];
       saved.items.forEach(item=>{
-        const product=products.find(entry=>entry.id===item.id),quantity=Number(item.quantity);
-        if(!product||seen.has(product.id)||!Number.isFinite(quantity)||quantity<=0)return;
-        seen.add(product.id);
-        restored.push({id:product.id,ean:normalizeEan(product.ean||item.ean),name:product.name||item.name||'Produto sem nome',sectionId:product.sectionId||item.sectionId||'',unit:product.unit||item.unit||'UN',currentStock:Number(product.stock||0),quantity});
+        const ean=normalizeEan(item.ean),product=products.find(entry=>entry.id===item.id)||products.find(entry=>normalizeEan(entry.ean)===ean),quantity=Number(item.quantity);
+        if(!validEan(ean)||seen.has(ean)||!Number.isFinite(quantity)||quantity<=0)return;
+        seen.add(ean);
+        const id=product?product.id:(item.id||'ean_'+ean);
+        restored.push({id,ean,name:product?.name||item.name||'Produto EAN '+ean,sectionId:product?.sectionId||item.sectionId||'',unit:product?.unit||item.unit||'UN',currentStock:product?Number(product.stock||0):Number(item.currentStock||0),quantity,isNew:!product});
       });
       collectionItems=restored;
       if($('draftStatus'))$('draftStatus').textContent=restored.length?'Rascunho recuperado · '+fmt(restored.length)+' produto(s). Confira antes de enviar.':'Nenhum produto válido no rascunho salvo.';
@@ -165,7 +166,7 @@ body.scanner-open{overflow:hidden;overscroll-behavior:none}
     for(let i=digits.length-1,weight=3;i>=0;i--,weight=weight===3?1:3)sum+=digits[i]*weight;
     return (10-(sum%10))%10===check;
   }
-  function sectionName(id){return sections.find(section=>section.id===id)?.name||'Seção sem nome';}
+  function sectionName(id){return sections.find(section=>section.id===id)?.name||(id?'Seção removida':'Sem seção');}
   function stopCamera(){
     if(scanner){const current=scanner;scanner=null;current.stop().catch(()=>{}).finally(()=>current.clear().catch(()=>{}));}
     $('scannerWrap').classList.add('hidden');$('stopCameraBtn').classList.add('hidden');$('collectBtn').disabled=false;document.body.classList.remove('scanner-open');
@@ -177,24 +178,34 @@ body.scanner-open{overflow:hidden;overscroll-behavior:none}
     try{
       scanner=new Html5Qrcode('reader');
       await scanner.start({facingMode:'environment'},{fps:12,qrbox:(w,h)=>({width:Math.max(180,Math.min(Math.floor(w*.9),650)),height:Math.max(90,Math.min(Math.floor(h*.25),200))}),aspectRatio:1.777,formatsToSupport:[Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E]},async decoded=>{
-        const ean=normalizeEan(decoded);if(!ean)return;stopCamera();$('eanInput').value=ean;await lookupProduct();
+        const ean=normalizeEan(decoded);if(!ean)return;stopCamera();$('eanInput').value=ean;await prepareProductForCollection();
       });
     }catch(err){stopCamera();showMessage('Não foi possível abrir a câmera. Libere a permissão de câmera no navegador e tente novamente. '+(err.message||''),'error');}
   }
-  async function lookupProduct(){
+  async function prepareProductForCollection(){
     hideMessage();const ean=normalizeEan($('eanInput').value);
-    if(!validEan(ean)||!eanChecksum(ean)){showMessage('EAN inválido. Leia novamente ou confira os dígitos.','error');return;}
+    if(!validEan(ean)||!eanChecksum(ean)){showMessage('Código de barras inválido. Leia novamente ou confira os dígitos.','error');return;}
     $('eanInput').value=ean;
     const product=products.find(item=>normalizeEan(item.ean)===ean);
-    if(!product){selectedProduct=null;$('selectedProductCard').classList.add('hidden');showMessage('Este EAN não está cadastrado. Cadastre o produto no sistema principal antes de coletá-lo.','error');return;}
-    const previous=collectionItems.find(item=>item.id===product.id);
-    if(previous){selectedProduct=null;$('selectedProductCard').classList.add('hidden');showMessage('Este produto já está na lista. Edite a quantidade na tabela para evitar duplicidade.','error');const field=document.querySelector('[data-quantity="'+product.id+'"]');if(field){field.focus();field.select();}return;}
-    selectedProduct=product;$('selectedProductName').textContent=product.name||'Produto sem nome';
-    $('selectedProductMeta').textContent='EAN: '+ean+' · Seção: '+sectionName(product.sectionId)+' · Saldo atual: '+fmt(product.stock)+' '+(product.unit||'UN');
-    $('selectedUnit').value=product.unit||'UN';$('quantityInput').value='';$('selectedProductCard').classList.remove('hidden');$('quantityInput').focus();
+    const previous=collectionItems.find(item=>item.ean===ean);
+    if(previous){
+      selectedProduct=null;$('selectedProductCard').classList.add('hidden');
+      showMessage('Este código já está na lista. Edite a quantidade na tabela para evitar duplicidade.','error');
+      const field=document.querySelector('[data-quantity="'+previous.id+'"]');if(field){field.focus();field.select();}
+      return;
+    }
+    selectedProduct=product
+      ?{id:product.id,ean,name:product.name||'Produto EAN '+ean,sectionId:product.sectionId||'',unit:product.unit||'UN',stock:Number(product.stock||0),isNew:false}
+      :{id:'ean_'+ean,ean,name:'Produto EAN '+ean,sectionId:'',unit:'UN',stock:0,isNew:true};
+    $('selectedProductName').textContent=selectedProduct.name;
+    $('selectedProductMeta').textContent=product
+      ?'EAN: '+ean+' · Saldo atual: '+fmt(product.stock)+' '+(product.unit||'UN')
+      :'EAN: '+ean+' · Novo código: será incluído automaticamente no envio.';
+    $('selectedUnit').value=selectedProduct.unit;
+    $('quantityInput').value='';$('selectedProductCard').classList.remove('hidden');$('quantityInput').focus();
   }
   function renderCollection(){
-    $('collectionTable').innerHTML=collectionItems.map(item=>'<tr><td><strong>'+safe(item.name)+'</strong><br><span class="muted small">'+safe(item.ean)+' · '+safe(sectionName(item.sectionId))+'</span></td><td><input class="qty-edit" data-quantity="'+safe(item.id)+'" type="number" min="0.001" step="0.001" value="'+safe(item.quantity)+'" aria-label="Quantidade coletada de '+safe(item.name)+'"></td><td>'+fmt(item.currentStock)+' '+safe(item.unit||'UN')+'</td><td><button class="danger" type="button" data-remove="'+safe(item.id)+'">Remover</button></td></tr>').join('')||'<tr><td colspan="4">Nenhum produto na coleta.</td></tr>';
+    $('collectionTable').innerHTML=collectionItems.map(item=>'<tr><td><strong>'+safe(item.name)+'</strong><br><span class="muted small">'+safe(item.ean)+' · '+safe(item.isNew?'Novo EAN · inclusão automática':sectionName(item.sectionId))+'</span></td><td><input class="qty-edit" data-quantity="'+safe(item.id)+'" type="number" min="0.001" step="0.001" value="'+safe(item.quantity)+'" aria-label="Quantidade coletada de '+safe(item.name)+'"></td><td>'+fmt(item.currentStock)+' '+safe(item.unit||'UN')+'</td><td><button class="danger" type="button" data-remove="'+safe(item.id)+'">Remover</button></td></tr>').join('')||'<tr><td colspan="4">Nenhum produto na coleta.</td></tr>';
     $('collectionCount').textContent=fmt(collectionItems.length)+' produto(s)';$('metricProducts').textContent=fmt(collectionItems.length);
     $('metricBalances').textContent=fmt(collectionItems.length);
     $('metricChanges').textContent=fmt(collectionItems.filter(item=>Number(item.quantity)!==Number(item.currentStock)).length);
@@ -202,11 +213,11 @@ body.scanner-open{overflow:hidden;overscroll-behavior:none}
     $('clearBtn').disabled=busy||!collectionItems.length;
   }
   function addSelectedProduct(continueScanning=false){
-    if(!selectedProduct){showMessage('Primeiro leia ou localize um produto.','error');return;}
+    if(!selectedProduct){showMessage('Leia o código de barras pela câmera ou digite o EAN e pressione Enter.','error');return;}
     const quantity=Number($('quantityInput').value);
     if(!Number.isFinite(quantity)||quantity<=0){showMessage('Informe a quantidade encontrada, maior que zero.','error');$('quantityInput').focus();return;}
     const product=selectedProduct;
-    collectionItems.push({id:product.id,ean:normalizeEan(product.ean),name:product.name||'Produto sem nome',sectionId:product.sectionId||'',unit:product.unit||'UN',currentStock:Number(product.stock||0),quantity});
+    collectionItems.push({id:product.id,ean:normalizeEan(product.ean),name:product.name||'Produto EAN '+product.ean,sectionId:product.sectionId||'',unit:product.unit||'UN',currentStock:Number(product.stock||0),quantity,isNew:!!product.isNew});
     selectedProduct=null;$('selectedProductCard').classList.add('hidden');$('eanInput').value='';$('quantityInput').value='';
     saveCollectionDraft();renderCollection();
     if(continueScanning){hideMessage();startCamera();}
@@ -219,11 +230,22 @@ body.scanner-open{overflow:hidden;overscroll-behavior:none}
     let sent=0;
     try{
       const freshProducts=new Map(products.map(product=>[product.id,product]));
+      const freshByEan=new Map(products.filter(product=>product.ean).map(product=>[normalizeEan(product.ean),product]));
       for(let offset=0;offset<collectionItems.length;offset+=400){
         const batch=db.batch(),chunk=collectionItems.slice(offset,offset+400);
         chunk.forEach(item=>{
-          if(!freshProducts.has(item.id))throw new Error('O produto '+item.name+' não está mais no catálogo. Atualize a tela e refaça a coleta.');
-          batch.update(db.collection('products').doc(item.id),{stock:Number(item.quantity),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:auth.currentUser.uid});
+          const itemEan=normalizeEan(item.ean);
+          const byEan=freshByEan.get(itemEan);
+          const byId=freshProducts.get(item.id);
+          const existing=byEan||(byId&&normalizeEan(byId.ean)===itemEan?byId:null);
+          if(existing){
+            batch.update(db.collection('products').doc(existing.id),{stock:Number(item.quantity),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:auth.currentUser.uid});
+          }else{
+            const newId='ean_'+itemEan,occupied=freshProducts.get(newId);
+            if(occupied&&normalizeEan(occupied.ean)!==itemEan)throw new Error('Conflito no identificador do EAN '+item.ean+'. Nenhuma linha desse lote foi enviada; avise a gerência.');
+            const ref=db.collection('products').doc(newId);
+            batch.set(ref,{ean:itemEan,name:'Produto EAN '+itemEan,sectionId:'',unit:'UN',stock:Number(item.quantity),createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:auth.currentUser.uid,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:auth.currentUser.uid});
+          }
         });
         await batch.commit();sent+=chunk.length;$('collectionStatus').textContent='Enviados '+fmt(sent)+' de '+fmt(collectionItems.length)+' produto(s)...';
       }
@@ -236,7 +258,7 @@ body.scanner-open{overflow:hidden;overscroll-behavior:none}
     }catch(err){
       $('collectionStatus').textContent='Falha no envio. Confira as permissões e tente novamente.';
       const denied=String(err.code||'').includes('permission-denied')||/permission|permissão/i.test(err.message||'');
-      showMessage(denied?'O Firebase bloqueou a gravação. Publique as novas regras do arquivo firestore.rules no Console do Firebase e tente novamente. Erro: '+(err.message||'permissão negada'):'Não foi possível enviar toda a coleta: '+(err.message||err),'error');
+      showMessage(denied?'O Firebase bloqueou a gravação. Publique no Console do Firebase as regras atualizadas do arquivo firestore.rules, que autorizam a inclusão automática de EANs coletados. Erro: '+(err.message||'permissão negada'):'Não foi possível enviar toda a coleta: '+(err.message||err),'error');
     }finally{busy=false;renderCollection();}
   }
   async function loadProfile(user){
@@ -251,15 +273,14 @@ body.scanner-open{overflow:hidden;overscroll-behavior:none}
     dataUnsubs.push(db.collection('products').orderBy('name').onSnapshot(snapshot=>{
       products=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));loadingProducts=false;
       if(!draftRestored){restoreCollectionDraft();draftRestored=true;}
-      collectionItems=collectionItems.map(item=>{const current=products.find(p=>p.id===item.id);return current?{...item,name:current.name||item.name,ean:normalizeEan(current.ean||item.ean),sectionId:current.sectionId||item.sectionId,unit:current.unit||item.unit,currentStock:Number(current.stock||0)}:item;});
+      collectionItems=collectionItems.map(item=>{const current=products.find(p=>p.id===item.id)||products.find(p=>normalizeEan(p.ean)===normalizeEan(item.ean));return current?{...item,id:current.id,isNew:false,name:current.name||item.name,ean:normalizeEan(current.ean||item.ean),sectionId:current.sectionId||item.sectionId,unit:current.unit||item.unit,currentStock:Number(current.stock||0)}:item;});
       renderCollection();saveCollectionDraft();
     },err=>{loadingProducts=false;renderCollection();showMessage('Não foi possível carregar o catálogo: '+err.message,'error');}));
   }
   $('loginForm').addEventListener('submit',async event=>{event.preventDefault();hideMessage();try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);}catch(err){showMessage('Não foi possível entrar: '+(err.message||err),'error');}});
   $('logoutBtn').addEventListener('click',()=>auth.signOut());
   $('collectBtn').addEventListener('click',startCamera);$('stopCameraBtn').addEventListener('click',stopCamera);
-  $('lookupBtn').addEventListener('click',lookupProduct);
-  $('eanInput').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();lookupProduct();}});
+  $('eanInput').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();prepareProductForCollection();}});
   $('addItemBtn').addEventListener('click',()=>addSelectedProduct(false));
   $('addAndCollectNextBtn').addEventListener('click',()=>addSelectedProduct(true));
   $('sendBtn').addEventListener('click',sendCollection);
