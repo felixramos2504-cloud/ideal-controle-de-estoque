@@ -132,7 +132,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 2.9 · Histórico de inventários e contagens</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 3.0 · Histórico de inventários e contagens</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -161,6 +161,7 @@
         <div class="dashboard-shortcuts">
           <button id="dashboardOpenProducts" type="button" class="secondary">Cadastrar / atualizar saldo</button>
           <button id="dashboardOpenReport" type="button" class="secondary">Relatório e exportação</button>
+          <button id="dashboardOpenCollector" type="button">Coletar produtos</button>
         </div>
       </div>
       <section class="card dashboard-card" style="margin-top:14px">
@@ -262,7 +263,7 @@
       <div class="section-title"><div><h2 style="margin:0">Auditoria de alterações</h2><p class="muted small" style="margin:5px 0 0">Registros de operações do sistema, com responsável, data e detalhes. A auditoria não altera o estoque.</p></div><span id="auditFreshness" class="badge">Aguardando dados</span></div>
       <div class="formgrid report-controls">
         <div><label for="auditSearch">Pesquisar auditoria</label><input id="auditSearch" placeholder="Responsável, EAN, produto ou detalhe"></div>
-        <div><label for="auditActionFilter">Tipo de operação</label><select id="auditActionFilter"><option value="all">Todas as operações</option><option value="product_created">Produto cadastrado</option><option value="product_updated">Produto atualizado</option><option value="stock_bulk_imported">Estoque alimentado por planilha</option><option value="section_created">Seção cadastrada</option><option value="quick_count_registered">Contagem rápida registrada</option><option value="inventory_finalized">Inventário finalizado</option><option value="user_created">Usuário criado</option><option value="user_access_updated">Perfil ou acesso alterado</option><option value="backup_exported">Backup exportado</option></select></div>
+        <div><label for="auditActionFilter">Tipo de operação</label><select id="auditActionFilter"><option value="all">Todas as operações</option><option value="product_created">Produto cadastrado</option><option value="product_updated">Produto atualizado</option><option value="stock_bulk_imported">Estoque alimentado por planilha</option><option value="stock_collection_sent">Coleta de estoque enviada</option><option value="section_created">Seção cadastrada</option><option value="quick_count_registered">Contagem rápida registrada</option><option value="inventory_finalized">Inventário finalizado</option><option value="user_created">Usuário criado</option><option value="user_access_updated">Perfil ou acesso alterado</option><option value="backup_exported">Backup exportado</option></select></div>
       </div>
       <div class="actions report-controls"><button id="exportAuditCsv" type="button">Exportar auditoria CSV</button></div>
       <div id="auditSummary" class="audit-summary"></div>
@@ -391,7 +392,7 @@
       </section>
     </section>
     </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 2.9 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 3.0 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -730,7 +731,7 @@
     const generatedAt=new Date();
     const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
     const matrix=[
-      ['POSIÇÃO ATUAL DO ESTOQUE IDEAL','MASTER 2.9'],
+      ['POSIÇÃO ATUAL DO ESTOQUE IDEAL','MASTER 3.0'],
       ['Gerado em',generatedAt.toLocaleString('pt-BR')],
       ['Filtro de pesquisa',$('reportSearch').value.trim()||'Todos os produtos'],
       ['Filtro de seção',sectionFilter],
@@ -905,7 +906,7 @@
     const different=rows.filter(item=>Number(item.countedQty||0)!==Number(item.systemStock||0)).length;
     const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
     const matrix=[
-      ['RELATÓRIO DE CONTAGENS IDEAL','MASTER 2.9'],
+      ['RELATÓRIO DE CONTAGENS IDEAL','MASTER 3.0'],
       ['Gerado em',new Date().toLocaleString('pt-BR')],
       ['Data inicial',$('historyDateFrom').value||'Sem limite inicial'],
       ['Data final',$('historyDateTo').value||'Sem limite final'],
@@ -1084,6 +1085,7 @@
     product_created:'Produto cadastrado',
     product_updated:'Produto atualizado',
     stock_bulk_imported:'Estoque alimentado por planilha',
+    stock_collection_sent:'Coleta de estoque enviada',
     section_created:'Seção cadastrada',
     quick_count_registered:'Contagem rápida registrada',
     inventory_finalized:'Inventário finalizado',
@@ -1173,7 +1175,7 @@
       const backup={
         metadata:{
           application:'IDEAL Controle de Estoque',
-          version:'MASTER 2.9',
+          version:'MASTER 3.0',
           type:'firestore-data-export',
           generatedAt:createdAt,
           projectId:window.IDEAL_FIREBASE_CONFIG?.projectId||'não informado',
@@ -1837,6 +1839,7 @@
     $('stockReportSection').addEventListener('change',renderStockReport);
     $('dashboardOpenProducts').addEventListener('click',()=>{setTab('products');window.scrollTo({top:0,behavior:'smooth'});$('pEan').focus();});
     $('dashboardOpenReport').addEventListener('click',()=>setTab('report'));
+    $('dashboardOpenCollector').addEventListener('click',()=>window.open('./coleta.html','_blank','noopener'));
     $('dashboardStockSearch').addEventListener('input',renderDashboard);
     $('dashboardStockSection').addEventListener('change',renderDashboard);
     $('dashboardCurrentStockTable').addEventListener('click',e=>{
