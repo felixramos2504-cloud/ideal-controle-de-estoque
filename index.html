@@ -66,6 +66,25 @@
     .severity.error{background:#fee2e2;color:#991b1b}
     .severity.warning{background:#fef3c7;color:#92400e}
     #integrityTable td{vertical-align:top}
+    .analysis-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+    .analysis-metric{padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff}
+    .analysis-metric .metric-label{font-size:12px;color:var(--muted)}
+    .analysis-metric .metric-value{font-size:25px;font-weight:800;margin-top:4px}
+    .analysis-metric .metric-note{font-size:11px;color:var(--muted);margin-top:3px}
+    .analysis-two-col{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;margin-top:14px}
+    .analysis-chart{display:flex;flex-direction:column;gap:10px}
+    .analysis-day{display:grid;grid-template-columns:70px minmax(0,1fr) 110px;align-items:center;gap:10px}
+    .analysis-day-label{font-size:12px;color:var(--muted)}
+    .analysis-bars{display:flex;flex-direction:column;gap:4px;min-width:0}
+    .analysis-bar{height:10px;min-width:2px;border-radius:4px}
+    .analysis-bar.total{background:#166534}
+    .analysis-bar.diff{background:#d97706}
+    .analysis-day-numbers{font-size:11px;color:var(--muted);text-align:right;white-space:nowrap}
+    .analysis-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:8px}
+    .analysis-legend span{display:inline-flex;align-items:center;gap:5px}
+    .analysis-legend i{display:inline-block;width:10px;height:10px;border-radius:3px}
+    .analysis-note{border-left:3px solid var(--green2);padding:10px 12px;background:#f0fdf4;border-radius:6px;font-size:13px;margin:12px 0}
+    @media(max-width:760px){.analysis-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.analysis-two-col{grid-template-columns:1fr}.analysis-day{grid-template-columns:60px minmax(0,1fr) 90px;gap:6px}.analysis-metric .metric-value{font-size:22px}}
     .user-uid{display:block;max-width:360px;overflow-wrap:anywhere;font-size:11px;color:var(--muted);margin-top:3px}
     @media print{body *{visibility:hidden!important}#tab-report,#tab-report *,#tab-history,#tab-history *{visibility:visible!important}#tab-report,#tab-history{display:block!important;position:absolute!important;left:0!important;top:0!important;width:100%!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;background:#fff!important}body:not(.print-history) #tab-history,body.print-history #tab-report{display:none!important}#tab-report .report-controls,#tab-report .actions,#tab-history .report-controls,#tab-history .actions,#message{display:none!important}#tab-report .tablewrap,#tab-history .tablewrap{overflow:visible!important;border:0!important}#tab-report table,#tab-history table{font-size:8pt}#tab-report th,#tab-report td,#tab-history th,#tab-history td{padding:4px!important;border:1px solid #ccc!important;color:#000!important}#tab-history .card{margin-top:10px!important;padding:8px!important}}
     .dashboard-empty{padding:12px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:13px}
@@ -89,7 +108,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 2.2 · Histórico de inventários e contagens</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 2.3 · Histórico de inventários e contagens</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -139,7 +158,7 @@
     <nav aria-label="Módulos">
       <button data-tab="products">Produtos</button><button data-tab="sections" class="secondary">Seções</button>
       <button data-tab="count" class="secondary">Contagem rápida</button><button data-tab="inventory" class="secondary">Inventário completo</button>
-      <button data-tab="report" class="secondary">Relatório de estoque</button><button data-tab="history" class="secondary">Histórico de contagens</button><button id="usersTabBtn" data-tab="users" class="secondary hidden">Usuários</button><button id="auditTabBtn" data-tab="audit" class="secondary hidden">Auditoria</button><button id="backupTabBtn" data-tab="backup" class="secondary hidden">Backup</button>
+      <button data-tab="report" class="secondary">Relatório de estoque</button><button data-tab="history" class="secondary">Histórico de contagens</button><button id="usersTabBtn" data-tab="users" class="secondary hidden">Usuários</button><button id="auditTabBtn" data-tab="audit" class="secondary hidden">Auditoria</button><button id="backupTabBtn" data-tab="backup" class="secondary hidden">Backup</button><button id="analysisTabBtn" data-tab="analysis" class="secondary hidden">Análise gerencial</button>
     </nav>
 
     <section id="tab-products" class="panel">
@@ -221,6 +240,34 @@
       <p class="muted small">A verificação é uma fotografia dos dados no momento da execução. Corrija os avisos manualmente e rode a conferência novamente. O sistema não corrige nem apaga registros automaticamente.</p>
     </section>
 
+    <section id="tab-analysis" class="panel hidden">
+      <div class="section-title"><div><h2 style="margin:0">Análise gerencial</h2><p class="muted small" style="margin:5px 0 0">Indicadores de divergência, produtos que mais apresentam diferença e ritmo das conferências.</p></div><span id="analysisFreshness" class="badge">Aguardando dados</span></div>
+      <div class="formgrid report-controls">
+        <div><label for="analysisPeriod">Período de análise</label><select id="analysisPeriod"><option value="7">Últimos 7 dias</option><option value="30" selected>Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="all">Todos os registros carregados</option></select></div>
+      </div>
+      <div class="analysis-note">Esta análise usa até 500 das contagens mais recentes carregadas para gerência e administração. Os percentuais são calculados sobre essas contagens disponíveis, não sobre produtos sem conferência. Unidades diferentes não são somadas entre produtos: as diferenças acumuladas por produto são apresentadas junto à unidade cadastrada.</div>
+      <div id="analysisSummary" class="analysis-metrics"></div>
+      <section class="card" style="margin-top:14px">
+        <div class="section-title"><h3>Evolução das conferências</h3><span class="muted small">Dias com registros</span></div>
+        <div class="analysis-legend"><span><i style="background:#166534"></i>Contagens realizadas</span><span><i style="background:#d97706"></i>Contagens com diferença</span></div>
+        <div id="analysisTrend" class="analysis-chart"><div class="dashboard-empty">Aguardando contagens...</div></div>
+      </section>
+      <div class="analysis-two-col">
+        <section class="card dashboard-card">
+          <h3>Produtos com mais divergências</h3>
+          <p class="muted small">Ordenados pelo número de conferências com diferença; também mostra a soma das diferenças absolutas para cada produto.</p>
+          <div class="tablewrap"><table><thead><tr><th>Produto</th><th>Diferenças</th><th>Soma das diferenças</th></tr></thead><tbody id="analysisProductsTable"><tr><td colspan="3">Carregando...</td></tr></tbody></table></div>
+        </section>
+        <section class="card dashboard-card">
+          <h3>Resumo por responsável</h3>
+          <p class="muted small">Volume de contagens e percentual de contagens sem diferença nos registros disponíveis.</p>
+          <div class="tablewrap"><table><thead><tr><th>Responsável</th><th>Contagens</th><th>Sem diferença</th></tr></thead><tbody id="analysisUsersTable"><tr><td colspan="3">Carregando...</td></tr></tbody></table></div>
+        </section>
+      </div>
+      <div class="actions report-controls"><button id="exportAnalysisCsv" type="button">Exportar análise CSV</button></div>
+      <div id="analysisUpdatedAt" class="muted small" style="margin-top:8px">Aguardando atualização dos dados...</div>
+    </section>
+
     <section id="tab-count" class="panel hidden">
       <h2>Contagem rápida por EAN</h2>
       <p class="muted">Leia um código, informe a quantidade física e registre uma contagem para conferência. A contagem rápida não altera diretamente o estoque oficial.</p>
@@ -286,7 +333,7 @@
       </section>
     </section>
     </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 2.2 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 2.3 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -528,7 +575,7 @@
     state.scannerCaptured[key]=false;
     if(!Object.keys(state.scanners).length) document.body.classList.remove('scanner-open');
   }
-  function setTab(tab){ if(tab==='users'&&state.role!=='administrador')tab='products'; if(tab==='backup'&&state.role!=='administrador')tab='products'; if(tab==='audit'&&!['administrador','gerente'].includes(state.role))tab='products'; ['products','sections','count','inventory','report','history','users','audit','backup'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==tab)); document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('secondary',b.dataset.tab!==tab)}); if(tab==='report')renderStockReport(); if(tab==='history')renderHistory(); if(tab==='users')renderUsers(); if(tab==='audit')renderAudit(); if(tab==='backup')renderIntegrity(); }
+  function setTab(tab){ if(tab==='users'&&state.role!=='administrador')tab='products'; if(tab==='backup'&&state.role!=='administrador')tab='products'; if(tab==='audit'&&!['administrador','gerente'].includes(state.role))tab='products'; if(tab==='analysis'&&!['administrador','gerente'].includes(state.role))tab='products'; ['products','sections','count','inventory','report','history','users','audit','backup','analysis'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==tab)); document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('secondary',b.dataset.tab!==tab)}); if(tab==='report')renderStockReport(); if(tab==='history')renderHistory(); if(tab==='users')renderUsers(); if(tab==='audit')renderAudit(); if(tab==='backup')renderIntegrity(); if(tab==='analysis')renderAnalysis(); }
   function getStockStatus(product){
     const stock=Number(product.stock||0);
     if(stock<=0)return {code:'zero',label:'Sem estoque',pill:'zero'};
@@ -945,7 +992,7 @@
       const backup={
         metadata:{
           application:'IDEAL Controle de Estoque',
-          version:'MASTER 2.2',
+          version:'MASTER 2.3',
           type:'firestore-data-export',
           generatedAt:createdAt,
           projectId:window.IDEAL_FIREBASE_CONFIG?.projectId||'não informado',
@@ -1024,6 +1071,79 @@
       $('integrityTable').innerHTML='<tr><td colspan="3">Não foi possível concluir a verificação.</td></tr>';
       message('Não foi possível verificar o cadastro: '+(err.message||err),'error');
     }finally{btn.disabled=false;}
+  }
+  function getAnalysisPeriodCounts(){
+    const period=$('analysisPeriod').value;
+    const now=Date.now();
+    if(period==='all')return state.counts.slice();
+    const days=Math.max(1,Number(period)||30);
+    const cutoff=now-days*24*60*60*1000;
+    return state.counts.filter(item=>historyMillis(item.createdAt)>=cutoff&&historyMillis(item.createdAt)<=now);
+  }
+  function analyzeCounts(rows){
+    const byDay=new Map(),byProduct=new Map(),byUser=new Map();
+    let different=0;
+    rows.forEach(item=>{
+      const stock=Number(item.systemStock||0),counted=Number(item.countedQty||0),diff=counted-stock;
+      const hasDiff=diff!==0;
+      if(hasDiff)different++;
+      const day=historyDateKey(item.createdAt)||'Sem data';
+      if(!byDay.has(day))byDay.set(day,{day,total:0,different:0});
+      const dayRow=byDay.get(day);dayRow.total++;if(hasDiff)dayRow.different++;
+      if(hasDiff){
+        const key=String(item.productId||item.ean||item.productName||'produto');
+        if(!byProduct.has(key))byProduct.set(key,{key,productName:item.productName||'Produto',ean:item.ean||'',unit:item.unit||'UN',occurrences:0,absoluteDifference:0,maxDifference:0});
+        const prod=byProduct.get(key);prod.occurrences++;prod.absoluteDifference+=Math.abs(diff);prod.maxDifference=Math.max(prod.maxDifference,Math.abs(diff));if(item.unit)prod.unit=item.unit;
+      }
+      const userKey=String(item.userId||item.userEmail||'unknown');
+      if(!byUser.has(userKey))byUser.set(userKey,{userId:userKey,email:item.userEmail||'Responsável não identificado',total:0,different:0});
+      const user=byUser.get(userKey);user.total++;if(hasDiff)user.different++;
+    });
+    return {
+      total:rows.length,
+      different:different,
+      matching:rows.length-different,
+      accuracy:rows.length?Math.round((rows.length-different)/rows.length*100):0,
+      uniqueProducts:new Set(rows.map(item=>String(item.productId||item.ean||item.productName||''))).size,
+      products:[...byProduct.values()].sort((a,b)=>b.occurrences-a.occurrences||b.absoluteDifference-a.absoluteDifference||a.productName.localeCompare(b.productName,'pt-BR')),
+      users:[...byUser.values()].map(u=>({...u,matching:u.total-u.different,accuracy:u.total?Math.round((u.total-u.different)/u.total*100):0})).sort((a,b)=>b.total-a.total||a.email.localeCompare(b.email,'pt-BR')),
+      days:[...byDay.values()].sort((a,b)=>a.day.localeCompare(b.day)).slice(-14)
+    };
+  }
+  function renderAnalysis(){
+    if(!$('analysisSummary'))return;
+    if(state.role!=='administrador'&&state.role!=='gerente')return;
+    const rows=getAnalysisPeriodCounts(),stats=analyzeCounts(rows);
+    $('analysisSummary').innerHTML=
+      '<div class="analysis-metric"><div class="metric-label">Contagens realizadas</div><div class="metric-value">'+fmt(stats.total)+'</div><div class="metric-note">No período selecionado</div></div>'+
+      '<div class="analysis-metric"><div class="metric-label">Com divergência</div><div class="metric-value">'+fmt(stats.different)+'</div><div class="metric-note">'+(stats.total?Math.round(stats.different/stats.total*100):0)+'% das contagens</div></div>'+
+      '<div class="analysis-metric"><div class="metric-label">Sem divergência</div><div class="metric-value">'+fmt(stats.matching)+'</div><div class="metric-note">Concordam com o saldo registrado</div></div>'+
+      '<div class="analysis-metric"><div class="metric-label">Taxa sem divergência</div><div class="metric-value">'+stats.accuracy+'%</div><div class="metric-note">'+fmt(stats.uniqueProducts)+' produto(s) distintos conferidos</div></div>';
+    const trend=$('analysisTrend');
+    const maxTotal=Math.max(1,...stats.days.map(day=>day.total));
+    trend.innerHTML=stats.days.map(day=>{
+      const totalWidth=Math.max(day.total?3:0,Math.round(day.total/maxTotal*100));
+      const diffWidth=day.different?Math.max(3,Math.round(day.different/maxTotal*100)):0;
+      const label=day.day==='Sem data'?'Sem data':day.day.slice(8,10)+'/'+day.day.slice(5,7);
+      return '<div class="analysis-day"><span class="analysis-day-label">'+safe(label)+'</span><div class="analysis-bars"><div class="analysis-bar total" style="width:'+totalWidth+'%"></div><div class="analysis-bar diff" style="width:'+diffWidth+'%"></div></div><span class="analysis-day-numbers">'+day.total+' cont. · '+day.different+' dif.</span></div>';
+    }).join('')||'<div class="dashboard-empty">Nenhuma contagem encontrada no período selecionado.</div>';
+    $('analysisProductsTable').innerHTML=stats.products.slice(0,10).map(p=>'<tr><td><strong>'+safe(p.productName)+'</strong><span class="audit-entity">EAN: '+safe(p.ean||'não informado')+'</span></td><td>'+fmt(p.occurrences)+'</td><td>'+fmt(p.absoluteDifference)+' '+safe(p.unit||'UN')+'<span class="audit-entity">Maior diferença isolada: '+fmt(p.maxDifference)+' '+safe(p.unit||'UN')+'</span></td></tr>').join('')||'<tr><td colspan="3">Nenhuma divergência neste período.</td></tr>';
+    $('analysisUsersTable').innerHTML=stats.users.map(u=>'<tr><td><strong>'+safe(u.email)+'</strong></td><td>'+fmt(u.total)+'<span class="audit-entity">'+fmt(u.different)+' com diferença</span></td><td>'+fmt(u.matching)+' ('+u.accuracy+'%)</td></tr>').join('')||'<tr><td colspan="3">Nenhuma contagem encontrada.</td></tr>';
+    $('analysisFreshness').textContent=state.historyUpdatedAt?'Dados sincronizados':'Aguardando dados';
+    $('analysisUpdatedAt').textContent='Análise gerada em '+new Date().toLocaleString('pt-BR')+'. Base: '+state.counts.length+' contagens carregadas e até 500 registros recentes; exibidos até 14 dias com atividade.';
+  }
+  function exportAnalysisCsv(){
+    const rows=getAnalysisPeriodCounts();
+    const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
+    const matrix=[['Data','Origem','Produto','EAN','Seção','Responsável','Saldo registrado','Quantidade contada','Diferença','Situação']];
+    rows.forEach(item=>{
+      const diff=Number(item.countedQty||0)-Number(item.systemStock||0);
+      matrix.push([dateFmt(item.createdAt),item.inventoryId?'Inventário completo':'Contagem rápida',item.productName||'',item.ean||'',sectionName(historyCountSectionId(item)),item.userEmail||'',Number(item.systemStock||0),Number(item.countedQty||0),diff,diff===0?'Sem divergência':'Com divergência']);
+    });
+    const csv='\uFEFF'+matrix.map(row=>row.map(cell).join(';')).join('\r\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),link=document.createElement('a');
+    link.href=url;link.download='analise-gerencial-estoque-'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
   }
   function renderIntegrity(){
     const tbody=$('integrityTable');
@@ -1170,7 +1290,7 @@
     unsubs.push(db.collection('products').orderBy('name').onSnapshot(s=>{state.products=s.docs.map(d=>({id:d.id,...d.data()}));state.productsLoaded=true;state.stockUpdatedAt=new Date();renderProducts();renderInventory();},e=>message('Falha ao carregar produtos: '+e.message,'error')));
     const canViewAllHistory=state.role==='administrador'||state.role==='gerente';
     const countQuery=canViewAllHistory?db.collection('counts').orderBy('createdAt','desc').limit(500):db.collection('counts').where('userId','==',state.user.uid).limit(500);
-    unsubs.push(countQuery.onSnapshot(s=>{state.counts=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>historyMillis(b.createdAt)-historyMillis(a.createdAt));state.historyUpdatedAt=new Date();renderCounts();},e=>message('Falha ao carregar histórico de contagens: '+e.message,'error')));
+    unsubs.push(countQuery.onSnapshot(s=>{state.counts=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>historyMillis(b.createdAt)-historyMillis(a.createdAt));state.historyUpdatedAt=new Date();renderCounts();renderAnalysis();},e=>message('Falha ao carregar histórico de contagens: '+e.message,'error')));
     const inventoryQuery=canViewAllHistory?db.collection('inventories').orderBy('finishedAt','desc').limit(200):db.collection('inventories').where('userId','==',state.user.uid).limit(200);
     unsubs.push(inventoryQuery.onSnapshot(s=>{state.finishedInventories=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>historyMillis(b.finishedAt)-historyMillis(a.finishedAt));state.historyUpdatedAt=new Date();renderHistory();},e=>message('Falha ao carregar histórico de inventários: '+e.message,'error')));
   }
@@ -1186,7 +1306,8 @@
     $('usersTabBtn').classList.toggle('hidden',role!=='administrador');
     $('auditTabBtn').classList.toggle('hidden',!['administrador','gerente'].includes(role));
     $('backupTabBtn').classList.toggle('hidden',role!=='administrador');
-    $('tab-users').classList.add('hidden');$('tab-audit').classList.add('hidden');$('tab-backup').classList.add('hidden');
+    $('analysisTabBtn').classList.toggle('hidden',!['administrador','gerente'].includes(role));
+    $('tab-users').classList.add('hidden');$('tab-audit').classList.add('hidden');$('tab-backup').classList.add('hidden');$('tab-analysis').classList.add('hidden');
     restoreInventoryDraft(user);
     $('appPanel').classList.remove('hidden'); $('authPanel').classList.add('hidden'); attachListeners();
   }
@@ -1278,6 +1399,8 @@
     $('downloadBackupBtn').addEventListener('click',downloadSystemBackup);
     $('runIntegrityBtn').addEventListener('click',runIntegrityCheck);
     $('exportIntegrityCsv').addEventListener('click',exportIntegrityCsv);
+    $('analysisPeriod').addEventListener('change',renderAnalysis);
+    $('exportAnalysisCsv').addEventListener('click',exportAnalysisCsv);
     $('auditSearch').addEventListener('input',renderAudit);
     $('auditActionFilter').addEventListener('change',renderAudit);
     $('exportAuditCsv').addEventListener('click',exportAuditCsv);
