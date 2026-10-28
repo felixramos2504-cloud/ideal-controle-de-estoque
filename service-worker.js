@@ -1,5 +1,5 @@
-const CACHE_NAME = 'ideal-estoque-master-3-4';
-const APP_SHELL = ['./', './index.html', './coleta.html', './manifest.json', './manifest-coleta.json', './coleta-icon-192.svg', './coleta-icon-512.svg', './firebase-config.js'];
+const CACHE_NAME = 'ideal-estoque-master-4-0-cobalt';;
+const APP_SHELL = ['./', './index.html', './coleta.html', './manifest.json', './manifest-coleta.json', './coleta-icon-192.svg', './coleta-icon-512.svg', './estoque-icon-192.svg', './estoque-icon-512.svg', './firebase-config.js'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL).catch(() => {})));
   self.skipWaiting();
