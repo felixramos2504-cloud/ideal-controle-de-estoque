@@ -47,6 +47,22 @@ service cloud.firestore {
       allow create: if managerOrAdmin() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if managerOrAdmin();
     }
+    // Auditoria: gerência e administrador consultam; usuários ativos registram
+    // apenas eventos próprios. Os registros são imutáveis pelo aplicativo.
+    match /auditLogs/{id} {
+      allow read: if managerOrAdmin();
+      allow create: if activeUser()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['action','entityType','entityId','summary','details','userId','userEmail','role','createdAt'])
+        && request.resource.data.keys().hasAll(['action','entityType','entityId','summary','details','userId','userEmail','role','createdAt'])
+        && request.resource.data.action is string
+        && request.resource.data.entityType is string
+        && request.resource.data.entityId is string
+        && request.resource.data.summary is string
+        && request.resource.data.details is map
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
     // Mantido sem módulo visível no app; ainda protegido pela regra de perfil ativo.
     match /movements/{id} {
       allow read: if managerOrAdmin() || (activeUser() && resource.data.userId == request.auth.uid);
