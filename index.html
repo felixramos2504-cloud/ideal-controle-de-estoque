@@ -64,7 +64,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 1.6 · Histórico de inventários e contagens</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 1.7 · Histórico de inventários e contagens</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -156,11 +156,11 @@
       <h2>Inventário completo</h2>
       <p class="muted">Crie uma sessão, adicione produtos por EAN ou selecione-os na lista e revise as diferenças. O estoque oficial só muda quando o inventário é finalizado por um perfil autorizado.</p>
       <div class="formgrid"><div><label for="inventoryName">Nome do inventário</label><input id="inventoryName" placeholder="Ex.: Inventário seção mercearia"></div><div><label for="inventorySection">Filtrar por seção</label><select id="inventorySection"><option value="">Todas as seções</option></select></div></div>
-      <div class="actions"><button id="startInventoryBtn" type="button">Iniciar inventário</button><button id="scanInventoryBtn" type="button" class="secondary">📷 Ler produto</button><button id="finishInventoryBtn" type="button" class="danger" disabled>Finalizar inventário</button></div>
+      <div class="actions"><button id="startInventoryBtn" type="button">Iniciar inventário</button><button id="scanInventoryBtn" type="button" class="secondary">📷 Ler produto</button><button id="finishInventoryBtn" type="button" class="danger" disabled>Finalizar inventário</button><button id="discardInventoryBtn" type="button" class="secondary" disabled>Descartar rascunho</button></div>
       <div id="inventoryScannerWrap" class="scanner-overlay hidden" role="dialog" aria-modal="true" aria-label="Leitor de EAN do inventário"><div class="scanner-header"><h2>Ler EAN do inventário</h2><p>Centralize o código de barras na área de leitura. A câmera fechará automaticamente após a captura.</p></div><div class="scanner-stage"><div id="inventoryScanner"></div></div><button id="stopInventoryScanner" type="button" class="danger">Fechar câmera</button></div>
       <div class="formgrid"><div><label for="inventoryEan">EAN do produto</label><input id="inventoryEan" inputmode="numeric"></div><div><label for="inventoryQty">Quantidade contada</label><input id="inventoryQty" type="number" min="0" step="0.001" value="1"></div></div>
       <div class="actions"><button id="addInventoryItemBtn" type="button" class="secondary">Adicionar produto contado</button></div>
-      <div id="inventoryState" class="notice">Nenhum inventário aberto.</div>
+      <div id="inventoryState" class="notice">Nenhum inventário aberto.</div><p id="inventoryDraftStatus" class="muted small">O rascunho é salvo automaticamente neste navegador e neste dispositivo; não é sincronizado com outros aparelhos.</p>
       <div class="tablewrap"><table><thead><tr><th>Produto</th><th>Registrado</th><th>Contado</th><th>Diferença</th><th></th></tr></thead><tbody id="inventoryTable"></tbody></table></div>
     </section>
 
@@ -202,7 +202,7 @@
       </section>
     </section>
     </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 1.6 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 1.7 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -633,6 +633,7 @@
     const opts='<option value="">Selecione a seção</option>'+state.sections.slice().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(s=>`<option value="${safe(s.id)}">${safe(s.name)}</option>`).join('');
     $('pSection').innerHTML=opts;
     $('inventorySection').innerHTML='<option value="">Todas as seções</option>'+state.sections.map(s=>`<option value="${safe(s.id)}">${safe(s.name)}</option>`).join('');
+    $('inventorySection').value=state.inventory?.sectionId||'';
     const reportSection=$('stockReportSection');
     const selectedReportSection=reportSection.value;
     reportSection.innerHTML='<option value="">Todas as seções</option>'+state.sections.map(s=>`<option value="${safe(s.id)}">${safe(s.name)}</option>`).join('');
@@ -660,7 +661,88 @@
   function renderInventory(){
     $('inventoryState').textContent=state.inventory?`Inventário aberto: ${state.inventory.name} · ${state.inventoryItems.length} produto(s) contado(s). Revise as diferenças antes de finalizar.`:'Nenhum inventário aberto.';
     $('finishInventoryBtn').disabled=!state.inventory || !state.inventoryItems.length;
-    $('inventoryTable').innerHTML=state.inventoryItems.map((it,i)=>`<tr><td>${safe(it.productName)}<br><span class="muted small">${safe(it.ean)}</span></td><td>${fmt(it.systemStock)}</td><td><input type="number" min="0" step="0.001" value="${safe(it.countedQty)}" data-invqty="${i}" style="width:110px"></td><td>${fmt(Number(it.countedQty)-Number(it.systemStock))}</td><td><button type="button" class="danger" data-invremove="${i}">Remover</button></td></tr>`).join('')||'<tr><td colspan="5">Adicione os produtos contados.</td></tr>';
+    $('discardInventoryBtn').disabled=!state.inventory;
+    $('inventoryTable').innerHTML=state.inventoryItems.map((it,i)=>`<tr><td>${safe(it.productName)}<br><span class="muted small">${safe(it.ean)}</span></td><td>${fmt(it.systemStock)}</td><td><input type="number" min="0" step="0.001" value="${safe(it.countedQty)}" data-invqty="${i}" style="width:110px"></td><td data-invdiff="${i}">${fmt(Number(it.countedQty)-Number(it.systemStock))}</td><td><button type="button" class="danger" data-invremove="${i}">Remover</button></td></tr>`).join('')||'<tr><td colspan="5">Adicione os produtos contados.</td></tr>';
+  }
+  function inventoryDraftKey(user=state.user){return user?.uid?'ideal-estoque-inventory-draft-v1:'+user.uid:null;}
+  function setInventoryDraftStatus(text){const el=$('inventoryDraftStatus');if(el)el.textContent=text;}
+  function persistInventoryDraft(){
+    const key=inventoryDraftKey();
+    if(!key)return;
+    try{
+      if(!state.inventory){
+        localStorage.removeItem(key);
+        setInventoryDraftStatus('Nenhum inventário salvo neste dispositivo.');
+        return;
+      }
+      const payload={
+        version:1,
+        savedAt:new Date().toISOString(),
+        inventory:{
+          name:String(state.inventory.name||'Inventário sem título'),
+          sectionId:state.inventory.sectionId||null,
+          startedAt:state.inventory.startedAt||new Date().toISOString()
+        },
+        items:state.inventoryItems.map(it=>({
+          productId:String(it.productId||''),
+          productName:String(it.productName||'Produto'),
+          ean:String(it.ean||''),
+          systemStock:Math.max(0,Number(it.systemStock)||0),
+          countedQty:Math.max(0,Number(it.countedQty)||0),
+          sectionId:it.sectionId||null,
+          unit:String(it.unit||'UN')
+        })).filter(it=>it.productId)
+      };
+      localStorage.setItem(key,JSON.stringify(payload));
+      setInventoryDraftStatus('Rascunho salvo automaticamente neste dispositivo às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'.');
+    }catch(e){
+      setInventoryDraftStatus('Não foi possível salvar o rascunho automaticamente. Verifique o espaço disponível no navegador.');
+    }
+  }
+  function restoreInventoryDraft(user){
+    const key=inventoryDraftKey(user);
+    state.inventory=null;
+    state.inventoryItems=[];
+    if(!key){setInventoryDraftStatus('Entre no sistema para recuperar o rascunho.');return;}
+    try{
+      const raw=localStorage.getItem(key);
+      if(!raw){setInventoryDraftStatus('Nenhum inventário salvo neste dispositivo.');renderInventory();return;}
+      const draft=JSON.parse(raw);
+      if(draft?.version!==1||!draft.inventory||!Array.isArray(draft.items))throw new Error('Rascunho inválido.');
+      state.inventory={
+        name:String(draft.inventory.name||'Inventário sem título'),
+        sectionId:draft.inventory.sectionId||null,
+        startedAt:draft.inventory.startedAt||new Date().toISOString()
+      };
+      state.inventoryItems=draft.items.filter(it=>it&&it.productId).map(it=>({
+        productId:String(it.productId),
+        productName:String(it.productName||'Produto'),
+        ean:String(it.ean||''),
+        systemStock:Math.max(0,Number(it.systemStock)||0),
+        countedQty:Math.max(0,Number(it.countedQty)||0),
+        sectionId:it.sectionId||null,
+        unit:String(it.unit||'UN')
+      }));
+      $('inventoryName').value=state.inventory.name;
+      setInventoryDraftStatus('Rascunho recuperado automaticamente deste dispositivo. Confira os itens antes de finalizar.');
+      renderInventory();
+    }catch(e){
+      try{localStorage.removeItem(key);}catch(_){}
+      state.inventory=null;state.inventoryItems=[];
+      setInventoryDraftStatus('O rascunho salvo estava inválido e foi descartado. Você pode iniciar um novo inventário.');
+      renderInventory();
+    }
+  }
+  function discardInventoryDraft(){
+    if(!state.inventory)return;
+    if(!window.confirm('Descartar o inventário em andamento e o rascunho salvo neste dispositivo? Esta ação não altera o estoque oficial.'))return;
+    state.inventory=null;
+    state.inventoryItems=[];
+    $('inventoryName').value='';
+    $('inventorySection').value='';
+    persistInventoryDraft();
+    renderInventory();
+    message('Rascunho descartado. O estoque oficial não foi alterado.','success');
   }
   function attachListeners(){
     stopListeners();
@@ -679,10 +761,11 @@
     if(!roleRank[role]) throw new Error('Perfil inválido. Contate o administrador.');
     state.role=role; $('roleBadge').textContent='Perfil: '+role; $('userEmail').textContent=user.email||'Usuário'; $('userBar').classList.remove('hidden');
     document.querySelectorAll('[data-tab="sections"],#sectionForm,#finishInventoryBtn').forEach(el=>{el.classList.toggle('hidden',roleRank[role]<roleRank.gerente)});
+    restoreInventoryDraft(user);
     $('appPanel').classList.remove('hidden'); $('authPanel').classList.add('hidden'); attachListeners();
   }
   async function onAuth(user){
-    stopListeners(); state.user=user; state.role=null; state.products=[]; state.sections=[]; state.counts=[]; state.finishedInventories=[]; state.stockUpdatedAt=null; state.historyUpdatedAt=null;
+    stopListeners(); state.user=user; state.role=null; state.products=[]; state.sections=[]; state.counts=[]; state.finishedInventories=[]; state.inventory=null; state.inventoryItems=[]; state.stockUpdatedAt=null; state.historyUpdatedAt=null;
     if(!user){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.add('hidden');return;}
     try{await loadRole(user);clearMessage();}catch(e){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.remove('hidden');$('userEmail').textContent=user.email||'';message(e.message,'error');}
   }
@@ -702,11 +785,11 @@
     $('countProductInfo').textContent=`${p.name} · Seção: ${sectionName(p.sectionId)} · Estoque registrado: ${fmt(p.stock)} ${p.unit||'UN'}`;$('countProductInfo').classList.remove('hidden');return p;
   }
   async function saveQuickCount(){try{if(!state.user)throw new Error('Entre no sistema.');const p=await lookupCountProduct();if(!p)throw new Error('Produto não encontrado.');const qty=Number($('countQty').value);if(!Number.isFinite(qty)||qty<0)throw new Error('Quantidade inválida.');await db.collection('counts').add({productId:p.id,productName:p.name,ean:p.ean,sectionId:p.sectionId,unit:p.unit||'UN',systemStock:Number(p.stock),countedQty:qty,difference:qty-Number(p.stock),userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),inventoryId:null});message('Contagem registrada para conferência. O estoque oficial não foi alterado.','success');}catch(e){message(e.message,'error');}}
-  async function startInventory(){try{await requireRole('colaborador');if(state.inventory)throw new Error('Já existe um inventário aberto nesta sessão.');state.inventory={name:$('inventoryName').value.trim()||'Inventário sem título',sectionId:$('inventorySection').value||null,startedAt:new Date().toISOString()};state.inventoryItems=[];renderInventory();message('Inventário iniciado nesta sessão. Adicione os produtos contados.','success');}catch(e){message(e.message,'error');}}
-  async function addInventoryItem(){try{if(!state.inventory)throw new Error('Inicie um inventário primeiro.');const ean=$('inventoryEan').value.trim();const p=findProductByEan(ean);if(!p)throw new Error('Produto não encontrado pelo EAN.');if(state.inventory.sectionId&&p.sectionId!==state.inventory.sectionId)throw new Error('Este produto não pertence à seção selecionada.');const qty=Number($('inventoryQty').value);if(!Number.isFinite(qty)||qty<0)throw new Error('Quantidade inválida.');const existing=state.inventoryItems.find(i=>i.productId===p.id);if(existing)existing.countedQty=qty;else state.inventoryItems.push({productId:p.id,productName:p.name,ean:p.ean,systemStock:Number(p.stock),countedQty:qty,sectionId:p.sectionId,unit:p.unit||'UN'});$('inventoryEan').value='';$('inventoryQty').value='1';renderInventory();}catch(e){message(e.message,'error');}}
+  async function startInventory(){try{await requireRole('colaborador');if(state.inventory)throw new Error('Já existe um inventário aberto. Continue o inventário recuperado ou descarte o rascunho antes de iniciar outro.');state.inventory={name:$('inventoryName').value.trim()||'Inventário sem título',sectionId:$('inventorySection').value||null,startedAt:new Date().toISOString()};state.inventoryItems=[];persistInventoryDraft();renderInventory();message('Inventário iniciado. O rascunho será salvo automaticamente neste dispositivo.','success');}catch(e){message(e.message,'error');}}
+  async function addInventoryItem(){try{if(!state.inventory)throw new Error('Inicie um inventário primeiro.');const ean=$('inventoryEan').value.trim();const p=findProductByEan(ean);if(!p)throw new Error('Produto não encontrado pelo EAN.');if(state.inventory.sectionId&&p.sectionId!==state.inventory.sectionId)throw new Error('Este produto não pertence à seção selecionada.');const qty=Number($('inventoryQty').value);if(!Number.isFinite(qty)||qty<0)throw new Error('Quantidade inválida.');const existing=state.inventoryItems.find(i=>i.productId===p.id);if(existing)existing.countedQty=qty;else state.inventoryItems.push({productId:p.id,productName:p.name,ean:p.ean,systemStock:Number(p.stock),countedQty:qty,sectionId:p.sectionId,unit:p.unit||'UN'});$('inventoryEan').value='';$('inventoryQty').value='1';persistInventoryDraft();renderInventory();}catch(e){message(e.message,'error');}}
   async function finishInventory(){try{await requireRole('gerente');if(!state.inventory||!state.inventoryItems.length)throw new Error('Não há inventário com produtos para finalizar.');const batch=db.batch();const invRef=db.collection('inventories').doc();batch.set(invRef,{name:state.inventory.name,sectionId:state.inventory.sectionId,startedAt:state.inventory.startedAt,finishedAt:firebase.firestore.FieldValue.serverTimestamp(),status:'finalizado',itemCount:state.inventoryItems.length,userId:state.user.uid,userEmail:state.user.email||''});
       for(const it of state.inventoryItems){const pRef=db.collection('products').doc(it.productId);batch.update(pRef,{stock:Number(it.countedQty),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:state.user.uid});const cRef=db.collection('counts').doc();batch.set(cRef,{...it,systemStock:Number(it.systemStock),countedQty:Number(it.countedQty),difference:Number(it.countedQty)-Number(it.systemStock),userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),inventoryId:invRef.id});}
-      await batch.commit();state.inventory=null;state.inventoryItems=[];renderInventory();message('Inventário finalizado. Estoques atualizados e diferenças registradas no histórico.','success');
+      await batch.commit();state.inventory=null;state.inventoryItems=[];persistInventoryDraft();renderInventory();message('Inventário finalizado. Estoques atualizados e diferenças registradas no histórico; o rascunho local foi removido.','success');
     }catch(e){message('Não foi possível finalizar o inventário: '+e.message,'error');}}
   function bind(){
     $('loginForm').addEventListener('submit',async e=>{e.preventDefault();try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);clearMessage();}catch(err){message('Não foi possível entrar: confira e-mail e senha e se a conta foi autorizada.','error');}});
@@ -730,10 +813,11 @@
     $('stopProductScanner').addEventListener('click',()=>stopScanner('product'));
     $('scanCountBtn').addEventListener('click',()=>startScanner('count','countScanner',v=>{$('countEan').value=v;lookupCountProduct();}));$('stopCountScanner').addEventListener('click',()=>stopScanner('count'));
     $('lookupCountBtn').addEventListener('click',lookupCountProduct);$('saveCountBtn').addEventListener('click',saveQuickCount);
-    $('startInventoryBtn').addEventListener('click',startInventory);$('addInventoryItemBtn').addEventListener('click',addInventoryItem);$('finishInventoryBtn').addEventListener('click',finishInventory);
+    $('startInventoryBtn').addEventListener('click',startInventory);$('addInventoryItemBtn').addEventListener('click',addInventoryItem);$('finishInventoryBtn').addEventListener('click',finishInventory);$('discardInventoryBtn').addEventListener('click',discardInventoryDraft);
     $('scanInventoryBtn').addEventListener('click',()=>startScanner('inventory','inventoryScanner',v=>{$('inventoryEan').value=v;addInventoryItem();}));$('stopInventoryScanner').addEventListener('click',()=>stopScanner('inventory'));
-    $('inventoryTable').addEventListener('input',e=>{const i=e.target.dataset.invqty;if(i===undefined)return;const n=Number(e.target.value);if(Number.isFinite(n)&&n>=0){state.inventoryItems[Number(i)].countedQty=n;renderInventory();}});
-    $('inventoryTable').addEventListener('click',e=>{const i=e.target.dataset.invremove;if(i===undefined)return;state.inventoryItems.splice(Number(i),1);renderInventory();});
+    $('inventoryTable').addEventListener('input',e=>{const raw=e.target.dataset.invqty;if(raw===undefined)return;const i=Number(raw);if(!Number.isInteger(i)||!state.inventoryItems[i])return;const n=Number(e.target.value);if(e.target.value!==''&&Number.isFinite(n)&&n>=0){state.inventoryItems[i].countedQty=n;const diff=$('inventoryTable').querySelector('[data-invdiff="'+i+'"]');if(diff)diff.textContent=fmt(n-Number(state.inventoryItems[i].systemStock));persistInventoryDraft();}});
+    $('inventoryTable').addEventListener('change',e=>{const raw=e.target.dataset.invqty;if(raw===undefined)return;const i=Number(raw);if(!Number.isInteger(i)||!state.inventoryItems[i])return;const n=e.target.value===''?0:Number(e.target.value);if(Number.isFinite(n)&&n>=0){state.inventoryItems[i].countedQty=n;e.target.value=String(n);const diff=$('inventoryTable').querySelector('[data-invdiff="'+i+'"]');if(diff)diff.textContent=fmt(n-Number(state.inventoryItems[i].systemStock));persistInventoryDraft();}});
+    $('inventoryTable').addEventListener('click',e=>{const i=e.target.dataset.invremove;if(i===undefined)return;const index=Number(i);if(!Number.isInteger(index)||!state.inventoryItems[index])return;state.inventoryItems.splice(index,1);persistInventoryDraft();renderInventory();});
   }
   async function init(){
     if(!configValid()){message('Falta configurar firebase-config.js com os dados do seu projeto.','error');return;}
