@@ -1,0 +1,11 @@
+{
+  "name": "IDEAL — Coleta de Produtos",
+  "short_name": "Coleta IDEAL",
+  "description": "Leia produtos por EAN e envie os saldos encontrados ao estoque IDEAL.",
+  "start_url": "./coleta.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f6f4",
+  "theme_color": "#14532d",
+  "icons": []
+}
