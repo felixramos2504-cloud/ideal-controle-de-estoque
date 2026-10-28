@@ -108,7 +108,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 2.4 · Histórico de inventários e contagens</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 2.5 · Histórico de inventários e contagens</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -216,8 +216,9 @@
       <div class="actions report-controls"><button id="exportAuditCsv" type="button">Exportar auditoria CSV</button></div>
       <div id="auditSummary" class="audit-summary"></div>
       <div id="auditUpdatedAt" class="muted small" style="margin:8px 0 12px">Aguardando registros de auditoria...</div>
+      <div class="actions report-controls"><button id="loadMoreAuditBtn" type="button" class="secondary" disabled>Carregar mais auditoria</button><span id="auditPageStatus" class="muted small" style="align-self:center">Carregando registros...</span></div>
       <div class="tablewrap"><table><thead><tr><th>Data e hora</th><th>Responsável</th><th>Operação</th><th>Detalhes</th></tr></thead><tbody id="auditTable"><tr><td colspan="4">Carregando auditoria...</td></tr></tbody></table></div>
-      <p class="muted small" style="margin-top:12px">São exibidos até 500 registros recentes. Os registros de auditoria não podem ser alterados nem excluídos pelo aplicativo.</p>
+      <p class="muted small" style="margin-top:12px">A auditoria pode ser consultada por páginas de até 500 registros. Os registros não podem ser alterados nem excluídos pelo aplicativo.</p>
     </section>
 
     <section id="tab-backup" class="panel hidden">
@@ -325,6 +326,7 @@
       <section class="card dashboard-card" style="margin-top:14px">
         <h3>Inventários finalizados</h3>
         <p class="muted small">Mostra as sessões de inventário salvas, com data, seção e quantidade de produtos conferidos.</p>
+        <div class="actions report-controls"><button id="loadMoreInventoriesBtn" type="button" class="secondary" disabled>Carregar mais inventários</button><span id="inventoriesPageStatus" class="muted small" style="align-self:center">Carregando inventários...</span></div>
         <div class="tablewrap"><table><thead><tr><th>Finalizado em</th><th>Inventário</th><th>Seção</th><th>Produtos contados</th><th>Responsável</th></tr></thead><tbody id="historyInventoriesTable"><tr><td colspan="5">Carregando...</td></tr></tbody></table></div>
       </section>
       <section class="card dashboard-card" style="margin-top:14px">
@@ -334,7 +336,7 @@
       </section>
     </section>
     </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 2.4 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 2.5 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -346,7 +348,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { user:null, role:null, products:[], productsLoaded:false, sections:[], counts:[], countsLive:[], countsBaseline:[], countsOlder:[], countsNextCursor:null, countsHasMore:false, countsLoadingMore:false, countsInitialized:false, finishedInventories:[], users:[], usersLoaded:false, auditLogs:[], auditLoaded:false, auditUpdatedAt:null, integrityIssues:[], integritySummary:null, integrityCheckedAt:null, inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{}, eanLookupToken:0, eanLookupCache:{}, stockUpdatedAt:null, historyUpdatedAt:null };
+  const state = { user:null, role:null, products:[], productsLoaded:false, sections:[], counts:[], countsLive:[], countsBaseline:[], countsOlder:[], countsNextCursor:null, countsHasMore:false, countsLoadingMore:false, countsInitialized:false, finishedInventories:[], inventoriesLive:[], inventoriesBaseline:[], inventoriesOlder:[], inventoriesNextCursor:null, inventoriesHasMore:false, inventoriesLoadingMore:false, inventoriesInitialized:false, users:[], usersLoaded:false, auditLogs:[], auditLive:[], auditBaseline:[], auditOlder:[], auditNextCursor:null, auditHasMore:false, auditLoadingMore:false, auditInitialized:false, auditLoaded:false, auditUpdatedAt:null, integrityIssues:[], integritySummary:null, integrityCheckedAt:null, inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{}, eanLookupToken:0, eanLookupCache:{}, stockUpdatedAt:null, historyUpdatedAt:null };
   const roleRank = { colaborador:1, gerente:2, administrador:3 };
   function message(text, type='notice') { const el=$('message'); el.textContent=text; el.className='notice '+(type==='error'?'error':type==='success'?'success':''); el.classList.remove('hidden'); window.scrollTo({top:0,behavior:'smooth'}); }
   function clearMessage(){ $('message').classList.add('hidden'); }
@@ -758,6 +760,37 @@
       message('Não foi possível carregar mais contagens: '+(err.message||err)+'. Confira as permissões e a conexão com o Firebase.','error');
     }finally{state.countsLoadingMore=false;renderCountPagingControls();}
   }
+  function renderInventoryPagingControls(){
+    const button=$('loadMoreInventoriesBtn'),status=$('inventoriesPageStatus');
+    const canLoad=!!state.inventoriesHasMore&&!state.inventoriesLoadingMore&&!!state.inventoriesNextCursor;
+    if(button){button.disabled=!canLoad;button.textContent=state.inventoriesLoadingMore?'Carregando...':state.inventoriesHasMore?'Carregar mais inventários':'Inventários carregados até o fim';}
+    if(status){
+      const older=state.inventoriesOlder.length?' · Páginas anteriores: '+fmt(state.inventoriesOlder.length):'';
+      status.textContent='Total carregado: '+fmt(state.finishedInventories.length)+older+(state.inventoriesHasMore?' · Há mais inventários':' · Fim do histórico');
+    }
+  }
+  function rebuildLoadedInventories(){
+    const map=new Map();
+    state.inventoriesOlder.concat(state.inventoriesBaseline,state.inventoriesLive).forEach(item=>map.set(item.id,item));
+    state.finishedInventories=[...map.values()].sort((a,b)=>historyMillis(b.finishedAt)-historyMillis(a.finishedAt));
+  }
+  async function loadMoreInventories(){
+    if(state.inventoriesLoadingMore||!state.inventoriesHasMore||!state.inventoriesNextCursor)return;
+    state.inventoriesLoadingMore=true;renderInventoryPagingControls();
+    try{
+      const canViewAllHistory=state.role==='administrador'||state.role==='gerente';
+      const query=canViewAllHistory?db.collection('inventories').orderBy('finishedAt','desc'):db.collection('inventories').where('userId','==',state.user.uid);
+      const snapshot=await query.startAfter(state.inventoriesNextCursor).limit(200).get();
+      const existing=new Set(state.inventoriesOlder.map(item=>item.id));
+      snapshot.docs.forEach(doc=>{if(!existing.has(doc.id)){state.inventoriesOlder.push({id:doc.id,...doc.data()});existing.add(doc.id);}});
+      if(snapshot.docs.length)state.inventoriesNextCursor=snapshot.docs[snapshot.docs.length-1];
+      state.inventoriesHasMore=snapshot.docs.length===200;
+      rebuildLoadedInventories();state.historyUpdatedAt=new Date();renderHistory();
+      message(snapshot.docs.length?'Mais '+snapshot.docs.length+' inventário(s) carregados. Total nesta sessão: '+state.finishedInventories.length+'.':'Fim do histórico de inventários: não há mais registros para carregar.','success');
+    }catch(err){
+      message('Não foi possível carregar mais inventários: '+(err.message||err)+'. Confira as permissões e a conexão com o Firebase.','error');
+    }finally{state.inventoriesLoadingMore=false;renderInventoryPagingControls();}
+  }
   function renderHistory(){
     if(!$('historyCountsTable'))return;
     const rows=getFilteredCountHistory();
@@ -774,7 +807,8 @@
     }).join('')||'<tr><td colspan="7">Nenhuma contagem corresponde aos filtros.</td></tr>';
     $('historyInventoriesTable').innerHTML=inventories.map(inv=>'<tr><td>'+safe(dateFmt(inv.finishedAt))+'</td><td>'+safe(inv.name||'Inventário sem nome')+'</td><td>'+safe(sectionName(inv.sectionId))+'</td><td>'+fmt(inv.itemCount||0)+'</td><td>'+safe(inv.userEmail||'Não informado')+'</td></tr>').join('')||'<tr><td colspan="5">Nenhum inventário finalizado corresponde aos filtros.</td></tr>';
     const updated=state.historyUpdatedAt?state.historyUpdatedAt.toLocaleString('pt-BR'):'aguardando dados';
-    $('historyUpdatedAt').textContent='Última atualização do histórico: '+updated+'. Contagens carregadas: '+fmt(state.counts.length)+' (páginas de até 500). Inventários finalizados: até 200, conforme as permissões da conta.';
+    $('historyUpdatedAt').textContent='Última atualização do histórico: '+updated+'. Contagens carregadas: '+fmt(state.counts.length)+' (páginas de até 500). Inventários finalizados carregados: '+fmt(state.finishedInventories.length)+' (páginas de até 200, conforme as permissões da conta).';
+    renderInventoryPagingControls();
     $('historyFreshness').textContent=state.historyUpdatedAt?'Histórico sincronizado':'Aguardando dados';
   }
   function exportHistoryCsv(){
@@ -1028,7 +1062,7 @@
       const backup={
         metadata:{
           application:'IDEAL Controle de Estoque',
-          version:'MASTER 2.4',
+          version:'MASTER 2.5',
           type:'firestore-data-export',
           generatedAt:createdAt,
           projectId:window.IDEAL_FIREBASE_CONFIG?.projectId||'não informado',
@@ -1214,14 +1248,44 @@
     }
     if(!state.auditLoaded){
       $('auditTable').innerHTML='<tr><td colspan="4">Carregando registros de auditoria...</td></tr>';
-      $('auditFreshness').textContent='Aguardando dados';return;
+      $('auditFreshness').textContent='Aguardando dados';renderAuditPagingControls();return;
     }
     const rows=getFilteredAudit();
     $('auditSummary').innerHTML='<span>Registros carregados <strong>'+state.auditLogs.length+'</strong></span><span>Exibidos no filtro <strong>'+rows.length+'</strong></span><span>Tipos de operação <strong>'+new Set(rows.map(x=>x.action)).size+'</strong></span>';
     $('auditTable').innerHTML=rows.map(log=>'<tr><td>'+safe(dateFmt(log.createdAt))+'</td><td><strong>'+safe(log.userEmail||'Usuário sem e-mail')+'</strong><span class="audit-entity">Perfil: '+safe(log.role||'—')+' · UID: '+safe(log.userId||'—')+'</span></td><td><span class="audit-action">'+safe(auditActionNames[log.action]||log.action||'Operação')+'</span><span class="audit-entity">'+safe(log.entityType||'')+' · '+safe(log.entityId||'')+'</span></td><td>'+safe(log.summary||'')+'<br><span class="muted small">'+safe(auditDetailsText(log))+'</span></td></tr>').join('')||'<tr><td colspan="4">Nenhum registro corresponde aos filtros.</td></tr>';
     const updated=state.auditUpdatedAt?state.auditUpdatedAt.toLocaleString('pt-BR'):'aguardando dados';
-    $('auditUpdatedAt').textContent='Última atualização da auditoria: '+updated+'. A tela mostra até 500 registros recentes.';
+    $('auditUpdatedAt').textContent='Última atualização da auditoria: '+updated+'. São carregados '+fmt(state.auditLogs.length)+' registro(s) nesta sessão.';
     $('auditFreshness').textContent=state.auditUpdatedAt?'Auditoria sincronizada':'Aguardando dados';
+    renderAuditPagingControls();
+  }
+  function renderAuditPagingControls(){
+    const button=$('loadMoreAuditBtn'),status=$('auditPageStatus');
+    const canLoad=!!state.auditHasMore&&!state.auditLoadingMore&&!!state.auditNextCursor;
+    if(button){button.disabled=!canLoad;button.textContent=state.auditLoadingMore?'Carregando...':state.auditHasMore?'Carregar mais auditoria':'Auditoria carregada até o fim';}
+    if(status){
+      const older=state.auditOlder.length?' · Páginas anteriores: '+fmt(state.auditOlder.length):'';
+      status.textContent='Total carregado: '+fmt(state.auditLogs.length)+older+(state.auditHasMore?' · Há mais registros':' · Fim da auditoria');
+    }
+  }
+  function rebuildLoadedAuditLogs(){
+    const map=new Map();
+    state.auditOlder.concat(state.auditBaseline,state.auditLive).forEach(item=>map.set(item.id,item));
+    state.auditLogs=[...map.values()].sort((a,b)=>historyMillis(b.createdAt)-historyMillis(a.createdAt));
+  }
+  async function loadMoreAuditLogs(){
+    if(state.auditLoadingMore||!state.auditHasMore||!state.auditNextCursor)return;
+    state.auditLoadingMore=true;renderAuditPagingControls();
+    try{
+      const snapshot=await db.collection('auditLogs').orderBy('createdAt','desc').startAfter(state.auditNextCursor).limit(500).get();
+      const existing=new Set(state.auditOlder.map(item=>item.id));
+      snapshot.docs.forEach(doc=>{if(!existing.has(doc.id)){state.auditOlder.push({id:doc.id,...doc.data()});existing.add(doc.id);}});
+      if(snapshot.docs.length)state.auditNextCursor=snapshot.docs[snapshot.docs.length-1];
+      state.auditHasMore=snapshot.docs.length===500;
+      rebuildLoadedAuditLogs();state.auditUpdatedAt=new Date();renderAudit();
+      message(snapshot.docs.length?'Mais '+snapshot.docs.length+' registro(s) de auditoria carregados. Total nesta sessão: '+state.auditLogs.length+'.':'Fim da auditoria: não há mais registros para carregar.','success');
+    }catch(err){
+      message('Não foi possível carregar mais auditoria: '+(err.message||err)+'. Confira as permissões e a conexão com o Firebase.','error');
+    }finally{state.auditLoadingMore=false;renderAuditPagingControls();}
   }
   function exportAuditCsv(){
     const rows=getFilteredAudit();
@@ -1321,7 +1385,17 @@
     stopListeners();
     unsubs.push(db.collection('users').doc(state.user.uid).onSnapshot(doc=>{if(!doc.exists||doc.data().ativo===false){message('Seu acesso foi desativado ou o perfil foi removido. A sessão será encerrada.','error');auth.signOut();}},()=>{}));
     if(state.role==='administrador')unsubs.push(db.collection('users').onSnapshot(s=>{state.users=s.docs.map(d=>({id:d.id,...d.data()}));state.usersLoaded=true;renderUsers();},e=>message('Falha ao carregar usuários: '+e.message,'error')));
-    if(state.role==='administrador'||state.role==='gerente')unsubs.push(db.collection('auditLogs').orderBy('createdAt','desc').limit(500).onSnapshot(s=>{state.auditLogs=s.docs.map(d=>({id:d.id,...d.data()}));state.auditLoaded=true;state.auditUpdatedAt=new Date();renderAudit();},e=>message('Falha ao carregar auditoria. Confirme se as regras atualizadas do Firestore foram publicadas: '+e.message,'error')));
+    if(state.role==='administrador'||state.role==='gerente')unsubs.push(db.collection('auditLogs').orderBy('createdAt','desc').limit(500).onSnapshot(s=>{
+      state.auditLive=s.docs.map(d=>({id:d.id,...d.data()}));
+      if(!state.auditInitialized){
+        state.auditInitialized=true;state.auditBaseline=state.auditLive.slice();
+        state.auditNextCursor=s.docs.length?s.docs[s.docs.length-1]:null;
+        state.auditHasMore=s.docs.length===500;
+      }
+      const liveIds=new Set(state.auditLive.map(item=>item.id));
+      state.auditOlder=state.auditOlder.filter(item=>!liveIds.has(item.id));
+      rebuildLoadedAuditLogs();state.auditLoaded=true;state.auditUpdatedAt=new Date();renderAudit();
+    },e=>message('Falha ao carregar auditoria. Confirme se as regras atualizadas do Firestore foram publicadas: '+e.message,'error')));
     unsubs.push(db.collection('sections').orderBy('name').onSnapshot(s=>{state.sections=s.docs.map(d=>({id:d.id,...d.data()}));renderSectionOptions();renderProducts();},e=>message('Falha ao carregar seções: '+e.message,'error')));
     unsubs.push(db.collection('products').orderBy('name').onSnapshot(s=>{state.products=s.docs.map(d=>({id:d.id,...d.data()}));state.productsLoaded=true;state.stockUpdatedAt=new Date();renderProducts();renderInventory();},e=>message('Falha ao carregar produtos: '+e.message,'error')));
     const canViewAllHistory=state.role==='administrador'||state.role==='gerente';
@@ -1341,7 +1415,17 @@
       renderCounts();renderAnalysis();renderCountPagingControls();
     },e=>message('Falha ao carregar histórico de contagens: '+e.message,'error')));
     const inventoryQuery=canViewAllHistory?db.collection('inventories').orderBy('finishedAt','desc').limit(200):db.collection('inventories').where('userId','==',state.user.uid).limit(200);
-    unsubs.push(inventoryQuery.onSnapshot(s=>{state.finishedInventories=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>historyMillis(b.finishedAt)-historyMillis(a.finishedAt));state.historyUpdatedAt=new Date();renderHistory();},e=>message('Falha ao carregar histórico de inventários: '+e.message,'error')));
+    unsubs.push(inventoryQuery.onSnapshot(s=>{
+      state.inventoriesLive=s.docs.map(d=>({id:d.id,...d.data()}));
+      if(!state.inventoriesInitialized){
+        state.inventoriesInitialized=true;state.inventoriesBaseline=state.inventoriesLive.slice();
+        state.inventoriesNextCursor=s.docs.length?s.docs[s.docs.length-1]:null;
+        state.inventoriesHasMore=s.docs.length===200;
+      }
+      const liveIds=new Set(state.inventoriesLive.map(item=>item.id));
+      state.inventoriesOlder=state.inventoriesOlder.filter(item=>!liveIds.has(item.id));
+      rebuildLoadedInventories();state.historyUpdatedAt=new Date();renderHistory();
+    },e=>message('Falha ao carregar histórico de inventários: '+e.message,'error')));
   }
   async function loadRole(user){
     const snap=await db.collection('users').doc(user.uid).get();
@@ -1361,7 +1445,7 @@
     $('appPanel').classList.remove('hidden'); $('authPanel').classList.add('hidden'); attachListeners();
   }
   async function onAuth(user){
-    stopListeners(); state.user=user; state.role=null; state.products=[]; state.productsLoaded=false; state.sections=[]; state.counts=[];state.countsLive=[];state.countsBaseline=[];state.countsOlder=[];state.countsNextCursor=null;state.countsHasMore=false;state.countsLoadingMore=false;state.countsInitialized=false;state.finishedInventories=[]; state.users=[]; state.usersLoaded=false; state.auditLogs=[]; state.auditLoaded=false; state.auditUpdatedAt=null; state.integrityIssues=[];state.integritySummary=null;state.integrityCheckedAt=null;state.inventory=null; state.inventoryItems=[]; state.stockUpdatedAt=null; state.historyUpdatedAt=null;
+    stopListeners(); state.user=user; state.role=null; state.products=[]; state.productsLoaded=false; state.sections=[]; state.counts=[];state.countsLive=[];state.countsBaseline=[];state.countsOlder=[];state.countsNextCursor=null;state.countsHasMore=false;state.countsLoadingMore=false;state.countsInitialized=false;state.finishedInventories=[];state.inventoriesLive=[];state.inventoriesBaseline=[];state.inventoriesOlder=[];state.inventoriesNextCursor=null;state.inventoriesHasMore=false;state.inventoriesLoadingMore=false;state.inventoriesInitialized=false; state.users=[]; state.usersLoaded=false; state.auditLogs=[];state.auditLive=[];state.auditBaseline=[];state.auditOlder=[];state.auditNextCursor=null;state.auditHasMore=false;state.auditLoadingMore=false;state.auditInitialized=false; state.auditLoaded=false; state.auditUpdatedAt=null; state.integrityIssues=[];state.integritySummary=null;state.integrityCheckedAt=null;state.inventory=null; state.inventoryItems=[]; state.stockUpdatedAt=null; state.historyUpdatedAt=null;
     if(!user){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.add('hidden');return;}
     try{await loadRole(user);clearMessage();}catch(e){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.remove('hidden');$('userEmail').textContent=user.email||'';message(e.message,'error');}
   }
@@ -1452,6 +1536,8 @@
     $('exportAnalysisCsv').addEventListener('click',exportAnalysisCsv);
     $('loadMoreCountsBtn').addEventListener('click',loadMoreCountHistory);
     $('loadMoreAnalysisCountsBtn').addEventListener('click',loadMoreCountHistory);
+    $('loadMoreAuditBtn').addEventListener('click',loadMoreAuditLogs);
+    $('loadMoreInventoriesBtn').addEventListener('click',loadMoreInventories);
     $('auditSearch').addEventListener('input',renderAudit);
     $('auditActionFilter').addEventListener('change',renderAudit);
     $('exportAuditCsv').addEventListener('click',exportAuditCsv);
