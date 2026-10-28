@@ -1,5 +1,6 @@
-// Configuração pública do aplicativo Firebase Web.
-// Estes identificadores são usados pelo SDK do navegador; proteja o acesso com as regras do Firebase.
+// IDEAL Controle de Estoque — configuração do Firebase
+// Configuração do aplicativo Web do projeto ideal-controle-de-estoque.
+// A apiKey do Firebase para Web não é uma chave privada; não inclua senhas ou service-account keys aqui.
 window.IDEAL_FIREBASE_CONFIG = {
   apiKey: "AIzaSyDz2Kjg7_qZeNYN4Uhzjiz-oP1NzZ98IJg",
   authDomain: "ideal-controle-de-estoque.firebaseapp.com",
