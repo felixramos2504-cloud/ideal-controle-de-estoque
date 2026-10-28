@@ -550,6 +550,11 @@
     const inv=state.finishedInventories.find(item=>item.id===id);
     return inv?.name||'Inventário completo';
   }
+  function historyCountSectionId(item){
+    if(item.sectionId)return item.sectionId;
+    const product=state.products.find(p=>p.id===item.productId);
+    return product?.sectionId||'';
+  }
   function getFilteredCountHistory(){
     const q=$('historySearch').value.trim().toLocaleLowerCase('pt-BR');
     const sectionId=$('historySection').value;
@@ -559,7 +564,7 @@
       const isInventory=!!item.inventoryId;
       if(origin==='inventory'&&!isInventory)return false;
       if(origin==='quick'&&isInventory)return false;
-      if(sectionId&&item.sectionId!==sectionId)return false;
+      if(sectionId&&historyCountSectionId(item)!==sectionId)return false;
       if(!historyDateInRange(item.createdAt))return false;
       const name=String(item.productName||'').toLocaleLowerCase('pt-BR');
       const ean=String(item.ean||'');
@@ -580,7 +585,7 @@
     if(origin==='quick')return [];
     return state.finishedInventories.filter(inv=>{
       if(!historyDateInRange(inv.finishedAt))return false;
-      if(sectionId&&inv.sectionId!==sectionId)return false;
+      if(sectionId&&inv.sectionId!==sectionId&&!state.counts.some(item=>item.inventoryId===inv.id&&historyCountSectionId(item)===sectionId))return false;
       const name=String(inv.name||'').toLocaleLowerCase('pt-BR');
       if(q&&!name.includes(q)&&!sectionName(inv.sectionId).toLocaleLowerCase('pt-BR').includes(q))return false;
       return true;
@@ -611,9 +616,9 @@
     const matrix=[['Data','Origem','Inventário','Produto','EAN','Seção','Saldo registrado','Quantidade contada','Diferença','Responsável']];
     rows.forEach(item=>{
       const diff=Number(item.countedQty||0)-Number(item.systemStock||0);
-      matrix.push([historyDateKey(item.createdAt),item.inventoryId?'Inventário completo':'Contagem rápida',historyInventoryName(item.inventoryId),item.productName||'',item.ean||'',sectionName(item.sectionId),Number(item.systemStock||0),Number(item.countedQty||0),diff,item.userEmail||'']);
+      matrix.push([historyDateKey(item.createdAt),item.inventoryId?'Inventário completo':'Contagem rápida',historyInventoryName(item.inventoryId),item.productName||'',item.ean||'',sectionName(historyCountSectionId(item)),Number(item.systemStock||0),Number(item.countedQty||0),diff,item.userEmail||'']);
     });
-    const csv='\\uFEFF'+matrix.map(row=>row.map(cell).join(';')).join('\\r\\n');
+    const csv='\uFEFF'+matrix.map(row=>row.map(cell).join(';')).join('\r\n');
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
     const url=URL.createObjectURL(blob);
     const link=document.createElement('a');
@@ -696,7 +701,7 @@
     const ean=$('countEan').value.trim();const p=findProductByEan(ean);if(!p){$('countProductInfo').textContent='Produto não encontrado. Verifique o EAN ou solicite o cadastro.';$('countProductInfo').classList.remove('hidden');return null;}
     $('countProductInfo').textContent=`${p.name} · Seção: ${sectionName(p.sectionId)} · Estoque registrado: ${fmt(p.stock)} ${p.unit||'UN'}`;$('countProductInfo').classList.remove('hidden');return p;
   }
-  async function saveQuickCount(){try{if(!state.user)throw new Error('Entre no sistema.');const p=await lookupCountProduct();if(!p)throw new Error('Produto não encontrado.');const qty=Number($('countQty').value);if(!Number.isFinite(qty)||qty<0)throw new Error('Quantidade inválida.');await db.collection('counts').add({productId:p.id,productName:p.name,ean:p.ean,systemStock:Number(p.stock),countedQty:qty,userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),inventoryId:null});message('Contagem registrada para conferência. O estoque oficial não foi alterado.','success');}catch(e){message(e.message,'error');}}
+  async function saveQuickCount(){try{if(!state.user)throw new Error('Entre no sistema.');const p=await lookupCountProduct();if(!p)throw new Error('Produto não encontrado.');const qty=Number($('countQty').value);if(!Number.isFinite(qty)||qty<0)throw new Error('Quantidade inválida.');await db.collection('counts').add({productId:p.id,productName:p.name,ean:p.ean,sectionId:p.sectionId,unit:p.unit||'UN',systemStock:Number(p.stock),countedQty:qty,difference:qty-Number(p.stock),userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),inventoryId:null});message('Contagem registrada para conferência. O estoque oficial não foi alterado.','success');}catch(e){message(e.message,'error');}}
   async function startInventory(){try{await requireRole('colaborador');if(state.inventory)throw new Error('Já existe um inventário aberto nesta sessão.');state.inventory={name:$('inventoryName').value.trim()||'Inventário sem título',sectionId:$('inventorySection').value||null,startedAt:new Date().toISOString()};state.inventoryItems=[];renderInventory();message('Inventário iniciado nesta sessão. Adicione os produtos contados.','success');}catch(e){message(e.message,'error');}}
   async function addInventoryItem(){try{if(!state.inventory)throw new Error('Inicie um inventário primeiro.');const ean=$('inventoryEan').value.trim();const p=findProductByEan(ean);if(!p)throw new Error('Produto não encontrado pelo EAN.');if(state.inventory.sectionId&&p.sectionId!==state.inventory.sectionId)throw new Error('Este produto não pertence à seção selecionada.');const qty=Number($('inventoryQty').value);if(!Number.isFinite(qty)||qty<0)throw new Error('Quantidade inválida.');const existing=state.inventoryItems.find(i=>i.productId===p.id);if(existing)existing.countedQty=qty;else state.inventoryItems.push({productId:p.id,productName:p.name,ean:p.ean,systemStock:Number(p.stock),countedQty:qty,sectionId:p.sectionId,unit:p.unit||'UN'});$('inventoryEan').value='';$('inventoryQty').value='1';renderInventory();}catch(e){message(e.message,'error');}}
   async function finishInventory(){try{await requireRole('gerente');if(!state.inventory||!state.inventoryItems.length)throw new Error('Não há inventário com produtos para finalizar.');const batch=db.batch();const invRef=db.collection('inventories').doc();batch.set(invRef,{name:state.inventory.name,sectionId:state.inventory.sectionId,startedAt:state.inventory.startedAt,finishedAt:firebase.firestore.FieldValue.serverTimestamp(),status:'finalizado',itemCount:state.inventoryItems.length,userId:state.user.uid,userEmail:state.user.email||''});
