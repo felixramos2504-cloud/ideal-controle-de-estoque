@@ -69,7 +69,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 1.8 · Histórico de inventários e contagens</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 1.9 · Histórico de inventários e contagens</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -151,7 +151,7 @@
     <section id="tab-count" class="panel hidden">
       <h2>Contagem rápida por EAN</h2>
       <p class="muted">Leia um código, informe a quantidade física e registre uma contagem para conferência. A contagem rápida não altera diretamente o estoque oficial.</p>
-      <div class="formgrid"><div><label for="countEan">EAN</label><input id="countEan" inputmode="numeric" placeholder="Código de barras"></div><div style="align-self:end"><button id="scanCountBtn" type="button" class="secondary">📷 Ler EAN pela câmera</button></div><div><label for="countQty">Quantidade contada</label><input id="countQty" type="number" min="0" step="0.001" value="1"></div></div>
+      <div class="formgrid"><div><label for="countEan">EAN</label><input id="countEan" inputmode="numeric" placeholder="Código de barras"></div><div style="align-self:end"><button id="scanCountBtn" type="button" class="secondary">📷 Ler EAN pela câmera</button></div><div><label for="countQty">Quantidade contada *</label><input id="countQty" type="number" min="0" step="0.001" placeholder="Informe a quantidade física" required><p class="muted small" style="margin:5px 0 0">O campo começa vazio para evitar registrar uma quantidade por engano.</p></div></div>
       <div class="actions"><button id="lookupCountBtn" type="button" class="secondary">Localizar produto</button><button id="saveCountBtn" type="button">Registrar contagem</button></div>
       <div id="countProductInfo" class="notice hidden"></div><div id="countScannerWrap" class="scanner-overlay hidden" role="dialog" aria-modal="true" aria-label="Leitor de EAN para contagem"><div class="scanner-header"><h2>Ler EAN para contagem</h2><p>Centralize o código de barras na área de leitura. A câmera fechará automaticamente após a captura.</p></div><div class="scanner-stage"><div id="countScanner"></div></div><button id="stopCountScanner" type="button" class="danger">Fechar câmera</button></div>
       <h3>Contagens recentes</h3><div class="tablewrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Estoque registrado</th><th>Contado</th><th>Diferença</th><th>Responsável</th></tr></thead><tbody id="countsTable"></tbody></table></div>
@@ -213,7 +213,7 @@
       </section>
     </section>
     </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 1.8 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 1.9 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -824,7 +824,33 @@
     const ean=$('countEan').value.trim();const p=findProductByEan(ean);if(!p){$('countProductInfo').textContent='Produto não encontrado. Verifique o EAN ou solicite o cadastro.';$('countProductInfo').classList.remove('hidden');return null;}
     $('countProductInfo').textContent=`${p.name} · Seção: ${sectionName(p.sectionId)} · Estoque registrado: ${fmt(p.stock)} ${p.unit||'UN'}`;$('countProductInfo').classList.remove('hidden');return p;
   }
-  async function saveQuickCount(){try{if(!state.user)throw new Error('Entre no sistema.');const p=await lookupCountProduct();if(!p)throw new Error('Produto não encontrado.');const qty=Number($('countQty').value);if(!Number.isFinite(qty)||qty<0)throw new Error('Quantidade inválida.');await db.collection('counts').add({productId:p.id,productName:p.name,ean:p.ean,sectionId:p.sectionId,unit:p.unit||'UN',systemStock:Number(p.stock),countedQty:qty,difference:qty-Number(p.stock),userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),inventoryId:null});message('Contagem registrada para conferência. O estoque oficial não foi alterado.','success');}catch(e){message(e.message,'error');}}
+  async function saveQuickCount(){
+    const btn=$('saveCountBtn');
+    if(btn.disabled)return;
+    btn.disabled=true;
+    try{
+      if(!state.user)throw new Error('Entre no sistema.');
+      const rawQty=$('countQty').value.trim();
+      if(rawQty==='')throw new Error('Informe a quantidade física contada antes de registrar.');
+      const qty=Number(rawQty);
+      if(!Number.isFinite(qty)||qty<0)throw new Error('Quantidade inválida. Informe zero ou um número positivo.');
+      const p=await lookupCountProduct();
+      if(!p)throw new Error('Produto não encontrado. Verifique o EAN ou solicite o cadastro.');
+      const systemStock=Number(p.stock||0);
+      const difference=qty-systemStock;
+      if(difference!==0){
+        const sign=difference>0?'+':'';
+        const ok=window.confirm('CONFIRME A CONTAGEM\n\nProduto: '+p.name+'\nEstoque cadastrado: '+fmt(systemStock)+' '+(p.unit||'UN')+'\nQuantidade física informada: '+fmt(qty)+' '+(p.unit||'UN')+'\nDiferença: '+sign+fmt(difference)+' '+(p.unit||'UN')+'\n\nA contagem rápida apenas registra a conferência; não altera o estoque oficial.\n\nDeseja registrar esses números?');
+        if(!ok)return;
+      }
+      await db.collection('counts').add({productId:p.id,productName:p.name,ean:p.ean,sectionId:p.sectionId,unit:p.unit||'UN',systemStock:systemStock,countedQty:qty,difference:difference,userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),inventoryId:null});
+      $('countEan').value='';
+      $('countQty').value='';
+      $('countProductInfo').classList.add('hidden');
+      message('Contagem registrada para conferência. O estoque oficial não foi alterado.','success');
+    }catch(e){message(e.message,'error');}
+    finally{btn.disabled=false;}
+  }
   async function startInventory(){try{await requireRole('colaborador');if(state.inventory)throw new Error('Já existe um inventário aberto. Continue o inventário recuperado ou descarte o rascunho antes de iniciar outro.');state.inventory={name:$('inventoryName').value.trim()||'Inventário sem título',sectionId:$('inventorySection').value||null,startedAt:new Date().toISOString()};state.inventoryItems=[];persistInventoryDraft();renderInventory();message('Inventário iniciado. O rascunho será salvo automaticamente neste dispositivo.','success');}catch(e){message(e.message,'error');}}
   async function addInventoryItem(){try{if(!state.inventory)throw new Error('Inicie um inventário primeiro.');const ean=$('inventoryEan').value.trim();const p=findProductByEan(ean);if(!p)throw new Error('Produto não encontrado pelo EAN.');if(state.inventory.sectionId&&p.sectionId!==state.inventory.sectionId)throw new Error('Este produto não pertence à seção selecionada.');const qty=Number($('inventoryQty').value);if(!Number.isFinite(qty)||qty<0)throw new Error('Quantidade inválida.');const existing=state.inventoryItems.find(i=>i.productId===p.id);if(existing)existing.countedQty=qty;else state.inventoryItems.push({productId:p.id,productName:p.name,ean:p.ean,systemStock:Number(p.stock),countedQty:qty,sectionId:p.sectionId,unit:p.unit||'UN'});$('inventoryEan').value='';$('inventoryQty').value='1';persistInventoryDraft();renderInventory();}catch(e){message(e.message,'error');}}
   async function finishInventory(){try{
