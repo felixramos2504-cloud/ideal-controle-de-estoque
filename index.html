@@ -41,6 +41,13 @@
     .dashboard-panels{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px;margin-top:14px}
     .dashboard-card{min-width:0;margin:0}
     .dashboard-card-wide{grid-column:1 / -1}
+    .bulk-import-help{border-left:3px solid var(--green2);padding:10px 12px;background:#f0fdf4;border-radius:6px;font-size:13px;margin:10px 0}
+    .bulk-import-summary{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+    .bulk-import-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:13px}
+    .bulk-import-summary strong{font-size:16px;margin-left:4px}
+    #bulkStockImportTable td{font-size:12px}
+    .bulk-row-error{color:#991b1b;font-weight:650}
+    .bulk-row-ok{color:#166534;font-weight:650}
     .dashboard-card h3{margin:0 0 10px;font-size:17px}
     .dashboard-mini-table{font-size:13px}
     .dashboard-mini-table th,.dashboard-mini-table td{padding:8px}
@@ -125,7 +132,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 2.8 · Histórico de inventários e contagens</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 2.9 · Histórico de inventários e contagens</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -194,6 +201,19 @@
 
     <section id="tab-products" class="panel">
       <h2>Cadastro de produtos</h2>
+      <section id="bulkStockImportPanel" class="card dashboard-card" style="margin:14px 0 18px">
+        <div class="section-title"><div><h3 style="margin:0">Alimentar estoque por planilha</h3><p class="muted small" style="margin:5px 0 0">Importe em lote os produtos que você tem no estoque para montar a base de compras.</p></div><span class="badge">Gerência / administrador</span></div>
+        <div class="bulk-import-help">Use um CSV com as colunas <strong>EAN; Produto; Seção; Unidade; Saldo atual</strong>. As seções precisam existir no sistema. O saldo deve ser maior que zero. Produtos com EAN já cadastrado terão o saldo atualizado; EANs novos serão cadastrados. Produtos que não estiverem na planilha não serão excluídos nem alterados.</div>
+        <div class="formgrid report-controls">
+          <div><label for="bulkStockFile">Planilha CSV</label><input id="bulkStockFile" type="file" accept=".csv,text/csv"></div>
+          <div class="actions" style="align-items:end"><button id="downloadStockTemplateBtn" type="button" class="secondary">Baixar modelo CSV</button><button id="prepareStockImportBtn" type="button" class="secondary">Conferir planilha</button></div>
+        </div>
+        <div id="bulkStockImportStatus" class="muted small" aria-live="polite" style="margin-top:10px">Selecione um CSV para conferir os dados antes de gravar.</div>
+        <div id="bulkStockImportSummary" class="bulk-import-summary"></div>
+        <div class="actions report-controls"><button id="importStockBatchBtn" type="button" disabled>Gravar produtos válidos</button><button id="clearStockImportBtn" type="button" class="secondary">Limpar prévia</button></div>
+        <div class="tablewrap"><table><thead><tr><th>Linha</th><th>EAN</th><th>Produto</th><th>Seção</th><th>Unidade</th><th>Saldo</th><th>Resultado</th></tr></thead><tbody id="bulkStockImportTable"><tr><td colspan="7">A prévia aparecerá após conferir a planilha.</td></tr></tbody></table></div>
+        <p id="bulkStockImportFooter" class="muted small" style="margin-top:8px">Nenhum dado será gravado antes de você conferir e confirmar a importação.</p>
+      </section>
       <form id="productForm">
         <input type="hidden" id="productId">
         <div class="formgrid">
@@ -242,7 +262,7 @@
       <div class="section-title"><div><h2 style="margin:0">Auditoria de alterações</h2><p class="muted small" style="margin:5px 0 0">Registros de operações do sistema, com responsável, data e detalhes. A auditoria não altera o estoque.</p></div><span id="auditFreshness" class="badge">Aguardando dados</span></div>
       <div class="formgrid report-controls">
         <div><label for="auditSearch">Pesquisar auditoria</label><input id="auditSearch" placeholder="Responsável, EAN, produto ou detalhe"></div>
-        <div><label for="auditActionFilter">Tipo de operação</label><select id="auditActionFilter"><option value="all">Todas as operações</option><option value="product_created">Produto cadastrado</option><option value="product_updated">Produto atualizado</option><option value="section_created">Seção cadastrada</option><option value="quick_count_registered">Contagem rápida registrada</option><option value="inventory_finalized">Inventário finalizado</option><option value="user_created">Usuário criado</option><option value="user_access_updated">Perfil ou acesso alterado</option><option value="backup_exported">Backup exportado</option></select></div>
+        <div><label for="auditActionFilter">Tipo de operação</label><select id="auditActionFilter"><option value="all">Todas as operações</option><option value="product_created">Produto cadastrado</option><option value="product_updated">Produto atualizado</option><option value="stock_bulk_imported">Estoque alimentado por planilha</option><option value="section_created">Seção cadastrada</option><option value="quick_count_registered">Contagem rápida registrada</option><option value="inventory_finalized">Inventário finalizado</option><option value="user_created">Usuário criado</option><option value="user_access_updated">Perfil ou acesso alterado</option><option value="backup_exported">Backup exportado</option></select></div>
       </div>
       <div class="actions report-controls"><button id="exportAuditCsv" type="button">Exportar auditoria CSV</button></div>
       <div id="auditSummary" class="audit-summary"></div>
@@ -328,7 +348,7 @@
     </section>
 
     <section id="tab-report" class="panel hidden">
-      <div class="section-title"><div><h2 style="margin:0">Relatório de estoque em tempo real</h2><p class="muted small" style="margin:5px 0 0">O relatório reflete os saldos atuais cadastrados e é atualizado quando produtos ou inventários são alterados.</p></div><span id="reportFreshness" class="badge">Aguardando dados</span></div>
+      <div class="section-title"><div><h2 style="margin:0">Posição atual do estoque em tempo real</h2><p class="muted small" style="margin:5px 0 0">Consulta e exportação dos produtos com saldo positivo, atualizados conforme o Firestore.</p></div><span id="reportFreshness" class="badge">Aguardando dados</span></div>
       <div class="formgrid report-controls">
         <div><label for="reportSearch">Pesquisar produto</label><input id="reportSearch" placeholder="Nome do produto ou código EAN"></div>
         <div><label for="stockReportSection">Seção</label><select id="stockReportSection"><option value="">Todas as seções</option></select></div>
@@ -371,7 +391,7 @@
       </section>
     </section>
     </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 2.8 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 2.9 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -710,7 +730,7 @@
     const generatedAt=new Date();
     const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
     const matrix=[
-      ['POSIÇÃO ATUAL DO ESTOQUE IDEAL','MASTER 2.8'],
+      ['POSIÇÃO ATUAL DO ESTOQUE IDEAL','MASTER 2.9'],
       ['Gerado em',generatedAt.toLocaleString('pt-BR')],
       ['Filtro de pesquisa',$('reportSearch').value.trim()||'Todos os produtos'],
       ['Filtro de seção',sectionFilter],
@@ -885,7 +905,7 @@
     const different=rows.filter(item=>Number(item.countedQty||0)!==Number(item.systemStock||0)).length;
     const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
     const matrix=[
-      ['RELATÓRIO DE CONTAGENS IDEAL','MASTER 2.8'],
+      ['RELATÓRIO DE CONTAGENS IDEAL','MASTER 2.9'],
       ['Gerado em',new Date().toLocaleString('pt-BR')],
       ['Data inicial',$('historyDateFrom').value||'Sem limite inicial'],
       ['Data final',$('historyDateTo').value||'Sem limite final'],
@@ -1063,6 +1083,7 @@
   const auditActionNames={
     product_created:'Produto cadastrado',
     product_updated:'Produto atualizado',
+    stock_bulk_imported:'Estoque alimentado por planilha',
     section_created:'Seção cadastrada',
     quick_count_registered:'Contagem rápida registrada',
     inventory_finalized:'Inventário finalizado',
@@ -1087,6 +1108,10 @@
     if(d.oldRole!==undefined||d.newRole!==undefined)parts.push('Perfil: '+(d.oldRole||'—')+' → '+(d.newRole||'—'));
     if(d.oldActive!==undefined||d.newActive!==undefined)parts.push('Acesso: '+(d.oldActive===undefined?'—':d.oldActive?'ativo':'desativado')+' → '+(d.newActive===undefined?'—':d.newActive?'ativo':'desativado'));
     if(d.description)parts.push('Descrição: '+d.description);
+    if(d.fileName)parts.push('Arquivo: '+d.fileName);
+    if(d.createdCount!==undefined)parts.push('Produtos cadastrados: '+fmt(d.createdCount));
+    if(d.updatedCount!==undefined)parts.push('Produtos atualizados: '+fmt(d.updatedCount));
+    if(d.rowsProcessed!==undefined)parts.push('Linhas importadas: '+fmt(d.rowsProcessed));
     return parts.join(' · ')||String(log.summary||'Operação registrada');
   }
   async function recordAudit(action,entityType,entityId,summary,details={}){
@@ -1148,7 +1173,7 @@
       const backup={
         metadata:{
           application:'IDEAL Controle de Estoque',
-          version:'MASTER 2.8',
+          version:'MASTER 2.9',
           type:'firestore-data-export',
           generatedAt:createdAt,
           projectId:window.IDEAL_FIREBASE_CONFIG?.projectId||'não informado',
@@ -1521,7 +1546,7 @@
     const role=profile.role;
     if(!roleRank[role]) throw new Error('Perfil inválido. Contate o administrador.');
     state.role=role; $('roleBadge').textContent='Perfil: '+role; $('userEmail').textContent=user.email||'Usuário'; $('userBar').classList.remove('hidden');
-    document.querySelectorAll('[data-tab="sections"],#sectionForm,#finishInventoryBtn').forEach(el=>{el.classList.toggle('hidden',roleRank[role]<roleRank.gerente)});
+    document.querySelectorAll('[data-tab="sections"],#sectionForm,#finishInventoryBtn,#bulkStockImportPanel').forEach(el=>{el.classList.toggle('hidden',roleRank[role]<roleRank.gerente)});
     $('usersTabBtn').classList.toggle('hidden',role!=='administrador');
     $('auditTabBtn').classList.toggle('hidden',!['administrador','gerente'].includes(role));
     $('backupTabBtn').classList.toggle('hidden',role!=='administrador');
@@ -1536,6 +1561,170 @@
     try{await loadRole(user);clearMessage();}catch(e){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.remove('hidden');$('userEmail').textContent=user.email||'';message(e.message,'error');}
   }
   async function createSection(e){e.preventDefault();try{await requireRole('gerente');const name=$('sectionName').value.trim();if(!name)throw new Error('Informe o nome da seção.');const description=$('sectionDescription').value.trim();const ref=await db.collection('sections').add({name,description,createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:state.user.uid});await recordAudit('section_created','section',ref.id,'Seção cadastrada: '+name,{sectionName:name,description:description});$('sectionForm').reset();message('Seção cadastrada.','success');}catch(err){message(err.message,'error');}}
+  let bulkStockImportRows=[],bulkStockImportFileName='',bulkStockImportReady=false,bulkStockImportBusy=false;
+  function stockCsvDelimiter(headerLine){
+    const semicolon=(headerLine.match(/;/g)||[]).length;
+    const comma=(headerLine.match(/,/g)||[]).length;
+    return semicolon>=comma?';':',';
+  }
+  function parseStockCsvLine(line,delimiter){
+    const cells=[];let field='',quoted=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(ch==='"'){
+        if(quoted&&line[i+1]==='"'){field+='"';i++;}
+        else quoted=!quoted;
+      }else if(ch===delimiter&&!quoted){cells.push(field.trim());field='';}
+      else field+=ch;
+    }
+    cells.push(field.trim());return cells;
+  }
+  function stockImportHeader(value){return normalizeLookupText(value).replace(/[^a-z0-9 ]/g,'').trim();}
+  function stockImportColumn(headers,aliases){return headers.findIndex(header=>aliases.includes(header));}
+  function parseStockImportQuantity(value){
+    let text=String(value??'').trim().replace(/\s/g,'');
+    if(!text)return NaN;
+    if(text.includes(','))text=text.replace(/\./g,'').replace(',','.');
+    const number=Number(text);return Number.isFinite(number)?number:NaN;
+  }
+  function stockImportUnit(value){
+    const key=normalizeLookupText(value||'un').toUpperCase();
+    const map={'':'UN','UNIDADE':'UN','UNIDADES':'UN','UND':'UN','UN':'UN','KG':'KG','QUILO':'KG','QUILOS':'KG','KILO':'KG','G':'G','GRAMA':'G','GRAMAS':'G','L':'L','LITRO':'L','LITROS':'L','ML':'ML','MILILITRO':'ML','MILILITROS':'ML','CX':'CX','CAIXA':'CX','CAIXAS':'CX','FD':'FD','FARDO':'FD','FARDOS':'FD','PCT':'PCT','PACOTE':'PCT','PACOTES':'PCT'};
+    return map[key]||'';
+  }
+  function clearStockImportPreview(){
+    bulkStockImportRows=[];bulkStockImportFileName='';bulkStockImportReady=false;
+    if($('bulkStockFile'))$('bulkStockFile').value='';
+    if($('bulkStockImportStatus'))$('bulkStockImportStatus').textContent='Selecione um CSV para conferir os dados antes de gravar.';
+    if($('bulkStockImportSummary'))$('bulkStockImportSummary').innerHTML='';
+    if($('bulkStockImportTable'))$('bulkStockImportTable').innerHTML='<tr><td colspan="7">A prévia aparecerá após conferir a planilha.</td></tr>';
+    if($('bulkStockImportFooter'))$('bulkStockImportFooter').textContent='Nenhum dado será gravado antes de você conferir e confirmar a importação.';
+    renderStockImportControls();
+  }
+  function renderStockImportControls(){
+    const button=$('importStockBatchBtn');if(!button)return;
+    const valid=bulkStockImportRows.filter(row=>row.valid);
+    const invalid=bulkStockImportRows.length-valid.length;
+    button.disabled=bulkStockImportBusy||!bulkStockImportReady||!valid.length||invalid>0||!['administrador','gerente'].includes(state.role);
+    button.textContent=bulkStockImportBusy?'Gravando...':invalid?'Corrija todas as linhas inválidas':'Gravar '+fmt(valid.length)+' produto(s)';
+    if($('prepareStockImportBtn'))$('prepareStockImportBtn').disabled=bulkStockImportBusy;
+    if($('downloadStockTemplateBtn'))$('downloadStockTemplateBtn').disabled=bulkStockImportBusy;
+    if($('clearStockImportBtn'))$('clearStockImportBtn').disabled=bulkStockImportBusy;
+  }
+  function downloadStockTemplate(){
+    const csv='\uFEFFEAN;Produto;Seção;Unidade;Saldo atual\r\n';
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),link=document.createElement('a');
+    link.href=url;link.download='modelo_estoque_ideal.csv';
+    document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1200);
+  }
+  async function prepareStockImport(){
+    if(bulkStockImportBusy)return;
+    try{
+      await requireRole('gerente');
+      const file=$('bulkStockFile').files?.[0];
+      if(!file)throw new Error('Selecione primeiro o arquivo CSV.');
+      if(file.size>10*1024*1024)throw new Error('O arquivo ultrapassa 10 MB. Divida a planilha em arquivos menores.');
+      const content=(await file.text()).replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n');
+      const nonEmpty=content.split('\n').filter(line=>line.trim());
+      if(nonEmpty.length<2)throw new Error('A planilha precisa ter o cabeçalho e pelo menos uma linha de produto.');
+      const delimiter=stockCsvDelimiter(nonEmpty[0]),records=nonEmpty.map(line=>parseStockCsvLine(line,delimiter));
+      const headers=records.shift().map(stockImportHeader);
+      const columns={
+        ean:stockImportColumn(headers,['ean','codigo ean','codigo de barras','codigo barras','gtin','barcode']),
+        name:stockImportColumn(headers,['produto','nome','nome do produto','descricao','descricao do produto','product']),
+        section:stockImportColumn(headers,['secao','categoria','departamento','section']),
+        unit:stockImportColumn(headers,['unidade','unidade de medida','unit']),
+        stock:stockImportColumn(headers,['saldo atual','saldo','estoque atual','quantidade atual','quantidade','estoque','stock','quantity'])
+      };
+      const missing=[];
+      if(columns.ean<0)missing.push('EAN');
+      if(columns.name<0)missing.push('Produto');
+      if(columns.section<0)missing.push('Seção');
+      if(columns.stock<0)missing.push('Saldo atual');
+      if(missing.length)throw new Error('Faltam colunas obrigatórias: '+missing.join(', ')+'. Baixe o modelo CSV para ver o formato.');
+      if(records.length>10000)throw new Error('A planilha tem mais de 10.000 linhas. Divida em arquivos menores.');
+      const sectionMap=new Map(state.sections.map(section=>[normalizeLookupText(section.name),section]));
+      const productsByEan=new Map();
+      const eanDuplicatesInCatalog=new Set();
+      state.products.filter(p=>p.ean).forEach(p=>{
+        const ean=normalizeBarcode(p.ean);
+        if(productsByEan.has(ean))eanDuplicatesInCatalog.add(ean);
+        else productsByEan.set(ean,p);
+      });
+      const parsed=records.map((record,index)=>{
+        const value=col=>col>=0?String(record[col]??'').trim():'';
+        const ean=normalizeBarcode(value(columns.ean).replace(/\D/g,''));
+        const name=value(columns.name),sectionText=value(columns.section),section=sectionMap.get(normalizeLookupText(sectionText));
+        const unitRaw=value(columns.unit)||'UN',unit=stockImportUnit(unitRaw),quantity=parseStockImportQuantity(value(columns.stock)),errors=[];
+        if(!ean||!validEan(ean)||!eanChecksum(ean))errors.push('EAN inválido ou ausente');
+        if(!name)errors.push('Nome do produto ausente');
+        if(name.length>160)errors.push('Nome acima de 160 caracteres');
+        if(!section)errors.push('Seção não cadastrada: '+(sectionText||'vazia'));
+        if(!unit)errors.push('Unidade inválida: '+unitRaw);
+        if(!Number.isFinite(quantity)||quantity<=0)errors.push('Saldo deve ser numérico e maior que zero');
+        if(eanDuplicatesInCatalog.has(ean))errors.push('EAN duplicado no cadastro atual; corrija o cadastro antes de importar');
+        const existing=productsByEan.get(ean);
+        return {line:index+2,ean,name,sectionText,sectionId:section?.id||'',unit,quantity,existingId:existing?.id||'',existingName:existing?.name||'',valid:errors.length===0,errors};
+      });
+      const fileCounts=new Map();
+      parsed.forEach(row=>{if(row.ean)fileCounts.set(row.ean,(fileCounts.get(row.ean)||0)+1);});
+      parsed.forEach(row=>{if(row.ean&&fileCounts.get(row.ean)>1){row.valid=false;row.errors.push('EAN repetido nesta planilha');}});
+      bulkStockImportRows=parsed;bulkStockImportFileName=file.name;bulkStockImportReady=true;
+      renderStockImportPreview();
+      const validCount=parsed.filter(row=>row.valid).length,invalidCount=parsed.length-validCount;
+      $('bulkStockImportStatus').textContent='Arquivo conferido: '+file.name+'. '+fmt(parsed.length)+' linha(s) analisada(s). Nenhuma alteração foi gravada ainda.';
+      $('bulkStockImportFooter').textContent=invalidCount?'Corrija as '+fmt(invalidCount)+' linha(s) com erro no arquivo e confira novamente antes de importar.':'Prévia validada. A importação atualizará/cadastrará somente os itens listados, sem apagar produtos que não estão no arquivo.';
+      renderStockImportControls();
+      message(invalidCount?'A planilha tem linhas inválidas. Corrija os erros indicados e confira novamente.':fmt(validCount)+' linha(s) prontas para importação. Revise a prévia antes de gravar.','success');
+    }catch(err){
+      bulkStockImportRows=[];bulkStockImportReady=false;renderStockImportControls();
+      if($('bulkStockImportStatus'))$('bulkStockImportStatus').textContent=err.message||'Não foi possível ler a planilha.';
+      message(err.message||'Não foi possível ler a planilha.','error');
+    }
+  }
+  function renderStockImportPreview(){
+    const summary=$('bulkStockImportSummary'),table=$('bulkStockImportTable');
+    if(!summary||!table)return;
+    const rows=bulkStockImportRows,valid=rows.filter(row=>row.valid),invalid=rows.length-valid.length;
+    const created=valid.filter(row=>!row.existingId).length,updated=valid.length-created;
+    summary.innerHTML='<span>Linhas <strong>'+fmt(rows.length)+'</strong></span><span>Novos produtos <strong>'+fmt(created)+'</strong></span><span>Atualizar saldo <strong>'+fmt(updated)+'</strong></span><span>Com erro <strong>'+fmt(invalid)+'</strong></span>';
+    const preview=rows.slice(0,100);
+    table.innerHTML=preview.map(row=>'<tr><td>'+fmt(row.line)+'</td><td>'+safe(row.ean||'—')+'</td><td><strong>'+safe(row.name||'—')+'</strong>'+(row.existingId?'<br><span class="muted small">Já cadastrado: '+safe(row.existingName)+'</span>':'')+'</td><td>'+safe(row.sectionText||'—')+'</td><td>'+safe(row.unit||'—')+'</td><td>'+safe(Number.isFinite(row.quantity)?fmt(row.quantity):'—')+'</td><td class="'+(row.valid?'bulk-row-ok':'bulk-row-error')+'">'+safe(row.valid?(row.existingId?'Atualizar saldo':'Cadastrar novo'):row.errors.join('; '))+'</td></tr>').join('')||'<tr><td colspan="7">Nenhuma linha encontrada.</td></tr>';
+    if(rows.length>preview.length)table.insertAdjacentHTML('beforeend','<tr><td colspan="7" class="muted">Mostrando '+fmt(preview.length)+' de '+fmt(rows.length)+' linhas; todas foram validadas.</td></tr>');
+    renderStockImportControls();
+  }
+  async function importStockBatch(){
+    if(bulkStockImportBusy)return;
+    bulkStockImportBusy=true;renderStockImportControls();
+    let createdCount=0,updatedCount=0,processed=0;
+    try{
+      await requireRole('gerente');
+      if(!bulkStockImportReady||!bulkStockImportRows.length)throw new Error('Confira uma planilha antes de importar.');
+      if(bulkStockImportRows.some(row=>!row.valid))throw new Error('A importação foi bloqueada. Corrija todas as linhas inválidas e confira novamente.');
+      if(!window.confirm('Confirma alimentar o estoque com '+bulkStockImportRows.length+' produto(s) do arquivo "'+bulkStockImportFileName+'"? Os itens não presentes no arquivo não serão excluídos.'))return;
+      const chunkSize=400;
+      for(let offset=0;offset<bulkStockImportRows.length;offset+=chunkSize){
+        const batch=db.batch(),chunk=bulkStockImportRows.slice(offset,offset+chunkSize);
+        chunk.forEach(row=>{
+          const data={ean:row.ean,name:row.name,sectionId:row.sectionId,unit:row.unit,stock:row.quantity,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:state.user.uid};
+          if(row.existingId){batch.update(db.collection('products').doc(row.existingId),data);updatedCount++;}
+          else{const ref=db.collection('products').doc();batch.set(ref,{...data,createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:state.user.uid});createdCount++;}
+        });
+        await batch.commit();processed+=chunk.length;
+        $('bulkStockImportStatus').textContent='Gravando no Firestore: '+fmt(processed)+' de '+fmt(bulkStockImportRows.length)+' produto(s)...';
+      }
+      await recordAudit('stock_bulk_imported','products','bulk-import','Estoque alimentado por planilha: '+bulkStockImportFileName,{fileName:bulkStockImportFileName,createdCount,updatedCount,rowsProcessed:processed});
+      bulkStockImportRows=[];bulkStockImportReady=false;bulkStockImportFileName='';$('bulkStockFile').value='';$('bulkStockImportSummary').innerHTML='';
+      $('bulkStockImportTable').innerHTML='<tr><td colspan="7">Importação concluída. Os dados serão atualizados no painel em tempo real.</td></tr>';
+      $('bulkStockImportFooter').textContent='Importação concluída. Confira o saldo atual no dashboard e no relatório.';
+      $('bulkStockImportStatus').textContent='Concluído: '+fmt(createdCount)+' produto(s) cadastrado(s) e '+fmt(updatedCount)+' saldo(s) atualizado(s).';
+      message('Estoque alimentado com sucesso: '+fmt(createdCount)+' produto(s) novo(s) e '+fmt(updatedCount)+' atualizado(s).','success');
+      renderStockImportControls();renderDashboard();renderStockReport();renderProducts();
+    }catch(err){
+      message('A importação não foi concluída integralmente: '+(err.message||err)+'. Se já houver páginas gravadas, confira o estoque antes de tentar novamente.','error');
+      if($('bulkStockImportStatus'))$('bulkStockImportStatus').textContent='Falha após '+fmt(processed)+' linha(s) gravada(s). '+(err.message||err);
+    }finally{bulkStockImportBusy=false;renderStockImportControls();}
+  }
   async function saveProduct(e){
     e.preventDefault();try{
       await requireRole('gerente');
@@ -1631,6 +1820,18 @@
     $('usersTable').addEventListener('click',e=>{const btn=e.target.closest('[data-user-save]');if(btn)saveManagedUser(btn);});
     $('usersTable').addEventListener('change',e=>{const row=e.target.closest('[data-user-row]');if(row&&e.target.matches('[data-user-active]')){const label=e.target.closest('label');if(label)label.lastChild.textContent=e.target.checked?' Ativo':' Desativado';}});
     $('productForm').addEventListener('submit',saveProduct);$('sectionForm').addEventListener('submit',createSection);
+    $('downloadStockTemplateBtn').addEventListener('click',downloadStockTemplate);
+    $('prepareStockImportBtn').addEventListener('click',prepareStockImport);
+    $('importStockBatchBtn').addEventListener('click',importStockBatch);
+    $('clearStockImportBtn').addEventListener('click',clearStockImportPreview);
+    $('bulkStockFile').addEventListener('change',()=>{
+      bulkStockImportRows=[];bulkStockImportReady=false;
+      const file=$('bulkStockFile').files?.[0];
+      $('bulkStockImportStatus').textContent=file?'Arquivo selecionado: '+file.name+'. Clique em “Conferir planilha” para validar sem gravar.':'Selecione um CSV para conferir os dados antes de gravar.';
+      $('bulkStockImportSummary').innerHTML='';
+      $('bulkStockImportTable').innerHTML='<tr><td colspan="7">A prévia aparecerá após conferir a planilha.</td></tr>';
+      renderStockImportControls();
+    });
     $('productSearch').addEventListener('input',renderProducts);document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
     $('reportSearch').addEventListener('input',renderStockReport);
     $('stockReportSection').addEventListener('change',renderStockReport);
