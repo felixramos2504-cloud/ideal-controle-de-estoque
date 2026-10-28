@@ -41,7 +41,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 1.0 · Inventário e movimentações</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 1.2 · Inventário, movimentações e consulta EAN</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -129,7 +129,7 @@
       <div class="tablewrap"><table><thead><tr><th>Data</th><th>Produto / EAN</th><th>Tipo</th><th>Quantidade</th><th>Responsável</th><th>Motivo</th></tr></thead><tbody id="movementsTable"></tbody></table></div>
     </section>
   </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 1.0 · Proteja as credenciais e publique apenas em HTTPS.</footer>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 1.2 · Proteja as credenciais e publique apenas em HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -235,7 +235,7 @@
     ];
     for(const url of endpoints){
       try{
-        const controller=new AbortController(); const timeout=setTimeout(()=>controller.abort(),10000);
+        const controller=new AbortController(); const timeout=setTimeout(()=>controller.abort(),7000);
         let response;
         try{response=await fetch(url,{method:'GET',headers:{Accept:'application/json'},cache:'no-store',signal:controller.signal});}
         finally{clearTimeout(timeout);}
@@ -302,6 +302,7 @@
   function lookupProductFromEanField(){
     const raw=$('pEan').value.trim();
     if(!raw)return;
+    state.eanLookupToken++; // invalida uma consulta anterior se o EAN foi alterado
     const ean=normalizeBarcode(raw);
     $('pEan').value=ean;
     if(!validEan(ean)){
