@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0047AB">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Coleta IDEAL">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" type="image/svg+xml" href="./coleta-icon-192.svg">
+<meta name="description" content="Coleta de produtos por código de barras para atualizar o estoque IDEAL.">
+<title>IDEAL — Coleta de Produtos</title>
+<link rel="manifest" href="./manifest-coleta.json">
+<style>
+:root{--green:#0047AB;--green2:#0056D6;--bg:#f4f7ff;--card:#fff;--line:#d8e4f8;--text:#17243a;--muted:#61718a;--red:#b91c1c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{background:var(--green);color:white;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}h1{font-size:20px;margin:0}header small{opacity:.85}.header-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.install-button{background:#fff;color:var(--green);box-shadow:0 2px 8px #0002}.install-button[hidden]{display:none!important}#userBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+main{max-width:900px;margin:18px auto;padding:0 12px 30px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px #17211b0a}
+h2,h3{margin:0 0 8px}h2{font-size:21px}h3{font-size:17px}.muted{color:var(--muted)}.small{font-size:13px}.hidden{display:none!important}
+label{display:block;font-size:13px;font-weight:700;margin:10px 0 5px}input,select{width:100%;font:inherit;border:1px solid #c8d5cc;border-radius:10px;padding:12px;background:white;color:var(--text);min-height:46px}
+button,.button{font:inherit;font-weight:700;border:0;border-radius:10px;background:var(--green2);color:white;padding:12px 15px;min-height:46px;cursor:pointer}button.secondary{background:#e7eee9;color:var(--green)}button.danger{background:#b91c1c}button:disabled{opacity:.55;cursor:not-allowed}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions button{flex:1}.notice{padding:12px;border-radius:10px;background:#eff6ff;color:#1e40af;margin-bottom:12px;white-space:pre-wrap}.notice.error{background:#fef2f2;color:#991b1b}.notice.success{background:#f0fdf4;color:#166534}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+body.scanner-open{overflow:hidden;overscroll-behavior:none}
+.scanner-overlay{position:fixed;inset:0;z-index:99999;width:100vw;height:100vh;height:100dvh;max-width:none;background:#050806;color:#fff;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;flex-direction:column;gap:12px;overflow:hidden;margin:0;border:0;border-radius:0;box-shadow:none}
+#scannerWrap.hidden{display:none!important}
+.scanner-header{flex:0 0 auto;text-align:center;padding:2px 8px}
+.scanner-header h2{font-size:20px;line-height:1.2;margin:0 0 6px;color:#fff}
+.scanner-header p{font-size:13px;line-height:1.35;margin:0;color:#d1d5db}
+#reader{flex:1 1 auto;width:100%;height:100%;min-height:0;color:white;overflow:hidden;border-radius:12px;position:relative;background:#000}
+#reader>div{max-width:100%!important}
+#reader video,#reader__scan_region,#reader__scan_region video{max-width:100%!important}
+#reader video,#reader__scan_region video{width:100%!important;height:100%!important;object-fit:cover!important}
+#reader__scan_region{height:100%!important;min-height:0!important}
+#reader__dashboard{flex:0 0 auto;background:#111827;color:#fff;border-radius:10px;padding:8px;font-size:12px}
+.scanner-footer{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;color:#d1d5db;font-size:12px}
+.camera-close{background:#fff;color:#111827;min-width:130px;border-radius:12px;font-weight:800}
+.product-found{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:12px;margin-top:12px}.product-name{font-size:18px;font-weight:800}.product-meta{font-size:13px;color:var(--muted);margin-top:4px}
+.metric-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}.metric{border:1px solid var(--line);border-radius:12px;padding:12px;background:white}.metric span{font-size:12px;color:var(--muted);display:block}.metric strong{font-size:23px;display:block;margin-top:4px}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:12px}table{border-collapse:collapse;width:100%;background:white}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}th{font-size:12px;color:var(--muted);white-space:nowrap}
+.qty-edit{min-width:90px;max-width:120px;padding:8px;min-height:40px}.status-pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#dcfce7;color:#166534;font-weight:750;font-size:11px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}#userEmail{font-size:12px;overflow-wrap:anywhere}footer{text-align:center;padding:8px;color:var(--muted);font-size:12px}
+@media(max-width:520px){main{margin:10px auto;padding:0 9px 22px}.card{padding:13px}.formgrid{grid-template-columns:1fr}.metric{padding:9px}.metric strong{font-size:20px}header{align-items:flex-start}h1{font-size:18px}.actions button{width:100%}}
+
+/* MASTER 2.0 · Identidade azul cobalto compartilhada */
+header{background:linear-gradient(120deg,#003b95 0%,#0047AB 56%,#1767df 100%);box-shadow:0 5px 18px #003b9520}
+button,.button{box-shadow:0 3px 10px #0047ab15;transition:transform .16s ease,box-shadow .16s ease}
+button:hover:not(:disabled),.button:hover{box-shadow:0 6px 16px #0047ab25}
+button.secondary{background:#eaf1ff;color:#0047AB}
+input:focus,select:focus{outline:3px solid #9bbcff80;border-color:#0047AB}
+.product-found{background:#eff5ff;border-color:#c7d9ff}
+.status-pill{background:#e8f0ff;color:#0047AB}
+.metric{border-color:#d6e3f8}
+.metric strong{color:#0047AB}
+
+</style>
+</head>
+<body>
+<header>
+<div><h1>Coleta IDEAL</h1><small>Leia, confira e envie os saldos ao estoque.</small></div>
+<div class="header-actions"><button id="installAppBtn" class="install-button" type="button"><span aria-hidden="true">⬇</span> Instalar no celular</button><div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary" type="button">Sair</button></div></div>
+</header>
+<main>
+<div id="message" class="notice hidden" role="status"></div>
+<div id="installHelp" class="notice hidden" role="status"></div>
+<section id="authPanel" class="card">
+<h2>Entrar na coleta</h2><p class="muted small">Use sua conta do IDEAL Controle de Estoque.</p>
+<form id="loginForm"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required minlength="6"><div class="actions"><button type="submit">Entrar</button></div></form>
+</section>
+<section id="appPanel" class="hidden">
+<div class="card">
+<div class="toolbar"><div><h2>Coletar produtos</h2><div class="muted small">Leia o código de barras, informe a quantidade real e envie. Você não precisa cadastrar nem pesquisar o produto.</div></div><span id="roleBadge" class="status-pill">Conta autorizada</span></div>
+<div class="actions"><button id="collectBtn" type="button">Coletar — abrir câmera</button></div>
+<div id="scannerWrap" class="scanner-overlay hidden" role="dialog" aria-modal="true" aria-label="Leitor de código de barras">
+  <div class="scanner-header"><h2>Coleta IDEAL</h2><p>Posicione o código de barras dentro da área de leitura.</p></div>
+  <div id="reader"></div>
+  <div class="scanner-footer"><span>Leitura de EAN</span><button id="stopCameraBtn" type="button" class="camera-close hidden">Fechar câmera</button></div>
+</div>
+<div style="margin-top:12px"><label for="eanInput">Código de barras lido</label><input id="eanInput" inputmode="numeric" autocomplete="off" placeholder="Use a câmera para ler o EAN"></div>
+<div id="selectedProductCard" class="product-found hidden"><div class="product-name" id="selectedProductName"></div><div class="product-meta" id="selectedProductMeta"></div><div class="formgrid"><div><label for="quantityInput">Quantidade encontrada</label><input id="quantityInput" type="number" min="0.001" step="0.001" inputmode="decimal" placeholder="Informe o saldo contado"></div><div><label for="selectedUnit">Unidade</label><input id="selectedUnit" readonly></div></div><div class="actions"><button id="addItemBtn" type="button" class="secondary">Adicionar à lista</button><button id="addAndCollectNextBtn" type="button">Adicionar e coletar próximo</button></div></div>
+<p class="muted small" style="margin:12px 0 0">O leitor fecha após cada leitura. Reabra a câmera para o próximo produto. Se o EAN ainda não existir no estoque, o sistema o inclui automaticamente pelo código; não é necessário cadastrar o produto.</p>
+</div>
+<div class="card">
+<div class="toolbar"><div><h2>Lista da coleta</h2><div class="muted small">Confira as quantidades antes de enviar.</div></div><span id="collectionCount" class="status-pill">0 produtos</span></div>
+<div class="metric-row"><div class="metric"><span>Produtos na lista</span><strong id="metricProducts">0</strong></div><div class="metric"><span>Novos saldos informados</span><strong id="metricBalances">0</strong></div><div class="metric"><span>Alterações previstas</span><strong id="metricChanges">0</strong></div></div>
+<div class="tablewrap"><table><thead><tr><th>Produto</th><th>Saldo contado</th><th>Saldo atual</th><th></th></tr></thead><tbody id="collectionTable"><tr><td colspan="4">Nenhum produto na coleta.</td></tr></tbody></table></div>
+<div id="draftStatus" class="muted small" style="margin-top:10px">A lista fica salva como rascunho neste dispositivo.</div><div id="collectionStatus" class="muted small" style="margin-top:6px">Nada foi enviado ainda.</div><div class="actions"><button id="sendBtn" type="button" disabled>Enviar para o banco de dados</button><button id="clearBtn" type="button" class="secondary">Limpar lista</button></div>
+</div>
+<div class="card"><h3>Como o envio funciona</h3><p class="muted small">Ao enviar, os saldos dos produtos listados serão substituídos pelas quantidades coletadas. O dashboard principal acompanha as alterações pelo Firestore. Produtos que não estão na lista permanecem iguais. Confirme a quantidade real antes de enviar.</p></div>
+</section>
+<footer>IDEAL Controle de Estoque · Coleta MASTER 2.0</footer>
+</main>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="./firebase-config.js"></script>
+<script>
+(() => {
+  'use strict';
+  const $=id=>document.getElementById(id);
+  const allowedRoles=['colaborador','gerente','administrador'];
+  let auth,db,scanner=null,products=[],sections=[],selectedProduct=null,collectionItems=[],busy=false,loadingProducts=false,currentRole='',currentUserId='',draftRestored=false,dataUnsubs=[],deferredInstallPrompt=null;
+  const appIsStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  function showInstallHelp(){
+    const help=$('installHelp');
+    const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!window.MSStream;
+    const android=/android/i.test(navigator.userAgent);
+    help.className='notice';
+    help.textContent=ios
+      ?'Para instalar no iPhone: abra esta página no Safari, toque em Compartilhar e selecione “Adicionar à Tela de Início”. Depois abra pelo novo ícone Coleta IDEAL. Este é um app web instalável, não um APK.'
+      :android
+        ?'Para instalar no Android: use o Chrome, abra o menu ⋮ e escolha “Instalar app” ou “Adicionar à tela inicial”. Se a opção não aparecer, atualize esta página e tente novamente. Não é necessário baixar APK.'
+        :'Para instalar no smartphone, abra este endereço no navegador do celular e use “Instalar app” no Chrome/Android ou Compartilhar > “Adicionar à Tela de Início” no Safari/iPhone.';
+    help.classList.remove('hidden');
+    help.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+  function setupInstallPrompt(){
+    const button=$('installAppBtn');
+    if(appIsStandalone()){button.hidden=true;return;}
+    button.hidden=false;
+    window.addEventListener('beforeinstallprompt',event=>{
+      event.preventDefault();deferredInstallPrompt=event;button.textContent='Instalar Coleta IDEAL';
+    });
+    window.addEventListener('appinstalled',()=>{
+      deferredInstallPrompt=null;button.hidden=true;
+      $('installHelp').classList.add('hidden');
+      showMessage('Coleta IDEAL instalada no dispositivo. Abra pelo ícone da tela inicial.','success');
+    });
+    button.addEventListener('click',async()=>{
+      if(appIsStandalone()){button.hidden=true;return;}
+      if(deferredInstallPrompt){
+        deferredInstallPrompt.prompt();
+        try{const choice=await deferredInstallPrompt.userChoice;if(choice?.outcome==='accepted')button.textContent='Instalação solicitada';}
+        catch(_){}
+        deferredInstallPrompt=null;
+      }else showInstallHelp();
+    });
+  }
+  function stopDataListeners(){dataUnsubs.forEach(unsubscribe=>{try{unsubscribe();}catch(_){}});dataUnsubs=[];}
+  function collectionDraftKey(){return currentUserId?'ideal_collection_draft_'+currentUserId:'';}
+  function saveCollectionDraft(){
+    const key=collectionDraftKey();if(!key)return;
+    try{
+      if(!collectionItems.length){localStorage.removeItem(key);if($('draftStatus'))$('draftStatus').textContent='Nenhum rascunho pendente neste dispositivo.';return;}
+      localStorage.setItem(key,JSON.stringify({savedAt:new Date().toISOString(),items:collectionItems.map(item=>({id:item.id,ean:item.ean,name:item.name,sectionId:item.sectionId,unit:item.unit,currentStock:item.currentStock,quantity:item.quantity,isNew:!!item.isNew}))}));
+      if($('draftStatus'))$('draftStatus').textContent='Rascunho salvo neste dispositivo · '+fmt(collectionItems.length)+' produto(s).';
+    }catch(_){if($('draftStatus'))$('draftStatus').textContent='Não foi possível salvar o rascunho neste dispositivo.';}
+  }
+  function restoreCollectionDraft(){
+    const key=collectionDraftKey();if(!key)return;
+    try{
+      const raw=localStorage.getItem(key);if(!raw)return;
+      const saved=JSON.parse(raw);if(!Array.isArray(saved.items))return;
+      const seen=new Set(),restored=[];
+      saved.items.forEach(item=>{
+        const ean=normalizeEan(item.ean),product=products.find(entry=>entry.id===item.id)||products.find(entry=>normalizeEan(entry.ean)===ean),quantity=Number(item.quantity);
+        if(!validEan(ean)||seen.has(ean)||!Number.isFinite(quantity)||quantity<=0)return;
+        seen.add(ean);
+        const id=product?product.id:(item.id||'ean_'+ean);
+        restored.push({id,ean,name:product?.name||item.name||'Produto EAN '+ean,sectionId:product?.sectionId||item.sectionId||'',unit:product?.unit||item.unit||'UN',currentStock:product?Number(product.stock||0):Number(item.currentStock||0),quantity,isNew:!product});
+      });
+      collectionItems=restored;
+      if($('draftStatus'))$('draftStatus').textContent=restored.length?'Rascunho recuperado · '+fmt(restored.length)+' produto(s). Confira antes de enviar.':'Nenhum produto válido no rascunho salvo.';
+    }catch(_){if($('draftStatus'))$('draftStatus').textContent='O rascunho não pôde ser lido. Você pode iniciar uma nova coleta.';}
+  }
+  function safe(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+  function fmt(value){return Number(value||0).toLocaleString('pt-BR',{maximumFractionDigits:3});}
+  function showMessage(text,type=''){const el=$('message');el.textContent=text;el.className='notice'+(type?' '+type:'');el.classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'});}
+  function hideMessage(){$('message').classList.add('hidden');}
+  function normalizeEan(value){const digits=String(value||'').replace(/\D/g,'');return digits.length===12?'0'+digits:digits;}
+  function normalizeText(value){return String(value??'').toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
+  function validEan(ean){return /^\d{8}$|^\d{13}$/.test(ean);}
+  function eanChecksum(value){
+    if(!validEan(value))return false;
+    const digits=value.split('').map(Number),check=digits.pop();let sum=0;
+    for(let i=digits.length-1,weight=3;i>=0;i--,weight=weight===3?1:3)sum+=digits[i]*weight;
+    return (10-(sum%10))%10===check;
+  }
+  function sectionName(id){return sections.find(section=>section.id===id)?.name||(id?'Seção removida':'Sem seção');}
+  function stopCamera(){
+    if(scanner){const current=scanner;scanner=null;current.stop().catch(()=>{}).finally(()=>current.clear().catch(()=>{}));}
+    $('scannerWrap').classList.add('hidden');$('stopCameraBtn').classList.add('hidden');$('collectBtn').disabled=false;document.body.classList.remove('scanner-open');
+  }
+  async function startCamera(){
+    if(busy)return;
+    if(!window.Html5Qrcode){showMessage('O leitor de código não carregou. Verifique a internet e tente novamente.','error');return;}
+    stopCamera();document.body.classList.add('scanner-open');$('scannerWrap').classList.remove('hidden');$('stopCameraBtn').classList.remove('hidden');$('collectBtn').disabled=true;
+    try{
+      scanner=new Html5Qrcode('reader');
+      await scanner.start({facingMode:'environment'},{fps:12,qrbox:(w,h)=>({width:Math.max(180,Math.min(Math.floor(w*.9),650)),height:Math.max(90,Math.min(Math.floor(h*.25),200))}),aspectRatio:1.777,formatsToSupport:[Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E]},async decoded=>{
+        const ean=normalizeEan(decoded);if(!ean)return;stopCamera();$('eanInput').value=ean;await prepareProductForCollection();
+      });
+    }catch(err){stopCamera();showMessage('Não foi possível abrir a câmera. Libere a permissão de câmera no navegador e tente novamente. '+(err.message||''),'error');}
+  }
+  async function prepareProductForCollection(){
+    hideMessage();const ean=normalizeEan($('eanInput').value);
+    if(!validEan(ean)||!eanChecksum(ean)){showMessage('Código de barras inválido. Leia novamente ou confira os dígitos.','error');return;}
+    $('eanInput').value=ean;
+    const product=products.find(item=>normalizeEan(item.ean)===ean);
+    const previous=collectionItems.find(item=>item.ean===ean);
+    if(previous){
+      selectedProduct=null;$('selectedProductCard').classList.add('hidden');
+      showMessage('Este código já está na lista. Edite a quantidade na tabela para evitar duplicidade.','error');
+      const field=document.querySelector('[data-quantity="'+previous.id+'"]');if(field){field.focus();field.select();}
+      return;
+    }
+    selectedProduct=product
+      ?{id:product.id,ean,name:product.name||'Produto EAN '+ean,sectionId:product.sectionId||'',unit:product.unit||'UN',stock:Number(product.stock||0),isNew:false}
+      :{id:'ean_'+ean,ean,name:'Produto EAN '+ean,sectionId:'',unit:'UN',stock:0,isNew:true};
+    $('selectedProductName').textContent=selectedProduct.name;
+    $('selectedProductMeta').textContent=product
+      ?'EAN: '+ean+' · Saldo atual: '+fmt(product.stock)+' '+(product.unit||'UN')
+      :'EAN: '+ean+' · Novo código: será incluído automaticamente no envio.';
+    $('selectedUnit').value=selectedProduct.unit;
+    $('quantityInput').value='';$('selectedProductCard').classList.remove('hidden');$('quantityInput').focus();
+  }
+  function renderCollection(){
+    $('collectionTable').innerHTML=collectionItems.map(item=>'<tr><td><strong>'+safe(item.name)+'</strong><br><span class="muted small">'+safe(item.ean)+' · '+safe(item.isNew?'Novo EAN · inclusão automática':sectionName(item.sectionId))+'</span></td><td><input class="qty-edit" data-quantity="'+safe(item.id)+'" type="number" min="0.001" step="0.001" value="'+safe(item.quantity)+'" aria-label="Quantidade coletada de '+safe(item.name)+'"></td><td>'+fmt(item.currentStock)+' '+safe(item.unit||'UN')+'</td><td><button class="danger" type="button" data-remove="'+safe(item.id)+'">Remover</button></td></tr>').join('')||'<tr><td colspan="4">Nenhum produto na coleta.</td></tr>';
+    $('collectionCount').textContent=fmt(collectionItems.length)+' produto(s)';$('metricProducts').textContent=fmt(collectionItems.length);
+    $('metricBalances').textContent=fmt(collectionItems.length);
+    $('metricChanges').textContent=fmt(collectionItems.filter(item=>Number(item.quantity)!==Number(item.currentStock)).length);
+    $('sendBtn').disabled=busy||!collectionItems.length||loadingProducts||collectionItems.some(item=>!Number.isFinite(Number(item.quantity))||Number(item.quantity)<=0);
+    $('clearBtn').disabled=busy||!collectionItems.length;
+  }
+  function addSelectedProduct(continueScanning=false){
+    if(!selectedProduct){showMessage('Leia o código de barras pela câmera ou digite o EAN e pressione Enter.','error');return;}
+    const quantity=Number($('quantityInput').value);
+    if(!Number.isFinite(quantity)||quantity<=0){showMessage('Informe a quantidade encontrada, maior que zero.','error');$('quantityInput').focus();return;}
+    const product=selectedProduct;
+    collectionItems.push({id:product.id,ean:normalizeEan(product.ean),name:product.name||'Produto EAN '+product.ean,sectionId:product.sectionId||'',unit:product.unit||'UN',currentStock:Number(product.stock||0),quantity,isNew:!!product.isNew});
+    selectedProduct=null;$('selectedProductCard').classList.add('hidden');$('eanInput').value='';$('quantityInput').value='';
+    saveCollectionDraft();renderCollection();
+    if(continueScanning){hideMessage();startCamera();}
+    else showMessage('Produto adicionado à lista. Você pode coletar o próximo ou enviar os produtos.','success');
+  }
+  async function sendCollection(){
+    if(busy||!collectionItems.length)return;
+    if(!window.confirm('Enviar '+collectionItems.length+' produto(s) e substituir seus saldos pelas quantidades coletadas? Os demais produtos não serão modificados.'))return;
+    busy=true;renderCollection();$('collectionStatus').textContent='Enviando os saldos para o banco de dados...';
+    let sent=0;
+    try{
+      const freshProducts=new Map(products.map(product=>[product.id,product]));
+      const freshByEan=new Map(products.filter(product=>product.ean).map(product=>[normalizeEan(product.ean),product]));
+      for(let offset=0;offset<collectionItems.length;offset+=400){
+        const batch=db.batch(),chunk=collectionItems.slice(offset,offset+400);
+        chunk.forEach(item=>{
+          const itemEan=normalizeEan(item.ean);
+          const byEan=freshByEan.get(itemEan);
+          const byId=freshProducts.get(item.id);
+          const existing=byEan||(byId&&normalizeEan(byId.ean)===itemEan?byId:null);
+          if(existing){
+            batch.update(db.collection('products').doc(existing.id),{stock:Number(item.quantity),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:auth.currentUser.uid});
+          }else{
+            const newId='ean_'+itemEan,occupied=freshProducts.get(newId);
+            if(occupied&&normalizeEan(occupied.ean)!==itemEan)throw new Error('Conflito no identificador do EAN '+item.ean+'. Nenhuma linha desse lote foi enviada; avise a gerência.');
+            const ref=db.collection('products').doc(newId);
+            batch.set(ref,{ean:itemEan,name:'Produto EAN '+itemEan,sectionId:'',unit:'UN',stock:Number(item.quantity),createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:auth.currentUser.uid,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:auth.currentUser.uid});
+          }
+        });
+        await batch.commit();sent+=chunk.length;$('collectionStatus').textContent='Enviados '+fmt(sent)+' de '+fmt(collectionItems.length)+' produto(s)...';
+      }
+      try{
+        await db.collection('auditLogs').add({action:'stock_collection_sent',entityType:'products',entityId:'collection',summary:'Coleta de estoque enviada: '+sent+' produto(s)',details:{rowsProcessed:sent,items:collectionItems.map(item=>({productName:item.name,ean:item.ean,newStock:Number(item.quantity)}))},userId:auth.currentUser.uid,userEmail:String(auth.currentUser.email||''),role:currentRole,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      }catch(auditError){console.warn('Não foi possível registrar a auditoria da coleta:',auditError);}
+      collectionItems=[];selectedProduct=null;$('selectedProductCard').classList.add('hidden');$('eanInput').value='';
+      saveCollectionDraft();renderCollection();$('collectionStatus').textContent='Envio concluído. O dashboard principal será atualizado automaticamente pelo Firestore.';
+      showMessage(fmt(sent)+' produto(s) enviados. Os novos saldos foram gravados no banco de dados.','success');
+    }catch(err){
+      $('collectionStatus').textContent='Falha no envio. Confira as permissões e tente novamente.';
+      const denied=String(err.code||'').includes('permission-denied')||/permission|permissão/i.test(err.message||'');
+      showMessage(denied?'O Firebase bloqueou a gravação. Publique no Console do Firebase as regras atualizadas do arquivo firestore.rules, que autorizam a inclusão automática de EANs coletados. Erro: '+(err.message||'permissão negada'):'Não foi possível enviar toda a coleta: '+(err.message||err),'error');
+    }finally{busy=false;renderCollection();}
+  }
+  async function loadProfile(user){
+    const snap=await db.collection('users').doc(user.uid).get();
+    if(!snap.exists||snap.data().ativo===false||!allowedRoles.includes(snap.data().role)){await auth.signOut();throw new Error('Sua conta não possui um perfil ativo autorizado para coleta.');}
+    currentRole=snap.data().role;currentUserId=user.uid;$('roleBadge').textContent='Perfil: '+currentRole;$('userEmail').textContent=user.email||'Conta autorizada';
+    $('userBar').classList.remove('hidden');$('authPanel').classList.add('hidden');$('appPanel').classList.remove('hidden');
+  }
+  function attachDataListeners(){
+    stopDataListeners();loadingProducts=true;$('sendBtn').disabled=true;
+    dataUnsubs.push(db.collection('sections').orderBy('name').onSnapshot(snapshot=>{sections=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));renderCollection();},err=>showMessage('Não foi possível ler seções: '+err.message,'error')));
+    dataUnsubs.push(db.collection('products').orderBy('name').onSnapshot(snapshot=>{
+      products=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));loadingProducts=false;
+      if(!draftRestored){restoreCollectionDraft();draftRestored=true;}
+      collectionItems=collectionItems.map(item=>{const current=products.find(p=>p.id===item.id)||products.find(p=>normalizeEan(p.ean)===normalizeEan(item.ean));return current?{...item,id:current.id,isNew:false,name:current.name||item.name,ean:normalizeEan(current.ean||item.ean),sectionId:current.sectionId||item.sectionId,unit:current.unit||item.unit,currentStock:Number(current.stock||0)}:item;});
+      renderCollection();saveCollectionDraft();
+    },err=>{loadingProducts=false;renderCollection();showMessage('Não foi possível carregar o catálogo: '+err.message,'error');}));
+  }
+  $('loginForm').addEventListener('submit',async event=>{event.preventDefault();hideMessage();try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);}catch(err){showMessage('Não foi possível entrar: '+(err.message||err),'error');}});
+  $('logoutBtn').addEventListener('click',()=>auth.signOut());
+  $('collectBtn').addEventListener('click',startCamera);$('stopCameraBtn').addEventListener('click',stopCamera);
+  $('eanInput').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();prepareProductForCollection();}});
+  $('addItemBtn').addEventListener('click',()=>addSelectedProduct(false));
+  $('addAndCollectNextBtn').addEventListener('click',()=>addSelectedProduct(true));
+  $('sendBtn').addEventListener('click',sendCollection);
+  $('clearBtn').addEventListener('click',()=>{if(collectionItems.length&&window.confirm('Limpar todos os produtos da coleta sem gravar no banco?')){collectionItems=[];saveCollectionDraft();renderCollection();$('collectionStatus').textContent='Lista limpa. Nenhuma alteração foi enviada.';}});
+  $('collectionTable').addEventListener('input',event=>{
+    const input=event.target.closest('[data-quantity]');if(!input)return;
+    const item=collectionItems.find(entry=>entry.id===input.dataset.quantity);if(!item)return;
+    item.quantity=input.value===''?NaN:Number(input.value);
+    input.setCustomValidity(!Number.isFinite(item.quantity)||item.quantity<=0?'Informe um saldo maior que zero.':'');
+    $('metricChanges').textContent=fmt(collectionItems.filter(entry=>Number.isFinite(Number(entry.quantity))&&Number(entry.quantity)!==Number(entry.currentStock)).length);
+    saveCollectionDraft();
+    $('sendBtn').disabled=busy||!collectionItems.length||loadingProducts||collectionItems.some(entry=>!Number.isFinite(Number(entry.quantity))||Number(entry.quantity)<=0);
+  });
+  $('collectionTable').addEventListener('click',event=>{const button=event.target.closest('[data-remove]');if(button){collectionItems=collectionItems.filter(item=>item.id!==button.dataset.remove);saveCollectionDraft();renderCollection();}});
+  try{
+    if(!window.IDEAL_FIREBASE_CONFIG||!window.IDEAL_FIREBASE_CONFIG.apiKey||String(window.IDEAL_FIREBASE_CONFIG.apiKey).includes('COLOQUE_'))throw new Error('firebase-config.js ainda não está configurado.');
+    if(!firebase.apps.length)firebase.initializeApp(window.IDEAL_FIREBASE_CONFIG);
+    auth=firebase.auth();db=firebase.firestore();$('sendBtn').disabled=true;
+  }catch(err){showMessage('Erro ao iniciar o Firebase: '+err.message,'error');}
+  auth.onAuthStateChanged(async user=>{
+    stopCamera();
+    if(!user){stopDataListeners();currentUserId='';draftRestored=false;products=[];sections=[];collectionItems=[];selectedProduct=null;$('authPanel').classList.remove('hidden');$('appPanel').classList.add('hidden');$('userBar').classList.add('hidden');$('email').value='';$('password').value='';renderCollection();return;}
+    try{await loadProfile(user);hideMessage();attachDataListeners();}
+    catch(err){$('authPanel').classList.remove('hidden');$('appPanel').classList.add('hidden');showMessage(err.message||'Falha ao verificar seu perfil.','error');}
+  });
+  setupInstallPrompt();
+  try{if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-worker.js').catch(()=>{});}catch(_){}
+})();
+</script>
+</body>
+</html>
