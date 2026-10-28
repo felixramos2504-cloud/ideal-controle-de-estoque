@@ -132,7 +132,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 3.2 · Histórico de inventários e contagens</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 3.3 · Histórico de inventários e contagens</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -392,7 +392,7 @@
       </section>
     </section>
     </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 3.2 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 3.3 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -731,7 +731,7 @@
     const generatedAt=new Date();
     const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
     const matrix=[
-      ['POSIÇÃO ATUAL DO ESTOQUE IDEAL','MASTER 3.2'],
+      ['POSIÇÃO ATUAL DO ESTOQUE IDEAL','MASTER 3.3'],
       ['Gerado em',generatedAt.toLocaleString('pt-BR')],
       ['Filtro de pesquisa',$('reportSearch').value.trim()||'Todos os produtos'],
       ['Filtro de seção',sectionFilter],
@@ -906,7 +906,7 @@
     const different=rows.filter(item=>Number(item.countedQty||0)!==Number(item.systemStock||0)).length;
     const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
     const matrix=[
-      ['RELATÓRIO DE CONTAGENS IDEAL','MASTER 3.2'],
+      ['RELATÓRIO DE CONTAGENS IDEAL','MASTER 3.3'],
       ['Gerado em',new Date().toLocaleString('pt-BR')],
       ['Data inicial',$('historyDateFrom').value||'Sem limite inicial'],
       ['Data final',$('historyDateTo').value||'Sem limite final'],
@@ -1175,7 +1175,7 @@
       const backup={
         metadata:{
           application:'IDEAL Controle de Estoque',
-          version:'MASTER 3.2',
+          version:'MASTER 3.3',
           type:'firestore-data-export',
           generatedAt:createdAt,
           projectId:window.IDEAL_FIREBASE_CONFIG?.projectId||'não informado',
