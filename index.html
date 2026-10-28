@@ -13,7 +13,7 @@
     header{background:var(--green);color:#fff;padding:18px max(16px,calc((100% - 1180px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
     header h1{font-size:20px;margin:0} header small{opacity:.85} main{max-width:1180px;margin:22px auto;padding:0 16px}
     .panel,.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 2px 8px #17211b0a;margin-bottom:16px}
-    .grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.stat{font-size:28px;font-weight:750;margin-top:4px}.muted{color:var(--muted)} .hidden{display:none!important}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.stat{font-size:28px;font-weight:750;margin-top:4px}.muted{color:var(--muted)} .hidden{display:none!important}
     nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}button,.button{border:0;border-radius:9px;background:var(--green2);color:#fff;padding:10px 14px;font:inherit;font-weight:650;cursor:pointer}button.secondary{background:#e7eee9;color:var(--green)}button.danger{background:var(--red)}button:disabled{opacity:.55;cursor:not-allowed}
     input,select{width:100%;padding:10px 11px;border:1px solid #c8d5cc;border-radius:8px;font:inherit;background:white;color:var(--text)}label{display:block;font-weight:650;margin:10px 0 5px}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
     .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.notice{padding:12px;border-radius:9px;background:#eff6ff;color:#1e40af;margin-bottom:12px}.error{background:#fef2f2;color:#991b1b}.success{background:#f0fdf4;color:#166534}
@@ -64,7 +64,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 1.4 · Relatório de estoque em tempo real</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 1.5 · Estoque sem mínimo configurável</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -86,9 +86,8 @@
       <div class="grid" style="margin-top:16px">
         <div class="card"><div class="muted">Produtos cadastrados</div><div id="statProducts" class="stat">—</div></div>
         <div class="card"><div class="muted">Seções cadastradas</div><div id="statSections" class="stat">—</div></div>
-        <div class="card"><div class="muted">Estoque baixo</div><div id="statLow" class="stat">—</div></div>
+        <div class="card"><div class="muted">Com estoque</div><div id="statAvailable" class="stat">—</div></div>
         <div class="card"><div class="muted">Sem estoque</div><div id="statZero" class="stat">—</div></div>
-        <div class="card"><div class="muted">Sem mínimo definido</div><div id="statMinMissing" class="stat">—</div></div>
       </div>
       <div class="dashboard-panels">
         <section class="card dashboard-card dashboard-card-wide">
@@ -129,14 +128,13 @@
           <div><label for="pSection">Seção *</label><select id="pSection" required><option value="">Cadastre uma seção primeiro</option></select></div>
           <div><label for="pUnit">Unidade</label><select id="pUnit"><option>UN</option><option>KG</option><option>G</option><option>L</option><option>ML</option><option>CX</option><option>FD</option><option>PCT</option></select></div>
           <div><label for="pStock">Estoque atual</label><input id="pStock" type="number" min="0" step="0.001" value="0" required></div>
-          <div><label for="pMin">Estoque mínimo</label><input id="pMin" type="number" min="0" step="0.001" value="0" required></div>
         </div>
         <div class="actions"><button type="submit">Salvar produto</button><button id="clearProductBtn" type="button" class="secondary">Limpar</button></div>
       </form>
       <div id="productScannerWrap" class="scanner-overlay hidden" role="dialog" aria-modal="true" aria-label="Leitor de código EAN"><div class="scanner-header"><h2>Ler código EAN</h2><p>Centralize o código de barras na área de leitura. A câmera fechará automaticamente após a captura.</p></div><div class="scanner-stage"><div id="productScanner"></div></div><button id="stopProductScanner" type="button" class="danger">Fechar câmera</button></div>
       <hr style="border:0;border-top:1px solid var(--line);margin:20px 0">
       <div class="section-title"><h3>Produtos cadastrados</h3><input id="productSearch" placeholder="Pesquisar por nome ou EAN" style="max-width:320px"></div>
-      <div class="tablewrap"><table><thead><tr><th>Produto / EAN</th><th>Seção</th><th>Estoque</th><th>Mínimo</th><th>Ações</th></tr></thead><tbody id="productsTable"><tr><td colspan="5">Carregando...</td></tr></tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>Produto / EAN</th><th>Seção</th><th>Estoque atual</th><th>Ações</th></tr></thead><tbody id="productsTable"><tr><td colspan="4">Carregando...</td></tr></tbody></table></div>
     </section>
 
     <section id="tab-sections" class="panel hidden">
@@ -171,15 +169,15 @@
       <div class="formgrid report-controls">
         <div><label for="reportSearch">Pesquisar produto</label><input id="reportSearch" placeholder="Nome do produto ou código EAN"></div>
         <div><label for="stockReportSection">Seção</label><select id="stockReportSection"><option value="">Todas as seções</option></select></div>
-        <div><label for="stockReportStatus">Situação do estoque</label><select id="stockReportStatus"><option value="all">Todas as situações</option><option value="zero">Sem estoque</option><option value="low">Estoque baixo</option><option value="missing">Mínimo não definido</option><option value="ok">Normal</option></select></div>
+        <div><label for="stockReportStatus">Situação do estoque</label><select id="stockReportStatus"><option value="all">Todas as situações</option><option value="zero">Sem estoque</option><option value="ok">Com estoque</option></select></div>
       </div>
       <div class="actions report-controls"><button id="exportStockCsv" type="button">Exportar CSV</button><button id="printStockReport" type="button" class="secondary">Imprimir / Salvar em PDF</button></div>
       <div id="reportSummary" class="report-summary"></div>
       <div id="reportUpdatedAt" class="muted small" style="margin:8px 0 12px">Aguardando atualização do estoque...</div>
-      <div class="tablewrap"><table><thead><tr><th>Produto</th><th>EAN</th><th>Seção</th><th>Estoque atual</th><th>Estoque mínimo</th><th>Situação</th></tr></thead><tbody id="stockReportTable"><tr><td colspan="6">Carregando relatório...</td></tr></tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>Produto</th><th>EAN</th><th>Seção</th><th>Estoque atual</th><th>Situação</th></tr></thead><tbody id="stockReportTable"><tr><td colspan="5">Carregando relatório...</td></tr></tbody></table></div>
     </section>
     </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 1.4 · Relatório de estoque em tempo real. Acesso protegido por HTTPS.</footer>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 1.5 · Relatório em tempo real e contagem física. Acesso protegido por HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -313,7 +311,6 @@
       $('pSection').value=local.sectionId||'';
       $('pUnit').value=local.unit||'UN';
       $('pStock').value=Number(local.stock||0);
-      $('pMin').value=Number(local.minStock||0);
       setEanLookupStatus('Este EAN já está cadastrado. Os dados locais foram carregados para edição.','success');
       return;
     }
@@ -425,56 +422,41 @@
   function setTab(tab){ ['products','sections','count','inventory','report'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==tab)); document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('secondary',b.dataset.tab!==tab)}); if(tab==='report')renderStockReport(); }
   function getStockStatus(product){
     const stock=Number(product.stock||0);
-    const minimum=Number(product.minStock||0);
     if(stock<=0)return {code:'zero',label:'Sem estoque',pill:'zero'};
-    if(minimum<=0)return {code:'missing',label:'Definir mínimo',pill:'missing'};
-    if(stock<=minimum)return {code:'low',label:'Estoque baixo',pill:'low'};
-    return {code:'ok',label:'Normal',pill:'ok'};
+    return {code:'ok',label:'Com estoque',pill:'ok'};
   }
   function renderDashboard(){
     const zeroProducts=state.products.filter(p=>Number(p.stock||0)<=0);
-    const lowProducts=state.products.filter(p=>Number(p.stock||0)>0 && Number(p.minStock||0)>0 && Number(p.stock||0)<=Number(p.minStock||0));
-    const missingMinimum=state.products.filter(p=>Number(p.stock||0)>0 && Number(p.minStock||0)<=0);
-    const attention=[...zeroProducts,...lowProducts,...missingMinimum].sort((a,b)=>{
-      const priority={zero:0,low:1,missing:2};
-      return priority[getStockStatus(a).code]-priority[getStockStatus(b).code] || String(a.name||'').localeCompare(String(b.name||''),'pt-BR');
-    });
+    const availableProducts=state.products.filter(p=>Number(p.stock||0)>0);
     $('statProducts').textContent=state.products.length;
     $('statSections').textContent=state.sections.length;
-    $('statLow').textContent=lowProducts.length;
+    $('statAvailable').textContent=availableProducts.length;
     $('statZero').textContent=zeroProducts.length;
-    $('statMinMissing').textContent=missingMinimum.length;
-
     const badge=$('stockAttentionBadge');
-    if(badge)badge.textContent=attention.length ? attention.length+' alerta(s)' : 'Tudo em ordem';
+    if(badge)badge.textContent=zeroProducts.length ? zeroProducts.length+' alerta(s)' : 'Tudo em ordem';
     const attentionList=$('stockAttentionList');
     if(attentionList){
       if(!state.products.length){
         attentionList.innerHTML='<div class="dashboard-empty">Ainda não há produtos cadastrados. Cadastre produtos para começar a acompanhar o estoque.</div>';
-      }else if(!attention.length){
-        attentionList.innerHTML='<div class="notice success" style="margin:0">Nenhum produto com estoque baixo ou zerado, e todos possuem estoque mínimo definido.</div>';
+      }else if(!zeroProducts.length){
+        attentionList.innerHTML='<div class="notice success" style="margin:0">Todos os produtos cadastrados possuem saldo maior que zero.</div>';
       }else{
-        attentionList.innerHTML=attention.slice(0,10).map(p=>{
-          const status=getStockStatus(p);
-          return '<div class="dashboard-list-item"><div><strong>'+safe(p.name||'Produto sem nome')+'</strong><span class="subline">EAN: '+safe(p.ean||'não informado')+' · Seção: '+safe(sectionName(p.sectionId))+'</span></div><div class="item-right"><span class="status-pill '+status.pill+'">'+status.label.toUpperCase()+'</span><span class="subline">Atual: '+fmt(p.stock)+' '+safe(p.unit||'UN')+' · Mínimo: '+(Number(p.minStock||0)>0?fmt(p.minStock):'não definido')+'</span></div></div>';
-        }).join('')+(attention.length>10?'<div class="dashboard-empty">Mostrando os 10 primeiros de '+attention.length+' itens que precisam de atenção. Consulte o relatório completo para ver todos.</div>':'');
+        attentionList.innerHTML=zeroProducts.slice(0,10).map(p=>'<div class="dashboard-list-item"><div><strong>'+safe(p.name||'Produto sem nome')+'</strong><span class="subline">EAN: '+safe(p.ean||'não informado')+' · Seção: '+safe(sectionName(p.sectionId))+'</span></div><div class="item-right"><span class="status-pill zero">SEM ESTOQUE</span><span class="subline">Saldo atual: 0 '+safe(p.unit||'UN')+'</span></div></div>').join('')+(zeroProducts.length>10?'<div class="dashboard-empty">Mostrando os 10 primeiros de '+zeroProducts.length+' produtos sem estoque. Consulte o relatório completo para ver todos.</div>':'');
       }
     }
-
     const sectionBody=$('dashboardSections');
     if(sectionBody){
       sectionBody.innerHTML=state.sections.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR')).map(section=>{
         const products=state.products.filter(p=>p.sectionId===section.id);
-        const alerts=products.filter(p=>getStockStatus(p).code!=='ok').length;
-        return '<tr><td>'+safe(section.name)+'</td><td>'+products.length+'</td><td>'+(alerts?'<span class="status-pill low">'+alerts+'</span>':'<span class="status-pill ok">0</span>')+'</td></tr>';
+        const alerts=products.filter(p=>Number(p.stock||0)<=0).length;
+        return '<tr><td>'+safe(section.name)+'</td><td>'+products.length+'</td><td>'+(alerts?'<span class="status-pill zero">'+alerts+'</span>':'<span class="status-pill ok">0</span>')+'</td></tr>';
       }).join('')||'<tr><td colspan="3">Nenhuma seção cadastrada.</td></tr>';
     }
     const recentCounts=$('dashboardCounts');
     if(recentCounts){
       recentCounts.innerHTML=state.counts.slice(0,5).map(c=>{
         const difference=Number(c.countedQty||0)-Number(c.systemStock||0);
-        const diffText=(difference>0?'+':'')+fmt(difference);
-        const pill=difference===0?'ok':Math.abs(difference)>0?'low':'ok';
+        const pill=difference===0?'ok':'low';
         return '<div class="dashboard-list-item"><div><strong>'+safe(c.productName||'Produto')+'</strong><span class="subline">EAN: '+safe(c.ean||'não informado')+' · '+safe(dateFmt(c.createdAt))+'</span><span class="subline">Responsável: '+safe(c.userEmail||'não informado')+'</span></div><div class="item-right"><span class="status-pill '+pill+'">'+(difference===0?'CONFERE':'DIFERENÇA')+'</span><span class="subline">Sistema: '+fmt(c.systemStock)+' · Contado: '+fmt(c.countedQty)+'</span></div></div>';
       }).join('')||'<div class="dashboard-empty">Nenhuma contagem registrada ainda.</div>';
     }
@@ -497,18 +479,12 @@
     if(!$('stockReportTable'))return;
     const rows=getStockReportRows();
     const all=state.products;
-    const counts={
-      total:all.length,
-      zero:all.filter(p=>getStockStatus(p).code==='zero').length,
-      low:all.filter(p=>getStockStatus(p).code==='low').length,
-      missing:all.filter(p=>getStockStatus(p).code==='missing').length,
-      ok:all.filter(p=>getStockStatus(p).code==='ok').length
-    };
-    $('reportSummary').innerHTML='<span>Produtos filtrados <strong>'+rows.length+'</strong></span><span>Sem estoque <strong>'+counts.zero+'</strong></span><span>Estoque baixo <strong>'+counts.low+'</strong></span><span>Mínimo não definido <strong>'+counts.missing+'</strong></span><span>Normal <strong>'+counts.ok+'</strong></span>';
+    const counts={zero:all.filter(p=>getStockStatus(p).code==='zero').length,ok:all.filter(p=>getStockStatus(p).code==='ok').length};
+    $('reportSummary').innerHTML='<span>Produtos filtrados <strong>'+rows.length+'</strong></span><span>Sem estoque <strong>'+counts.zero+'</strong></span><span>Com estoque <strong>'+counts.ok+'</strong></span>';
     $('stockReportTable').innerHTML=rows.map(p=>{
       const status=getStockStatus(p);
-      return '<tr><td>'+safe(p.name||'Produto sem nome')+'</td><td>'+safe(p.ean||'—')+'</td><td>'+safe(sectionName(p.sectionId))+'</td><td>'+fmt(p.stock)+' '+safe(p.unit||'UN')+'</td><td>'+(Number(p.minStock||0)>0?fmt(p.minStock)+' '+safe(p.unit||'UN'):'Não definido')+'</td><td><span class="status-pill '+status.pill+'">'+status.label+'</span></td></tr>';
-    }).join('')||'<tr><td colspan="6">Nenhum produto corresponde aos filtros.</td></tr>';
+      return '<tr><td>'+safe(p.name||'Produto sem nome')+'</td><td>'+safe(p.ean||'—')+'</td><td>'+safe(sectionName(p.sectionId))+'</td><td>'+fmt(p.stock)+' '+safe(p.unit||'UN')+'</td><td><span class="status-pill '+status.pill+'">'+status.label+'</span></td></tr>';
+    }).join('')||'<tr><td colspan="5">Nenhum produto corresponde aos filtros.</td></tr>';
     const timestamp=state.stockUpdatedAt ? state.stockUpdatedAt.toLocaleString('pt-BR') : 'aguardando dados';
     $('reportUpdatedAt').textContent='Última atualização recebida do estoque: '+timestamp+'. O relatório acompanha as mudanças publicadas no Firestore.';
     $('reportFreshness').textContent=state.stockUpdatedAt?'Dados sincronizados':'Aguardando dados';
@@ -516,10 +492,8 @@
   function exportStockReportCsv(){
     const rows=getStockReportRows();
     const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
-    const matrix=[['Produto','EAN','Seção','Estoque atual','Unidade','Estoque mínimo','Situação']];
-    rows.forEach(p=>{
-      matrix.push([p.name||'',p.ean||'',sectionName(p.sectionId),Number(p.stock||0),p.unit||'UN',Number(p.minStock||0),getStockStatus(p).label]);
-    });
+    const matrix=[['Produto','EAN','Seção','Estoque atual','Unidade','Situação']];
+    rows.forEach(p=>matrix.push([p.name||'',p.ean||'',sectionName(p.sectionId),Number(p.stock||0),p.unit||'UN',getStockStatus(p).label]));
     const csv='\uFEFF'+matrix.map(row=>row.map(cell).join(';')).join('\r\n');
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
     const url=URL.createObjectURL(blob);
@@ -541,7 +515,7 @@
   function renderProducts(){
     const q=$('productSearch').value.trim().toLocaleLowerCase('pt-BR');
     const list=state.products.filter(p=>!q||p.name.toLocaleLowerCase('pt-BR').includes(q)||p.ean.includes(q));
-    $('productsTable').innerHTML=list.map(p=>`<tr><td><strong>${safe(p.name)}</strong><br><span class="muted small">${safe(p.ean||'Sem EAN')}</span></td><td>${safe(sectionName(p.sectionId))}</td><td>${fmt(p.stock)} ${safe(p.unit||'UN')}</td><td>${fmt(p.minStock)}</td><td><div class="actions"><button class="secondary" data-edit="${safe(p.id)}" type="button">Editar</button></div></td></tr>`).join('')||'<tr><td colspan="5">Nenhum produto encontrado.</td></tr>';
+    $('productsTable').innerHTML=list.map(p=>`<tr><td><strong>${safe(p.name)}</strong><br><span class="muted small">${safe(p.ean||'Sem EAN')}</span></td><td>${safe(sectionName(p.sectionId))}</td><td>${fmt(p.stock)} ${safe(p.unit||'UN')}</td><td><div class="actions"><button class="secondary" data-edit="${safe(p.id)}" type="button">Editar</button></div></td></tr>`).join('')||'<tr><td colspan="4">Nenhum produto encontrado.</td></tr>';
     renderDashboard();
     renderStockReport();
   }
@@ -577,12 +551,12 @@
   async function createSection(e){e.preventDefault();try{await requireRole('gerente');const name=$('sectionName').value.trim();if(!name)throw new Error('Informe o nome da seção.');await db.collection('sections').add({name,description:$('sectionDescription').value.trim(),createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:state.user.uid});$('sectionForm').reset();message('Seção cadastrada.','success');}catch(err){message(err.message,'error');}}
   async function saveProduct(e){
     e.preventDefault();try{await requireRole('gerente');const id=$('productId').value;const ean=$('pEan').value.trim().replace(/\s/g,'');if(ean && (!validEan(ean)||!eanChecksum(ean)))throw new Error('EAN inválido. Confira o código de 8 ou 13 dígitos e o dígito verificador.');
-      const data={ean,name:$('pName').value.trim(),sectionId:$('pSection').value,unit:$('pUnit').value,stock:Number($('pStock').value),minStock:Number($('pMin').value),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:state.user.uid};
+      const data={ean,name:$('pName').value.trim(),sectionId:$('pSection').value,unit:$('pUnit').value,stock:Number($('pStock').value),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:state.user.uid};
       if(!data.sectionId)throw new Error('Selecione uma seção.');
       if(state.products.some(p=>p.ean===ean && ean && p.id!==id))throw new Error('Este EAN já está cadastrado em outro produto.');
-      if(!data.name||data.stock<0||data.minStock<0)throw new Error('Confira nome e quantidades.');
+      if(!data.name||data.stock<0)throw new Error('Confira nome e quantidade de estoque.');
       if(id){await db.collection('products').doc(id).update(data);}else{data.createdAt=firebase.firestore.FieldValue.serverTimestamp();data.createdBy=state.user.uid;await db.collection('products').add(data);}
-      $('productForm').reset();$('productId').value='';$('pStock').value='0';$('pMin').value='0';setEanLookupStatus('Produto salvo. Leia outro EAN para consultar automaticamente o próximo produto.','success');message('Produto salvo com sucesso.','success');
+      $('productForm').reset();$('productId').value='';$('pStock').value='0';setEanLookupStatus('Produto salvo. Leia outro EAN para consultar automaticamente o próximo produto.','success');message('Produto salvo com sucesso.','success');
     }catch(err){message(err.message,'error');}
   }
   async function lookupCountProduct(){
@@ -606,8 +580,8 @@
     $('stockReportStatus').addEventListener('change',renderStockReport);
     $('exportStockCsv').addEventListener('click',exportStockReportCsv);
     $('printStockReport').addEventListener('click',()=>window.print());
-    $('clearProductBtn').addEventListener('click',()=>{$('productForm').reset();$('productId').value='';$('pStock').value='0';$('pMin').value='0';});
-    $('productsTable').addEventListener('click',e=>{const b=e.target.closest('[data-edit]');if(!b)return;const p=state.products.find(x=>x.id===b.dataset.edit);if(!p)return;$('productId').value=p.id;$('pEan').value=p.ean||'';$('pName').value=p.name;$('pSection').value=p.sectionId;$('pUnit').value=p.unit||'UN';$('pStock').value=p.stock;$('pMin').value=p.minStock;window.scrollTo({top:0,behavior:'smooth'});});
+    $('clearProductBtn').addEventListener('click',()=>{$('productForm').reset();$('productId').value='';$('pStock').value='0';});
+    $('productsTable').addEventListener('click',e=>{const b=e.target.closest('[data-edit]');if(!b)return;const p=state.products.find(x=>x.id===b.dataset.edit);if(!p)return;$('productId').value=p.id;$('pEan').value=p.ean||'';$('pName').value=p.name;$('pSection').value=p.sectionId;$('pUnit').value=p.unit||'UN';$('pStock').value=p.stock;window.scrollTo({top:0,behavior:'smooth'});});
     $('pEan').addEventListener('change',lookupProductFromEanField);
     $('pEan').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lookupProductFromEanField();}});
     $('scanProductBtn').addEventListener('click',()=>startScanner('product','productScanner',v=>{const ean=normalizeBarcode(v);$('pEan').value=ean;lookupProductByEan(ean);}));
