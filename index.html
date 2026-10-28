@@ -52,6 +52,12 @@
     .user-access input{width:auto}
     .user-role-select{min-width:160px}
     #usersTable td{vertical-align:middle}
+    .audit-summary{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+    .audit-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:13px}
+    .audit-summary strong{font-size:16px;margin-left:4px}
+    .audit-entity{display:block;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+    .audit-action{font-weight:700}
+    #auditTable td{vertical-align:top}
     .user-uid{display:block;max-width:360px;overflow-wrap:anywhere;font-size:11px;color:var(--muted);margin-top:3px}
     @media print{body *{visibility:hidden!important}#tab-report,#tab-report *,#tab-history,#tab-history *{visibility:visible!important}#tab-report,#tab-history{display:block!important;position:absolute!important;left:0!important;top:0!important;width:100%!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;background:#fff!important}body:not(.print-history) #tab-history,body.print-history #tab-report{display:none!important}#tab-report .report-controls,#tab-report .actions,#tab-history .report-controls,#tab-history .actions,#message{display:none!important}#tab-report .tablewrap,#tab-history .tablewrap{overflow:visible!important;border:0!important}#tab-report table,#tab-history table{font-size:8pt}#tab-report th,#tab-report td,#tab-history th,#tab-history td{padding:4px!important;border:1px solid #ccc!important;color:#000!important}#tab-history .card{margin-top:10px!important;padding:8px!important}}
     .dashboard-empty{padding:12px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:13px}
@@ -75,7 +81,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 2.0 · Histórico de inventários e contagens</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 2.1 · Histórico de inventários e contagens</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -125,7 +131,7 @@
     <nav aria-label="Módulos">
       <button data-tab="products">Produtos</button><button data-tab="sections" class="secondary">Seções</button>
       <button data-tab="count" class="secondary">Contagem rápida</button><button data-tab="inventory" class="secondary">Inventário completo</button>
-      <button data-tab="report" class="secondary">Relatório de estoque</button><button data-tab="history" class="secondary">Histórico de contagens</button><button id="usersTabBtn" data-tab="users" class="secondary hidden">Usuários</button>
+      <button data-tab="report" class="secondary">Relatório de estoque</button><button data-tab="history" class="secondary">Histórico de contagens</button><button id="usersTabBtn" data-tab="users" class="secondary hidden">Usuários</button><button id="auditTabBtn" data-tab="audit" class="secondary hidden">Auditoria</button>
     </nav>
 
     <section id="tab-products" class="panel">
@@ -172,6 +178,19 @@
       <div class="section-title"><h3>Usuários cadastrados</h3><input id="userSearch" placeholder="Pesquisar por nome, e-mail ou UID" style="max-width:360px"></div>
       <div class="tablewrap"><table><thead><tr><th>Usuário</th><th>Perfil</th><th>Acesso</th><th>Ação</th></tr></thead><tbody id="usersTable"><tr><td colspan="4">Carregando usuários...</td></tr></tbody></table></div>
       <p class="muted small">Por segurança, esta tela não permite alterar o próprio perfil. Mantenha pelo menos um administrador ativo.</p>
+    </section>
+
+    <section id="tab-audit" class="panel hidden">
+      <div class="section-title"><div><h2 style="margin:0">Auditoria de alterações</h2><p class="muted small" style="margin:5px 0 0">Registros de operações do sistema, com responsável, data e detalhes. A auditoria não altera o estoque.</p></div><span id="auditFreshness" class="badge">Aguardando dados</span></div>
+      <div class="formgrid report-controls">
+        <div><label for="auditSearch">Pesquisar auditoria</label><input id="auditSearch" placeholder="Responsável, EAN, produto ou detalhe"></div>
+        <div><label for="auditActionFilter">Tipo de operação</label><select id="auditActionFilter"><option value="all">Todas as operações</option><option value="product_created">Produto cadastrado</option><option value="product_updated">Produto atualizado</option><option value="section_created">Seção cadastrada</option><option value="quick_count_registered">Contagem rápida registrada</option><option value="inventory_finalized">Inventário finalizado</option><option value="user_created">Usuário criado</option><option value="user_access_updated">Perfil ou acesso alterado</option></select></div>
+      </div>
+      <div class="actions report-controls"><button id="exportAuditCsv" type="button">Exportar auditoria CSV</button></div>
+      <div id="auditSummary" class="audit-summary"></div>
+      <div id="auditUpdatedAt" class="muted small" style="margin:8px 0 12px">Aguardando registros de auditoria...</div>
+      <div class="tablewrap"><table><thead><tr><th>Data e hora</th><th>Responsável</th><th>Operação</th><th>Detalhes</th></tr></thead><tbody id="auditTable"><tr><td colspan="4">Carregando auditoria...</td></tr></tbody></table></div>
+      <p class="muted small" style="margin-top:12px">São exibidos até 500 registros recentes. Os registros de auditoria não podem ser alterados nem excluídos pelo aplicativo.</p>
     </section>
 
     <section id="tab-count" class="panel hidden">
@@ -239,7 +258,7 @@
       </section>
     </section>
     </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 2.0 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 2.1 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -251,7 +270,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { user:null, role:null, products:[], productsLoaded:false, sections:[], counts:[], finishedInventories:[], users:[], usersLoaded:false, inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{}, eanLookupToken:0, eanLookupCache:{}, stockUpdatedAt:null, historyUpdatedAt:null };
+  const state = { user:null, role:null, products:[], productsLoaded:false, sections:[], counts:[], finishedInventories:[], users:[], usersLoaded:false, auditLogs:[], auditLoaded:false, auditUpdatedAt:null, inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{}, eanLookupToken:0, eanLookupCache:{}, stockUpdatedAt:null, historyUpdatedAt:null };
   const roleRank = { colaborador:1, gerente:2, administrador:3 };
   function message(text, type='notice') { const el=$('message'); el.textContent=text; el.className='notice '+(type==='error'?'error':type==='success'?'success':''); el.classList.remove('hidden'); window.scrollTo({top:0,behavior:'smooth'}); }
   function clearMessage(){ $('message').classList.add('hidden'); }
@@ -481,7 +500,7 @@
     state.scannerCaptured[key]=false;
     if(!Object.keys(state.scanners).length) document.body.classList.remove('scanner-open');
   }
-  function setTab(tab){ if(tab==='users'&&state.role!=='administrador')tab='products'; ['products','sections','count','inventory','report','history','users'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==tab)); document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('secondary',b.dataset.tab!==tab)}); if(tab==='report')renderStockReport(); if(tab==='history')renderHistory(); if(tab==='users')renderUsers(); }
+  function setTab(tab){ if(tab==='users'&&state.role!=='administrador')tab='products'; if(tab==='audit'&&!['administrador','gerente'].includes(state.role))tab='products'; ['products','sections','count','inventory','report','history','users','audit'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==tab)); document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('secondary',b.dataset.tab!==tab)}); if(tab==='report')renderStockReport(); if(tab==='history')renderHistory(); if(tab==='users')renderUsers(); if(tab==='audit')renderAudit(); }
   function getStockStatus(product){
     const stock=Number(product.stock||0);
     if(stock<=0)return {code:'zero',label:'Sem estoque',pill:'zero'};
@@ -810,6 +829,87 @@
     renderInventory();
     message('Rascunho descartado. O estoque oficial não foi alterado.','success');
   }
+  const auditActionNames={
+    product_created:'Produto cadastrado',
+    product_updated:'Produto atualizado',
+    section_created:'Seção cadastrada',
+    quick_count_registered:'Contagem rápida registrada',
+    inventory_finalized:'Inventário finalizado',
+    user_created:'Usuário criado',
+    user_access_updated:'Perfil ou acesso alterado'
+  };
+  function auditDetailsText(log){
+    const d=log.details&&typeof log.details==='object'?log.details:{};
+    const parts=[];
+    if(d.productName)parts.push('Produto: '+d.productName);
+    if(d.ean)parts.push('EAN: '+d.ean);
+    if(d.sectionName)parts.push('Seção: '+d.sectionName);
+    if(d.oldStock!==undefined)parts.push('Saldo anterior: '+fmt(d.oldStock));
+    if(d.newStock!==undefined)parts.push('Novo saldo: '+fmt(d.newStock));
+    if(d.systemStock!==undefined)parts.push('Saldo registrado: '+fmt(d.systemStock));
+    if(d.countedQty!==undefined)parts.push('Contado: '+fmt(d.countedQty));
+    if(d.difference!==undefined)parts.push('Diferença: '+(Number(d.difference)>0?'+':'')+fmt(d.difference));
+    if(d.itemCount!==undefined)parts.push('Produtos contados: '+fmt(d.itemCount));
+    if(d.coveragePercent!==undefined)parts.push('Cobertura: '+fmt(d.coveragePercent)+'%');
+    if(d.targetEmail)parts.push('Usuário: '+d.targetEmail);
+    if(d.oldRole!==undefined||d.newRole!==undefined)parts.push('Perfil: '+(d.oldRole||'—')+' → '+(d.newRole||'—'));
+    if(d.oldActive!==undefined||d.newActive!==undefined)parts.push('Acesso: '+(d.oldActive===undefined?'—':d.oldActive?'ativo':'desativado')+' → '+(d.newActive===undefined?'—':d.newActive?'ativo':'desativado'));
+    if(d.description)parts.push('Descrição: '+d.description);
+    return parts.join(' · ')||String(log.summary||'Operação registrada');
+  }
+  async function recordAudit(action,entityType,entityId,summary,details={}){
+    try{
+      if(!state.user)return;
+      await db.collection('auditLogs').add({
+        action:String(action),
+        entityType:String(entityType),
+        entityId:String(entityId||''),
+        summary:String(summary||'Operação registrada'),
+        details:details&&typeof details==='object'?details:{},
+        userId:state.user.uid,
+        userEmail:String(state.user.email||''),
+        role:String(state.role||''),
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }catch(err){console.warn('Não foi possível gravar a auditoria:',err&&err.message||err);}
+  }
+  function getFilteredAudit(){
+    const query=$('auditSearch').value.trim().toLocaleLowerCase('pt-BR');
+    const action=$('auditActionFilter').value;
+    return state.auditLogs.filter(log=>{
+      if(action!=='all'&&log.action!==action)return false;
+      if(!query)return true;
+      const haystack=[log.userEmail,log.userId,log.action,auditActionNames[log.action]||'',log.summary,auditDetailsText(log),log.entityId].join(' ').toLocaleLowerCase('pt-BR');
+      return haystack.includes(query);
+    }).sort((a,b)=>historyMillis(b.createdAt)-historyMillis(a.createdAt));
+  }
+  function renderAudit(){
+    if(!$('auditTable'))return;
+    if(state.role!=='administrador'&&state.role!=='gerente'){
+      $('auditTable').innerHTML='<tr><td colspan="4">Acesso restrito à gerência e ao administrador.</td></tr>';return;
+    }
+    if(!state.auditLoaded){
+      $('auditTable').innerHTML='<tr><td colspan="4">Carregando registros de auditoria...</td></tr>';
+      $('auditFreshness').textContent='Aguardando dados';return;
+    }
+    const rows=getFilteredAudit();
+    $('auditSummary').innerHTML='<span>Registros carregados <strong>'+state.auditLogs.length+'</strong></span><span>Exibidos no filtro <strong>'+rows.length+'</strong></span><span>Tipos de operação <strong>'+new Set(rows.map(x=>x.action)).size+'</strong></span>';
+    $('auditTable').innerHTML=rows.map(log=>'<tr><td>'+safe(dateFmt(log.createdAt))+'</td><td><strong>'+safe(log.userEmail||'Usuário sem e-mail')+'</strong><span class="audit-entity">Perfil: '+safe(log.role||'—')+' · UID: '+safe(log.userId||'—')+'</span></td><td><span class="audit-action">'+safe(auditActionNames[log.action]||log.action||'Operação')+'</span><span class="audit-entity">'+safe(log.entityType||'')+' · '+safe(log.entityId||'')+'</span></td><td>'+safe(log.summary||'')+'<br><span class="muted small">'+safe(auditDetailsText(log))+'</span></td></tr>').join('')||'<tr><td colspan="4">Nenhum registro corresponde aos filtros.</td></tr>';
+    const updated=state.auditUpdatedAt?state.auditUpdatedAt.toLocaleString('pt-BR'):'aguardando dados';
+    $('auditUpdatedAt').textContent='Última atualização da auditoria: '+updated+'. A tela mostra até 500 registros recentes.';
+    $('auditFreshness').textContent=state.auditUpdatedAt?'Auditoria sincronizada':'Aguardando dados';
+  }
+  function exportAuditCsv(){
+    const rows=getFilteredAudit();
+    const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
+    const matrix=[['Data e hora','Responsável','Perfil do responsável','Operação','Tipo de entidade','ID da entidade','Resumo','Detalhes']];
+    rows.forEach(log=>matrix.push([dateFmt(log.createdAt),log.userEmail||'',log.role||'',auditActionNames[log.action]||log.action,log.entityType||'',log.entityId||'',log.summary||'',auditDetailsText(log)]));
+    const csv='\uFEFF'+matrix.map(row=>row.map(cell).join(';')).join('\r\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob),link=document.createElement('a');
+    link.href=url;link.download='auditoria-estoque-'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
   function renderUsers(){
     const tbody=$('usersTable');
     if(!tbody)return;
@@ -857,6 +957,7 @@
       }catch(err){
         throw new Error('A conta de autenticação foi criada, mas o perfil não foi salvo. UID '+createdUser.uid+'. Confira as regras do Firestore antes de repetir o cadastro. Detalhe: '+err.message);
       }
+      await recordAudit('user_created','user',createdUser.uid,'Usuário criado: '+email,{targetEmail:email,targetRole:role,newRole:role,newActive:ativo});
       $('managedUserForm').reset();
       $('managedUserActive').checked=true;
       message('Usuário criado com sucesso, incluindo a conta de acesso e o perfil '+role+'.','success');
@@ -880,12 +981,14 @@
       if(id===state.user.uid)throw new Error('Por segurança, não altere o próprio perfil. Peça a outro administrador para fazer essa alteração.');
       const role=row.querySelector('[data-user-role]').value;
       const ativo=row.querySelector('[data-user-active]').checked;
+      const oldRole=target.role,oldActive=target.ativo!==false;
       if(!roleRank[role])throw new Error('Perfil selecionado inválido.');
       const activeAdmins=state.users.filter(u=>u.role==='administrador'&&u.ativo!==false);
       const keepsActiveAdmin=role==='administrador'&&ativo;
       if(target.role==='administrador'&&target.ativo!==false&&!keepsActiveAdmin&&activeAdmins.length<=1)throw new Error('Não é possível remover o último administrador ativo. Promova outro usuário a administrador e mantenha-o ativo primeiro.');
       const btn=button;btn.disabled=true;
       await db.collection('users').doc(id).update({role:role,ativo:ativo,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:state.user.uid});
+      await recordAudit('user_access_updated','user',id,'Perfil ou acesso alterado: '+(target.email||target.name||id),{targetEmail:target.email||'',oldRole:oldRole,newRole:role,oldActive:oldActive,newActive:ativo});
       message('Perfil e acesso atualizados para '+(target.email||target.name||id)+'.','success');
     }catch(err){message(err.message||'Não foi possível atualizar o usuário.','error');}
     finally{button.disabled=false;}
@@ -894,6 +997,7 @@
     stopListeners();
     unsubs.push(db.collection('users').doc(state.user.uid).onSnapshot(doc=>{if(!doc.exists||doc.data().ativo===false){message('Seu acesso foi desativado ou o perfil foi removido. A sessão será encerrada.','error');auth.signOut();}},()=>{}));
     if(state.role==='administrador')unsubs.push(db.collection('users').onSnapshot(s=>{state.users=s.docs.map(d=>({id:d.id,...d.data()}));state.usersLoaded=true;renderUsers();},e=>message('Falha ao carregar usuários: '+e.message,'error')));
+    if(state.role==='administrador'||state.role==='gerente')unsubs.push(db.collection('auditLogs').orderBy('createdAt','desc').limit(500).onSnapshot(s=>{state.auditLogs=s.docs.map(d=>({id:d.id,...d.data()}));state.auditLoaded=true;state.auditUpdatedAt=new Date();renderAudit();},e=>message('Falha ao carregar auditoria. Confirme se as regras atualizadas do Firestore foram publicadas: '+e.message,'error')));
     unsubs.push(db.collection('sections').orderBy('name').onSnapshot(s=>{state.sections=s.docs.map(d=>({id:d.id,...d.data()}));renderSectionOptions();renderProducts();},e=>message('Falha ao carregar seções: '+e.message,'error')));
     unsubs.push(db.collection('products').orderBy('name').onSnapshot(s=>{state.products=s.docs.map(d=>({id:d.id,...d.data()}));state.productsLoaded=true;state.stockUpdatedAt=new Date();renderProducts();renderInventory();},e=>message('Falha ao carregar produtos: '+e.message,'error')));
     const canViewAllHistory=state.role==='administrador'||state.role==='gerente';
@@ -912,23 +1016,31 @@
     state.role=role; $('roleBadge').textContent='Perfil: '+role; $('userEmail').textContent=user.email||'Usuário'; $('userBar').classList.remove('hidden');
     document.querySelectorAll('[data-tab="sections"],#sectionForm,#finishInventoryBtn').forEach(el=>{el.classList.toggle('hidden',roleRank[role]<roleRank.gerente)});
     $('usersTabBtn').classList.toggle('hidden',role!=='administrador');
-    $('tab-users').classList.add('hidden');
+    $('auditTabBtn').classList.toggle('hidden',!['administrador','gerente'].includes(role));
+    $('tab-users').classList.add('hidden');$('tab-audit').classList.add('hidden');
     restoreInventoryDraft(user);
     $('appPanel').classList.remove('hidden'); $('authPanel').classList.add('hidden'); attachListeners();
   }
   async function onAuth(user){
-    stopListeners(); state.user=user; state.role=null; state.products=[]; state.productsLoaded=false; state.sections=[]; state.counts=[]; state.finishedInventories=[]; state.users=[]; state.usersLoaded=false; state.inventory=null; state.inventoryItems=[]; state.stockUpdatedAt=null; state.historyUpdatedAt=null;
+    stopListeners(); state.user=user; state.role=null; state.products=[]; state.productsLoaded=false; state.sections=[]; state.counts=[]; state.finishedInventories=[]; state.users=[]; state.usersLoaded=false; state.auditLogs=[]; state.auditLoaded=false; state.auditUpdatedAt=null; state.inventory=null; state.inventoryItems=[]; state.stockUpdatedAt=null; state.historyUpdatedAt=null;
     if(!user){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.add('hidden');return;}
     try{await loadRole(user);clearMessage();}catch(e){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.remove('hidden');$('userEmail').textContent=user.email||'';message(e.message,'error');}
   }
-  async function createSection(e){e.preventDefault();try{await requireRole('gerente');const name=$('sectionName').value.trim();if(!name)throw new Error('Informe o nome da seção.');await db.collection('sections').add({name,description:$('sectionDescription').value.trim(),createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:state.user.uid});$('sectionForm').reset();message('Seção cadastrada.','success');}catch(err){message(err.message,'error');}}
+  async function createSection(e){e.preventDefault();try{await requireRole('gerente');const name=$('sectionName').value.trim();if(!name)throw new Error('Informe o nome da seção.');const description=$('sectionDescription').value.trim();const ref=await db.collection('sections').add({name,description,createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:state.user.uid});await recordAudit('section_created','section',ref.id,'Seção cadastrada: '+name,{sectionName:name,description:description});$('sectionForm').reset();message('Seção cadastrada.','success');}catch(err){message(err.message,'error');}}
   async function saveProduct(e){
-    e.preventDefault();try{await requireRole('gerente');const id=$('productId').value;const ean=$('pEan').value.trim().replace(/\s/g,'');if(ean && (!validEan(ean)||!eanChecksum(ean)))throw new Error('EAN inválido. Confira o código de 8 ou 13 dígitos e o dígito verificador.');
+    e.preventDefault();try{
+      await requireRole('gerente');
+      const id=$('productId').value,oldProduct=id?state.products.find(p=>p.id===id):null;
+      const ean=$('pEan').value.trim().replace(/\s/g,'');
+      if(ean&&(!validEan(ean)||!eanChecksum(ean)))throw new Error('EAN inválido. Confira o código de 8 ou 13 dígitos e o dígito verificador.');
       const data={ean,name:$('pName').value.trim(),sectionId:$('pSection').value,unit:$('pUnit').value,stock:Number($('pStock').value),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:state.user.uid};
       if(!data.sectionId)throw new Error('Selecione uma seção.');
-      if(state.products.some(p=>p.ean===ean && ean && p.id!==id))throw new Error('Este EAN já está cadastrado em outro produto.');
+      if(state.products.some(p=>p.ean===ean&&ean&&p.id!==id))throw new Error('Este EAN já está cadastrado em outro produto.');
       if(!data.name||data.stock<0)throw new Error('Confira nome e quantidade de estoque.');
-      if(id){await db.collection('products').doc(id).update(data);}else{data.createdAt=firebase.firestore.FieldValue.serverTimestamp();data.createdBy=state.user.uid;await db.collection('products').add(data);}
+      let productId=id;
+      if(id){await db.collection('products').doc(id).update(data);}
+      else{data.createdAt=firebase.firestore.FieldValue.serverTimestamp();data.createdBy=state.user.uid;const ref=await db.collection('products').add(data);productId=ref.id;}
+      await recordAudit(id?'product_updated':'product_created','product',productId,(id?'Produto atualizado: ':'Produto cadastrado: ')+data.name,{productName:data.name,ean:data.ean,sectionName:sectionName(data.sectionId),oldStock:oldProduct?Number(oldProduct.stock||0):null,newStock:Number(data.stock),unit:data.unit});
       $('productForm').reset();$('productId').value='';$('pStock').value='0';setEanLookupStatus('Produto salvo. Leia outro EAN para consultar automaticamente o próximo produto.','success');message('Produto salvo com sucesso.','success');
     }catch(err){message(err.message,'error');}
   }
@@ -956,6 +1068,7 @@
         if(!ok)return;
       }
       await db.collection('counts').add({productId:p.id,productName:p.name,ean:p.ean,sectionId:p.sectionId,unit:p.unit||'UN',systemStock:systemStock,countedQty:qty,difference:difference,userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),inventoryId:null});
+      await recordAudit('quick_count_registered','count',p.id,'Contagem rápida registrada: '+p.name,{productName:p.name,ean:p.ean,sectionName:sectionName(p.sectionId),systemStock:systemStock,countedQty:qty,difference:difference,unit:p.unit||'UN'});
       $('countEan').value='';
       $('countQty').value='';
       $('countProductInfo').classList.add('hidden');
@@ -985,12 +1098,17 @@
         const cRef=db.collection('counts').doc();
         batch.set(cRef,{...it,systemStock:Number(it.systemStock),countedQty:Number(it.countedQty),difference:Number(it.countedQty)-Number(it.systemStock),userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),inventoryId:invRef.id});
       }
-      await batch.commit();state.inventory=null;state.inventoryItems=[];persistInventoryDraft();renderInventory();message('Inventário finalizado. Estoques atualizados e diferenças registradas no histórico; o rascunho local foi removido.','success');
+      await batch.commit();
+      await recordAudit('inventory_finalized','inventory',invRef.id,'Inventário finalizado: '+state.inventory.name,{inventoryName:state.inventory.name,sectionName:state.inventory.sectionId?sectionName(state.inventory.sectionId):'Todas as seções',itemCount:state.inventoryItems.length,coverageTotal:coverage.total,coverageCounted:coverage.counted,coveragePercent:coverage.percent});
+      state.inventory=null;state.inventoryItems=[];persistInventoryDraft();renderInventory();message('Inventário finalizado. Estoques atualizados e diferenças registradas no histórico; o rascunho local foi removido.','success');
     }catch(e){message('Não foi possível finalizar o inventário: '+e.message,'error');}}
   function bind(){
     $('loginForm').addEventListener('submit',async e=>{e.preventDefault();try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);clearMessage();}catch(err){message('Não foi possível entrar: confira e-mail e senha e se a conta foi autorizada.','error');}});
     $('logoutBtn').addEventListener('click',()=>auth.signOut());
     $('managedUserForm').addEventListener('submit',createManagedUser);
+    $('auditSearch').addEventListener('input',renderAudit);
+    $('auditActionFilter').addEventListener('change',renderAudit);
+    $('exportAuditCsv').addEventListener('click',exportAuditCsv);
     $('userSearch').addEventListener('input',renderUsers);
     $('usersTable').addEventListener('click',e=>{const btn=e.target.closest('[data-user-save]');if(btn)saveManagedUser(btn);});
     $('usersTable').addEventListener('change',e=>{const row=e.target.closest('[data-user-row]');if(row&&e.target.matches('[data-user-active]')){const label=e.target.closest('label');if(label)label.lastChild.textContent=e.target.checked?' Ativo':' Desativado';}});
