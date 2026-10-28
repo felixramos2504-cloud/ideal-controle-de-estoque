@@ -21,7 +21,21 @@ h2,h3{margin:0 0 8px}h2{font-size:21px}h3{font-size:17px}.muted{color:var(--mute
 label{display:block;font-size:13px;font-weight:700;margin:10px 0 5px}input,select{width:100%;font:inherit;border:1px solid #c8d5cc;border-radius:10px;padding:12px;background:white;color:var(--text);min-height:46px}
 button,.button{font:inherit;font-weight:700;border:0;border-radius:10px;background:var(--green2);color:white;padding:12px 15px;min-height:46px;cursor:pointer}button.secondary{background:#e7eee9;color:var(--green)}button.danger{background:#b91c1c}button:disabled{opacity:.55;cursor:not-allowed}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions button{flex:1}.notice{padding:12px;border-radius:10px;background:#eff6ff;color:#1e40af;margin-bottom:12px;white-space:pre-wrap}.notice.error{background:#fef2f2;color:#991b1b}.notice.success{background:#f0fdf4;color:#166534}
-.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.scanner-box{background:#0b1710;border-radius:14px;overflow:hidden;margin-top:12px;padding:8px}#reader{width:100%;min-height:120px;color:white}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+body.scanner-open{overflow:hidden;overscroll-behavior:none}
+.scanner-overlay{position:fixed;inset:0;z-index:99999;width:100vw;height:100vh;height:100dvh;max-width:none;background:#050806;color:#fff;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;flex-direction:column;gap:12px;overflow:hidden;margin:0;border:0;border-radius:0;box-shadow:none}
+#scannerWrap.hidden{display:none!important}
+.scanner-header{flex:0 0 auto;text-align:center;padding:2px 8px}
+.scanner-header h2{font-size:20px;line-height:1.2;margin:0 0 6px;color:#fff}
+.scanner-header p{font-size:13px;line-height:1.35;margin:0;color:#d1d5db}
+#reader{flex:1 1 auto;width:100%;height:100%;min-height:0;color:white;overflow:hidden;border-radius:12px;position:relative;background:#000}
+#reader>div{max-width:100%!important}
+#reader video,#reader__scan_region,#reader__scan_region video{max-width:100%!important}
+#reader video,#reader__scan_region video{width:100%!important;height:100%!important;object-fit:cover!important}
+#reader__scan_region{height:100%!important;min-height:0!important}
+#reader__dashboard{flex:0 0 auto;background:#111827;color:#fff;border-radius:10px;padding:8px;font-size:12px}
+.scanner-footer{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;color:#d1d5db;font-size:12px}
+.camera-close{background:#fff;color:#111827;min-width:130px;border-radius:12px;font-weight:800}
 .product-found{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:12px;margin-top:12px}.product-name{font-size:18px;font-weight:800}.product-meta{font-size:13px;color:var(--muted);margin-top:4px}
 .metric-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}.metric{border:1px solid var(--line);border-radius:12px;padding:12px;background:white}.metric span{font-size:12px;color:var(--muted);display:block}.metric strong{font-size:23px;display:block;margin-top:4px}
 .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:12px}table{border-collapse:collapse;width:100%;background:white}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}th{font-size:12px;color:var(--muted);white-space:nowrap}
@@ -45,8 +59,12 @@ button,.button{font:inherit;font-weight:700;border:0;border-radius:10px;backgrou
 <section id="appPanel" class="hidden">
 <div class="card">
 <div class="toolbar"><div><h2>Coletar produtos</h2><div class="muted small">A quantidade informada será o novo saldo oficial do produto.</div></div><span id="roleBadge" class="status-pill">Conta autorizada</span></div>
-<div class="actions"><button id="collectBtn" type="button">Coletar — abrir câmera</button><button id="stopCameraBtn" type="button" class="secondary hidden">Fechar câmera</button></div>
-<div id="scannerWrap" class="scanner-box hidden"><div id="reader"></div></div>
+<div class="actions"><button id="collectBtn" type="button">Coletar — abrir câmera</button></div>
+<div id="scannerWrap" class="scanner-overlay hidden" role="dialog" aria-modal="true" aria-label="Leitor de código de barras">
+  <div class="scanner-header"><h2>Coleta IDEAL</h2><p>Posicione o código de barras dentro da área de leitura.</p></div>
+  <div id="reader"></div>
+  <div class="scanner-footer"><span>Leitura de EAN</span><button id="stopCameraBtn" type="button" class="camera-close hidden">Fechar câmera</button></div>
+</div>
 <div class="formgrid" style="margin-top:12px"><div><label for="eanInput">EAN do produto</label><input id="eanInput" inputmode="numeric" autocomplete="off" placeholder="Leia ou digite o código de barras"></div><div style="align-self:end"><button id="lookupBtn" type="button" class="secondary" style="width:100%">Localizar produto</button></div></div>
 <div id="selectedProductCard" class="product-found hidden"><div class="product-name" id="selectedProductName"></div><div class="product-meta" id="selectedProductMeta"></div><div class="formgrid"><div><label for="quantityInput">Quantidade encontrada</label><input id="quantityInput" type="number" min="0.001" step="0.001" inputmode="decimal" placeholder="Informe o saldo contado"></div><div><label for="selectedUnit">Unidade cadastrada</label><input id="selectedUnit" readonly></div></div><div class="actions"><button id="addItemBtn" type="button" class="secondary">Adicionar à lista</button><button id="addAndCollectNextBtn" type="button">Adicionar e coletar próximo</button></div></div>
 <p class="muted small" style="margin:12px 0 0">O leitor fecha após cada leitura para evitar duplicidade. Reabra a câmera para o próximo produto. Produtos não cadastrados precisam ser cadastrados primeiro no sistema principal.</p>
@@ -59,7 +77,7 @@ button,.button{font:inherit;font-weight:700;border:0;border-radius:10px;backgrou
 </div>
 <div class="card"><h3>Como o envio funciona</h3><p class="muted small">Ao enviar, os saldos dos produtos listados serão substituídos pelas quantidades coletadas. O dashboard principal acompanha as alterações pelo Firestore. Produtos que não estão na lista permanecem iguais. Confirme a quantidade real antes de enviar.</p></div>
 </section>
-<footer>IDEAL Controle de Estoque · Coleta MASTER 1.3</footer>
+<footer>IDEAL Controle de Estoque · Coleta MASTER 1.4</footer>
 </main>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
@@ -150,12 +168,12 @@ button,.button{font:inherit;font-weight:700;border:0;border-radius:10px;backgrou
   function sectionName(id){return sections.find(section=>section.id===id)?.name||'Seção sem nome';}
   function stopCamera(){
     if(scanner){const current=scanner;scanner=null;current.stop().catch(()=>{}).finally(()=>current.clear().catch(()=>{}));}
-    $('scannerWrap').classList.add('hidden');$('stopCameraBtn').classList.add('hidden');$('collectBtn').disabled=false;
+    $('scannerWrap').classList.add('hidden');$('stopCameraBtn').classList.add('hidden');$('collectBtn').disabled=false;document.body.classList.remove('scanner-open');
   }
   async function startCamera(){
     if(busy)return;
     if(!window.Html5Qrcode){showMessage('O leitor de código não carregou. Verifique a internet e tente novamente.','error');return;}
-    stopCamera();$('scannerWrap').classList.remove('hidden');$('stopCameraBtn').classList.remove('hidden');$('collectBtn').disabled=true;
+    stopCamera();document.body.classList.add('scanner-open');$('scannerWrap').classList.remove('hidden');$('stopCameraBtn').classList.remove('hidden');$('collectBtn').disabled=true;
     try{
       scanner=new Html5Qrcode('reader');
       await scanner.start({facingMode:'environment'},{fps:12,qrbox:(w,h)=>({width:Math.max(180,Math.min(Math.floor(w*.9),650)),height:Math.max(90,Math.min(Math.floor(h*.25),200))}),aspectRatio:1.777,formatsToSupport:[Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E]},async decoded=>{
