@@ -125,7 +125,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 2.7 · Histórico de inventários e contagens</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 2.8 · Histórico de inventários e contagens</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -145,52 +145,43 @@
     <div class="panel">
       <div class="section-title"><div><h2 style="margin:0">Painel de estoque</h2><span class="muted small">Os números são atualizados conforme os dados autorizados mudam no Firestore.</span></div><span id="roleBadge" class="badge">Perfil: verificando</span></div>
       <div id="dashboardKpis" class="grid" style="margin-top:16px">
-        <div class="card dashboard-kpi"><div class="kpi-label">Produtos cadastrados</div><div id="statProducts" class="stat">—</div><div class="kpi-note">Itens no catálogo</div></div>
-        <div class="card dashboard-kpi"><div class="kpi-label">Seções cadastradas</div><div id="statSections" class="stat">—</div><div class="kpi-note">Organização do estoque</div></div>
-        <div class="card dashboard-kpi dashboard-kpi kpi-good"><div class="kpi-label">Produtos com estoque</div><div id="statAvailable" class="stat">—</div><div id="statAvailableNote" class="kpi-note">Saldo maior que zero</div></div>
-        <div class="card dashboard-kpi kpi-danger"><div class="kpi-label">Produtos sem estoque</div><div id="statZero" class="stat">—</div><div class="kpi-note">Saldo atual igual a zero</div></div>
-        <div class="card dashboard-kpi"><div class="kpi-label">Contagens carregadas</div><div id="statCountsLoaded" class="stat">—</div><div class="kpi-note">Histórico disponível nesta sessão</div></div>
-        <div class="card dashboard-kpi"><div class="kpi-label">Com divergência</div><div id="statCountDifferences" class="stat">—</div><div class="kpi-note">Entre as contagens carregadas</div></div>
+        <div class="card dashboard-kpi kpi-good"><div class="kpi-label">Produtos com saldo</div><div id="statAvailable" class="stat">—</div><div class="kpi-note">Itens atualmente no estoque</div></div>
+        <div class="card dashboard-kpi"><div class="kpi-label">Seções com produtos</div><div id="statSections" class="stat">—</div><div class="kpi-note">Seções com saldo cadastrado</div></div>
+        <div class="card dashboard-kpi"><div class="kpi-label">Catálogo total</div><div id="statProducts" class="stat">—</div><div class="kpi-note">Produtos cadastrados no sistema</div></div>
       </div>
       <div class="dashboard-toolbar">
         <div id="dashboardUpdatedAt" class="dashboard-sync">Aguardando sincronização do estoque...</div>
         <div class="dashboard-shortcuts">
-          <button id="dashboardOpenProducts" type="button" class="secondary">Ver produtos</button>
-          <button id="dashboardOpenReport" type="button" class="secondary">Relatório de estoque</button>
-          <button id="dashboardOpenHistory" type="button" class="secondary">Histórico</button>
+          <button id="dashboardOpenProducts" type="button" class="secondary">Cadastrar / atualizar saldo</button>
+          <button id="dashboardOpenReport" type="button" class="secondary">Relatório e exportação</button>
         </div>
       </div>
-      <div class="dashboard-insight">
-        <div class="dashboard-insight-card">
-          <div class="muted small">Cobertura do catálogo com saldo positivo</div>
-          <strong id="dashboardStockCoverage">—</strong>
-          <div class="dashboard-progress" role="progressbar" aria-label="Cobertura do catálogo com saldo positivo" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="dashboardStockCoverageBar" style="width:0%"></span></div>
-          <div id="dashboardStockCoverageNote" class="muted small">Aguardando produtos...</div>
+      <section class="card dashboard-card" style="margin-top:14px">
+        <div class="section-title"><div><h3>Estoque atual disponível</h3><p class="muted small" style="margin:5px 0 0">Esta tela mostra somente produtos com saldo maior que zero. Atualize a quantidade cadastrada para manter a base de compras em dia.</p></div><span id="dashboardStockBadge" class="badge">Aguardando dados</span></div>
+        <div class="formgrid report-controls">
+          <div><label for="dashboardStockSearch">Pesquisar produto / EAN</label><input id="dashboardStockSearch" placeholder="Digite o nome ou leia o código EAN"></div>
+          <div><label for="dashboardStockSection">Seção</label><select id="dashboardStockSection"><option value="">Todas as seções</option></select></div>
         </div>
-        <div class="dashboard-insight-card">
-          <div class="muted small">Precisão das contagens carregadas</div>
-          <strong id="dashboardCountAccuracy">—</strong>
-          <div id="dashboardCountAccuracyNote" class="muted small" style="margin-top:8px">Aguardando histórico...</div>
-        </div>
-      </div>
+        <div id="dashboardStockSummary" class="report-summary"></div>
+        <div class="tablewrap"><table><thead><tr><th>Produto</th><th>EAN</th><th>Seção</th><th>Saldo atual</th><th>Atualizar</th></tr></thead><tbody id="dashboardCurrentStockTable"><tr><td colspan="5">Carregando estoque...</td></tr></tbody></table></div>
+        <div id="dashboardStockRowsStatus" class="muted small" style="margin-top:10px">Aguardando dados do estoque...</div>
+      </section>
       <div class="dashboard-panels">
-        <section class="card dashboard-card dashboard-card-wide">
-          <div class="section-title"><h3>Atenção ao estoque</h3><span id="stockAttentionBadge" class="badge">Verificando</span></div>
-          <p class="muted small">Produtos que precisam de reposição, incluindo estoque zerado.</p>
-          <div id="stockAttentionList" class="dashboard-list"><div class="dashboard-empty">Carregando alertas de estoque...</div></div>
-        </section>
         <section class="card dashboard-card">
-          <div class="section-title"><h3>Resumo por seção</h3></div>
+          <div class="section-title"><h3>Produtos em estoque por seção</h3></div>
           <div class="tablewrap">
             <table class="dashboard-mini-table">
-              <thead><tr><th>Seção</th><th>Produtos</th><th>Com estoque</th><th>Sem estoque</th></tr></thead>
-              <tbody id="dashboardSections"><tr><td colspan="4">Carregando...</td></tr></tbody>
+              <thead><tr><th>Seção</th><th>Produtos com saldo</th><th>Unidades utilizadas</th></tr></thead>
+              <tbody id="dashboardSections"><tr><td colspan="3">Carregando...</td></tr></tbody>
             </table>
           </div>
         </section>
         <section class="card dashboard-card">
-          <div class="section-title"><h3>Últimas contagens</h3></div>
-          <div id="dashboardCounts" class="dashboard-list"><div class="dashboard-empty">Carregando contagens...</div></div>
+          <div class="section-title"><h3>Como manter o controle de compras</h3></div>
+          <p class="muted small">1. Cadastre os produtos que você tem no estoque.</p>
+          <p class="muted small">2. Informe a quantidade atual de cada produto e sua unidade.</p>
+          <p class="muted small">3. Quando o saldo mudar, abra “Cadastrar / atualizar saldo” e edite o produto.</p>
+          <p class="muted small">4. Use “Relatório e exportação” para baixar a posição atual em CSV ou salvar em PDF.</p>
         </section>
       </div>
     </div>
@@ -341,16 +332,15 @@
       <div class="formgrid report-controls">
         <div><label for="reportSearch">Pesquisar produto</label><input id="reportSearch" placeholder="Nome do produto ou código EAN"></div>
         <div><label for="stockReportSection">Seção</label><select id="stockReportSection"><option value="">Todas as seções</option></select></div>
-        <div><label for="stockReportStatus">Situação do estoque</label><select id="stockReportStatus"><option value="all">Todas as situações</option><option value="zero">Sem estoque</option><option value="ok">Com estoque</option></select></div>
       </div>
-      <div class="actions report-controls"><button id="exportStockCsv" type="button">Exportar CSV</button><button id="printStockReport" type="button" class="secondary">Imprimir / Salvar em PDF</button></div>
+      <div class="actions report-controls"><button id="exportStockCsv" type="button">Exportar posição atual (CSV)</button><button id="printStockReport" type="button" class="secondary">Imprimir / Salvar em PDF</button></div>
       <div id="reportSummary" class="report-summary"></div>
       <div id="reportUpdatedAt" class="muted small" style="margin:8px 0 12px">Aguardando atualização do estoque...</div>
-      <div class="tablewrap"><table><thead><tr><th>Produto</th><th>EAN</th><th>Seção</th><th>Estoque atual</th><th>Situação</th></tr></thead><tbody id="stockReportTable"><tr><td colspan="5">Carregando relatório...</td></tr></tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>Produto</th><th>EAN</th><th>Seção</th><th>Saldo atual</th><th>Unidade</th></tr></thead><tbody id="stockReportTable"><tr><td colspan="5">Carregando relatório...</td></tr></tbody></table></div>
       <section class="card dashboard-card" style="margin-top:14px">
         <h3>Resumo do estoque por seção</h3>
-        <p class="muted small">Resume os produtos que correspondem aos filtros atuais. Não soma quantidades de unidades diferentes.</p>
-        <div class="tablewrap"><table><thead><tr><th>Seção</th><th>Produtos</th><th>Com estoque</th><th>Sem estoque</th><th>Unidades cadastradas</th></tr></thead><tbody id="stockSectionSummaryTable"><tr><td colspan="5">Carregando resumo...</td></tr></tbody></table></div>
+        <p class="muted small">Resume apenas os produtos com saldo. Quantidades de unidades diferentes não são somadas entre si.</p>
+        <div class="tablewrap"><table><thead><tr><th>Seção</th><th>Produtos com saldo</th><th>Tipos de unidade</th></tr></thead><tbody id="stockSectionSummaryTable"><tr><td colspan="3">Carregando resumo...</td></tr></tbody></table></div>
       </section>
     </section>
 
@@ -381,7 +371,7 @@
       </section>
     </section>
     </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 2.7 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 2.8 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -630,76 +620,55 @@
     return {code:'ok',label:'Com estoque',pill:'ok'};
   }
   function renderDashboard(){
-    const zeroProducts=state.products.filter(p=>Number(p.stock||0)<=0);
-    const availableProducts=state.products.filter(p=>Number(p.stock||0)>0);
-    const loadedCounts=Array.isArray(state.counts)?state.counts:[];
-    const differentCounts=loadedCounts.filter(c=>Number(c.countedQty||0)!==Number(c.systemStock||0));
-    const matchingCounts=loadedCounts.length-differentCounts.length;
-    const coveragePercent=state.products.length?Math.round(availableProducts.length/state.products.length*100):0;
-    const accuracyPercent=loadedCounts.length?Math.round(matchingCounts/loadedCounts.length*100):0;
+    const stockedProducts=state.products.filter(p=>Number(p.stock||0)>0);
+    const stockedSectionIds=new Set(stockedProducts.map(p=>p.sectionId).filter(Boolean));
+    const query=$('dashboardStockSearch')?$('dashboardStockSearch').value.trim().toLocaleLowerCase('pt-BR'):'';
+    const selectedSection=$('dashboardStockSection')?$('dashboardStockSection').value:'';
+    const rows=stockedProducts.filter(p=>{
+      const name=String(p.name||'').toLocaleLowerCase('pt-BR'),ean=String(p.ean||'');
+      if(query&&!name.includes(query)&&!ean.includes(query))return false;
+      if(selectedSection&&p.sectionId!==selectedSection)return false;
+      return true;
+    }).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));
     $('statProducts').textContent=fmt(state.products.length);
-    $('statSections').textContent=fmt(state.sections.length);
-    $('statAvailable').textContent=fmt(availableProducts.length);
-    $('statZero').textContent=fmt(zeroProducts.length);
-    if($('statCountsLoaded'))$('statCountsLoaded').textContent=fmt(loadedCounts.length);
-    if($('statCountDifferences'))$('statCountDifferences').textContent=fmt(differentCounts.length);
-    if($('statAvailableNote'))$('statAvailableNote').textContent=coveragePercent+'% do catálogo com saldo positivo';
-    if($('dashboardStockCoverage'))$('dashboardStockCoverage').textContent=coveragePercent+'%';
-    if($('dashboardStockCoverageBar')){
-      $('dashboardStockCoverageBar').style.width=coveragePercent+'%';
-      const progress=$('dashboardStockCoverageBar').parentElement;
-      if(progress)progress.setAttribute('aria-valuenow',String(coveragePercent));
+    $('statSections').textContent=fmt(stockedSectionIds.size);
+    $('statAvailable').textContent=fmt(stockedProducts.length);
+    const sectionSelect=$('dashboardStockSection');
+    if(sectionSelect){
+      const selected=sectionSelect.value;
+      const options='<option value="">Todas as seções</option>'+state.sections.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR')).map(section=>'<option value="'+safe(section.id)+'">'+safe(section.name)+'</option>').join('');
+      if(sectionSelect.dataset.options!==options){sectionSelect.innerHTML=options;sectionSelect.dataset.options=options;}
+      if([...sectionSelect.options].some(option=>option.value===selected))sectionSelect.value=selected;
     }
-    if($('dashboardStockCoverageNote'))$('dashboardStockCoverageNote').textContent=fmt(availableProducts.length)+' de '+fmt(state.products.length)+' produtos com saldo positivo. Não soma unidades diferentes.';
-    if($('dashboardCountAccuracy'))$('dashboardCountAccuracy').textContent=loadedCounts.length?accuracyPercent+'%':'—';
-    if($('dashboardCountAccuracyNote'))$('dashboardCountAccuracyNote').textContent=loadedCounts.length
-      ?fmt(matchingCounts)+' sem divergência e '+fmt(differentCounts.length)+' com divergência, dentre '+fmt(loadedCounts.length)+' contagem(ns) carregada(s).'
-      :'Nenhuma contagem disponível nesta sessão.';
     if($('dashboardUpdatedAt')){
       const stockTime=state.stockUpdatedAt?state.stockUpdatedAt.toLocaleString('pt-BR'):'aguardando dados';
-      $('dashboardUpdatedAt').textContent='Estoque sincronizado: '+stockTime+'. Os indicadores usam os dados carregados e autorizados da sua conta.';
+      $('dashboardUpdatedAt').textContent='Última sincronização do estoque: '+stockTime+'. O painel mostra apenas os produtos que têm saldo.';
     }
-    const badge=$('stockAttentionBadge');
-    if(badge)badge.textContent=zeroProducts.length?zeroProducts.length+' produto(s) sem estoque':'Tudo em ordem';
-    const attentionList=$('stockAttentionList');
-    if(attentionList){
-      if(!state.products.length){
-        attentionList.innerHTML='<div class="dashboard-empty">Ainda não há produtos cadastrados. Cadastre produtos para acompanhar o estoque.</div>';
-      }else if(!zeroProducts.length){
-        attentionList.innerHTML='<div class="notice success" style="margin:0">Todos os produtos cadastrados possuem saldo maior que zero.</div>';
-      }else{
-        attentionList.innerHTML=zeroProducts.slice(0,10).map(p=>'<div class="dashboard-list-item"><div><strong>'+safe(p.name||'Produto sem nome')+'</strong><span class="subline">EAN: '+safe(p.ean||'não informado')+' · Seção: '+safe(sectionName(p.sectionId))+'</span></div><div class="item-right"><span class="status-pill zero">SEM ESTOQUE</span><span class="subline">Saldo atual: 0 '+safe(p.unit||'UN')+'</span></div></div>').join('')+(zeroProducts.length>10?'<div class="dashboard-empty">Mostrando 10 de '+fmt(zeroProducts.length)+' produtos sem estoque. Abra o relatório para consultar todos.</div>':'');
-      }
-    }
+    if($('dashboardStockBadge'))$('dashboardStockBadge').textContent=fmt(stockedProducts.length)+' produto(s) com saldo';
+    if($('dashboardStockSummary'))$('dashboardStockSummary').innerHTML='<span>Produtos com saldo <strong>'+fmt(stockedProducts.length)+'</strong></span><span>Na pesquisa atual <strong>'+fmt(rows.length)+'</strong></span><span>Seções com saldo <strong>'+fmt(stockedSectionIds.size)+'</strong></span>';
+    const tbody=$('dashboardCurrentStockTable');
+    if(tbody)tbody.innerHTML=rows.map(p=>'<tr><td><strong>'+safe(p.name||'Produto sem nome')+'</strong></td><td>'+safe(p.ean||'—')+'</td><td>'+safe(sectionName(p.sectionId))+'</td><td><strong>'+fmt(p.stock)+' '+safe(p.unit||'UN')+'</strong></td><td><button type="button" class="secondary" data-dashboard-edit="'+safe(p.id)+'">Atualizar saldo</button></td></tr>').join('')||'<tr><td colspan="5">Nenhum produto com saldo corresponde à pesquisa atual.</td></tr>';
+    if($('dashboardStockRowsStatus'))$('dashboardStockRowsStatus').textContent='Exibindo '+fmt(rows.length)+' produto(s) com saldo positivo. As quantidades são apresentadas por produto e unidade, sem somar unidades diferentes.';
     const sectionBody=$('dashboardSections');
     if(sectionBody){
-      sectionBody.innerHTML=state.sections.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR')).map(section=>{
-        const products=state.products.filter(p=>p.sectionId===section.id);
-        const inStock=products.filter(p=>Number(p.stock||0)>0).length;
-        const zero=products.length-inStock;
-        return '<tr><td>'+safe(section.name)+'</td><td>'+fmt(products.length)+'</td><td><span class="status-pill '+(inStock?'ok':'')+'">'+fmt(inStock)+'</span></td><td>'+(zero?'<span class="status-pill zero">'+fmt(zero)+'</span>':'<span class="status-pill ok">0</span>')+'</td></tr>';
-      }).join('')||'<tr><td colspan="4">Nenhuma seção cadastrada.</td></tr>';
-    }
-    const recentCounts=$('dashboardCounts');
-    if(recentCounts){
-      recentCounts.innerHTML=loadedCounts.slice(0,5).map(c=>{
-        const difference=Number(c.countedQty||0)-Number(c.systemStock||0);
-        const pill=difference===0?'ok':'low';
-        return '<div class="dashboard-list-item"><div><strong>'+safe(c.productName||'Produto')+'</strong><span class="subline">EAN: '+safe(c.ean||'não informado')+' · '+safe(dateFmt(c.createdAt))+'</span><span class="subline">Responsável: '+safe(c.userEmail||'não informado')+'</span></div><div class="item-right"><span class="status-pill '+pill+'">'+(difference===0?'CONFERE':'DIFERENÇA')+'</span><span class="subline">Sistema: '+fmt(c.systemStock)+' · Contado: '+fmt(c.countedQty)+'</span></div></div>';
-      }).join('')||'<div class="dashboard-empty">Nenhuma contagem registrada ainda.</div>';
+      const groups=new Map();
+      stockedProducts.forEach(p=>{
+        const name=sectionName(p.sectionId);
+        if(!groups.has(name))groups.set(name,{name,count:0,units:new Set()});
+        const group=groups.get(name);group.count++;group.units.add(String(p.unit||'UN').trim()||'UN');
+      });
+      sectionBody.innerHTML=[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(group=>'<tr><td>'+safe(group.name)+'</td><td>'+fmt(group.count)+'</td><td>'+fmt(group.units.size)+'</td></tr>').join('')||'<tr><td colspan="3">Nenhum produto com saldo positivo cadastrado.</td></tr>';
     }
   }
   function getStockReportRows(){
     const query=$('reportSearch').value.trim().toLocaleLowerCase('pt-BR');
     const sectionId=$('stockReportSection').value;
-    const status=$('stockReportStatus').value;
     return state.products.filter(p=>{
       const name=String(p.name||'').toLocaleLowerCase('pt-BR');
       const ean=String(p.ean||'');
+      if(Number(p.stock||0)<=0)return false;
       if(query&&!name.includes(query)&&!ean.includes(query))return false;
       if(sectionId&&p.sectionId!==sectionId)return false;
-      const code=getStockStatus(p).code;
-      if(status!=='all'&&code!==status)return false;
       return true;
     }).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));
   }
@@ -707,10 +676,8 @@
     const groups=new Map();
     rows.forEach(product=>{
       const name=sectionName(product.sectionId);
-      if(!groups.has(name))groups.set(name,{name,total:0,withStock:0,zero:0,units:new Set()});
-      const group=groups.get(name);
-      group.total++;
-      if(getStockStatus(product).code==='zero')group.zero++;else group.withStock++;
+      if(!groups.has(name))groups.set(name,{name,total:0,units:new Set()});
+      const group=groups.get(name);group.total++;
       group.units.add(String(product.unit||'UN').trim()||'UN');
     });
     return [...groups.values()].map(group=>({...group,unitCount:group.units.size}))
@@ -720,19 +687,15 @@
     const table=$('stockSectionSummaryTable');
     if(!table)return;
     const groups=getStockSectionSummary(rows);
-    table.innerHTML=groups.map(group=>'<tr><td><strong>'+safe(group.name)+'</strong></td><td>'+fmt(group.total)+'</td><td>'+fmt(group.withStock)+'</td><td>'+fmt(group.zero)+'</td><td>'+fmt(group.unitCount)+'</td></tr>').join('')
-      ||'<tr><td colspan="5">Nenhum produto corresponde aos filtros atuais.</td></tr>';
+    table.innerHTML=groups.map(group=>'<tr><td><strong>'+safe(group.name)+'</strong></td><td>'+fmt(group.total)+'</td><td>'+fmt(group.unitCount)+'</td></tr>').join('')
+      ||'<tr><td colspan="3">Nenhum produto com saldo corresponde aos filtros atuais.</td></tr>';
   }
   function renderStockReport(){
     if(!$('stockReportTable'))return;
     const rows=getStockReportRows();
-    const counts={zero:rows.filter(p=>getStockStatus(p).code==='zero').length,ok:rows.filter(p=>getStockStatus(p).code==='ok').length};
     const sections=getStockSectionSummary(rows).length;
-    $('reportSummary').innerHTML='<span>Produtos filtrados <strong>'+rows.length+'</strong></span><span>Sem estoque <strong>'+counts.zero+'</strong></span><span>Com estoque <strong>'+counts.ok+'</strong></span><span>Seções no filtro <strong>'+sections+'</strong></span>';
-    $('stockReportTable').innerHTML=rows.map(p=>{
-      const status=getStockStatus(p);
-      return '<tr><td>'+safe(p.name||'Produto sem nome')+'</td><td>'+safe(p.ean||'—')+'</td><td>'+safe(sectionName(p.sectionId))+'</td><td>'+fmt(p.stock)+' '+safe(p.unit||'UN')+'</td><td><span class="status-pill '+status.pill+'">'+status.label+'</span></td></tr>';
-    }).join('')||'<tr><td colspan="5">Nenhum produto corresponde aos filtros.</td></tr>';
+    $('reportSummary').innerHTML='<span>Produtos com saldo <strong>'+rows.length+'</strong></span><span>Seções com saldo <strong>'+sections+'</strong></span>';
+    $('stockReportTable').innerHTML=rows.map(p=>'<tr><td><strong>'+safe(p.name||'Produto sem nome')+'</strong></td><td>'+safe(p.ean||'—')+'</td><td>'+safe(sectionName(p.sectionId))+'</td><td>'+fmt(p.stock)+'</td><td>'+safe(p.unit||'UN')+'</td></tr>').join('')||'<tr><td colspan="5">Nenhum produto com saldo corresponde aos filtros.</td></tr>';
     renderStockSectionSummary(rows);
     const timestamp=state.stockUpdatedAt ? state.stockUpdatedAt.toLocaleString('pt-BR') : 'aguardando dados';
     $('reportUpdatedAt').textContent='Última atualização recebida do estoque: '+timestamp+'. O resumo por seção respeita os filtros aplicados.';
@@ -740,28 +703,23 @@
   }
   function exportStockReportCsv(){
     const rows=getStockReportRows();
-    const counts={zero:rows.filter(p=>getStockStatus(p).code==='zero').length,ok:rows.filter(p=>getStockStatus(p).code==='ok').length};
     const sectionRows=getStockSectionSummary(rows);
     const sectionFilter=$('stockReportSection').value?sectionName($('stockReportSection').value):'Todas as seções';
-    const statusFilter=$('stockReportStatus').selectedOptions[0]?.textContent||'Todas as situações';
     const generatedAt=new Date();
     const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
     const matrix=[
-      ['RELATÓRIO DE ESTOQUE IDEAL','MASTER 2.7'],
+      ['POSIÇÃO ATUAL DO ESTOQUE IDEAL','MASTER 2.8'],
       ['Gerado em',generatedAt.toLocaleString('pt-BR')],
       ['Filtro de pesquisa',$('reportSearch').value.trim()||'Todos os produtos'],
       ['Filtro de seção',sectionFilter],
-      ['Filtro de situação',statusFilter],
-      ['Produtos no relatório',rows.length],
-      ['Produtos com estoque',counts.ok],
-      ['Produtos sem estoque',counts.zero],
+      ['Produtos com saldo no relatório',rows.length],
       [],
       ['RESUMO POR SEÇÃO'],
-      ['Seção','Produtos','Com estoque','Sem estoque','Unidades cadastradas']
+      ['Seção','Produtos com saldo','Tipos de unidade']
     ];
-    sectionRows.forEach(group=>matrix.push([group.name,group.total,group.withStock,group.zero,group.unitCount]));
-    matrix.push([],['DETALHAMENTO DOS PRODUTOS'],['Produto','EAN','Seção','Estoque atual','Unidade','Situação']);
-    rows.forEach(p=>matrix.push([p.name||'',p.ean||'',sectionName(p.sectionId),Number(p.stock||0),p.unit||'UN',getStockStatus(p).label]));
+    sectionRows.forEach(group=>matrix.push([group.name,group.total,group.unitCount]));
+    matrix.push([],['DETALHAMENTO DA POSIÇÃO ATUAL'],['Produto','EAN','Seção','Saldo atual','Unidade']);
+    rows.forEach(p=>matrix.push([p.name||'',p.ean||'',sectionName(p.sectionId),Number(p.stock||0),p.unit||'UN']));
     const csv='\uFEFF'+matrix.map(row=>row.map(cell).join(';')).join('\r\n');
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
     const url=URL.createObjectURL(blob);
@@ -925,7 +883,7 @@
     const different=rows.filter(item=>Number(item.countedQty||0)!==Number(item.systemStock||0)).length;
     const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
     const matrix=[
-      ['RELATÓRIO DE CONTAGENS IDEAL','MASTER 2.7'],
+      ['RELATÓRIO DE CONTAGENS IDEAL','MASTER 2.8'],
       ['Gerado em',new Date().toLocaleString('pt-BR')],
       ['Data inicial',$('historyDateFrom').value||'Sem limite inicial'],
       ['Data final',$('historyDateTo').value||'Sem limite final'],
@@ -969,6 +927,7 @@
     historySection.innerHTML='<option value="">Todas as seções</option>'+state.sections.map(s=>`<option value="${safe(s.id)}">${safe(s.name)}</option>`).join('');
     if(state.sections.some(s=>s.id===selectedHistorySection))historySection.value=selectedHistorySection;
     $('sectionsTable').innerHTML=state.sections.slice().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(s=>`<tr><td>${safe(s.name)}</td><td>${safe(s.description||'—')}</td></tr>`).join('')||'<tr><td colspan="2">Nenhuma seção cadastrada.</td></tr>';
+    renderDashboard();
     renderStockReport();
     renderHistory();
   }
@@ -1187,7 +1146,7 @@
       const backup={
         metadata:{
           application:'IDEAL Controle de Estoque',
-          version:'MASTER 2.7',
+          version:'MASTER 2.8',
           type:'firestore-data-export',
           generatedAt:createdAt,
           projectId:window.IDEAL_FIREBASE_CONFIG?.projectId||'não informado',
@@ -1673,10 +1632,17 @@
     $('productSearch').addEventListener('input',renderProducts);document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
     $('reportSearch').addEventListener('input',renderStockReport);
     $('stockReportSection').addEventListener('change',renderStockReport);
-    $('stockReportStatus').addEventListener('change',renderStockReport);
-    $('dashboardOpenProducts').addEventListener('click',()=>setTab('products'));
+    $('dashboardOpenProducts').addEventListener('click',()=>{setTab('products');window.scrollTo({top:0,behavior:'smooth'});$('pEan').focus();});
     $('dashboardOpenReport').addEventListener('click',()=>setTab('report'));
-    $('dashboardOpenHistory').addEventListener('click',()=>setTab('history'));
+    $('dashboardStockSearch').addEventListener('input',renderDashboard);
+    $('dashboardStockSection').addEventListener('change',renderDashboard);
+    $('dashboardCurrentStockTable').addEventListener('click',e=>{
+      const button=e.target.closest('[data-dashboard-edit]');if(!button)return;
+      const p=state.products.find(item=>item.id===button.dataset.dashboardEdit);if(!p)return;
+      setTab('products');$('productId').value=p.id;$('pEan').value=p.ean||'';$('pName').value=p.name||'';
+      $('pSection').value=p.sectionId||'';$('pUnit').value=p.unit||'UN';$('pStock').value=p.stock;
+      window.scrollTo({top:0,behavior:'smooth'});$('pStock').focus();
+    });
     $('exportStockCsv').addEventListener('click',exportStockReportCsv);
     $('printStockReport').addEventListener('click',()=>{document.body.classList.remove('print-history');window.print();});
     ['historySearch','historyDateFrom','historyDateTo','historySection','historyOrigin','historyResult'].forEach(id=>$(id).addEventListener(id==='historySearch'?'input':'change',renderHistory));
