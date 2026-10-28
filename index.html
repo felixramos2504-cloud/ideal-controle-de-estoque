@@ -42,7 +42,7 @@
     .report-summary{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
     .report-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:13px}
     .report-summary strong{font-size:16px;margin-left:4px}
-    @media print{body *{visibility:hidden!important}#tab-report,#tab-report *{visibility:visible!important}#tab-report{display:block!important;position:absolute!important;left:0!important;top:0!important;width:100%!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;background:#fff!important}#tab-report .report-controls,#tab-report .actions,#message{display:none!important}#tab-report .tablewrap{overflow:visible!important;border:0!important}#tab-report table{font-size:9pt}#tab-report th,#tab-report td{padding:5px!important;border:1px solid #ccc!important;color:#000!important}}
+    @media print{body *{visibility:hidden!important}#tab-report,#tab-report *,#tab-history,#tab-history *{visibility:visible!important}#tab-report,#tab-history{display:block!important;position:absolute!important;left:0!important;top:0!important;width:100%!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;background:#fff!important}body:not(.print-history) #tab-history,body.print-history #tab-report{display:none!important}#tab-report .report-controls,#tab-report .actions,#tab-history .report-controls,#tab-history .actions,#message{display:none!important}#tab-report .tablewrap,#tab-history .tablewrap{overflow:visible!important;border:0!important}#tab-report table,#tab-history table{font-size:8pt}#tab-report th,#tab-report td,#tab-history th,#tab-history td{padding:4px!important;border:1px solid #ccc!important;color:#000!important}#tab-history .card{margin-top:10px!important;padding:8px!important}}
     .dashboard-empty{padding:12px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:13px}
     @media(max-width:760px){.dashboard-panels{grid-template-columns:1fr}.dashboard-card-wide{grid-column:auto}.dashboard-list-item{gap:8px}.dashboard-list-item .item-right{white-space:normal}}
     body.scanner-open{overflow:hidden;overscroll-behavior:none}
@@ -64,7 +64,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 1.5 · Relatório e contagem física</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 1.6 · Histórico de inventários e contagens</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -114,7 +114,7 @@
     <nav aria-label="Módulos">
       <button data-tab="products">Produtos</button><button data-tab="sections" class="secondary">Seções</button>
       <button data-tab="count" class="secondary">Contagem rápida</button><button data-tab="inventory" class="secondary">Inventário completo</button>
-      <button data-tab="report" class="secondary">Relatório de estoque</button>
+      <button data-tab="report" class="secondary">Relatório de estoque</button><button data-tab="history" class="secondary">Histórico de contagens</button>
     </nav>
 
     <section id="tab-products" class="panel">
@@ -176,8 +176,33 @@
       <div id="reportUpdatedAt" class="muted small" style="margin:8px 0 12px">Aguardando atualização do estoque...</div>
       <div class="tablewrap"><table><thead><tr><th>Produto</th><th>EAN</th><th>Seção</th><th>Estoque atual</th><th>Situação</th></tr></thead><tbody id="stockReportTable"><tr><td colspan="5">Carregando relatório...</td></tr></tbody></table></div>
     </section>
+
+    <section id="tab-history" class="panel hidden">
+      <div class="section-title"><div><h2 style="margin:0">Histórico de inventários e contagens</h2><p class="muted small" style="margin:5px 0 0">Consulte as conferências já registradas, identifique diferenças e acompanhe inventários finalizados.</p></div><span id="historyFreshness" class="badge">Aguardando dados</span></div>
+      <div class="formgrid report-controls">
+        <div><label for="historySearch">Pesquisar produto, EAN ou inventário</label><input id="historySearch" placeholder="Digite nome, EAN ou nome do inventário"></div>
+        <div><label for="historySection">Seção</label><select id="historySection"><option value="">Todas as seções</option></select></div>
+        <div><label for="historyDateFrom">Data inicial</label><input id="historyDateFrom" type="date"></div>
+        <div><label for="historyDateTo">Data final</label><input id="historyDateTo" type="date"></div>
+        <div><label for="historyOrigin">Origem da contagem</label><select id="historyOrigin"><option value="all">Todas</option><option value="inventory">Inventário completo</option><option value="quick">Contagem rápida</option></select></div>
+        <div><label for="historyResult">Resultado da conferência</label><select id="historyResult"><option value="all">Todos</option><option value="difference">Com diferença</option><option value="match">Sem diferença</option></select></div>
+      </div>
+      <div class="actions report-controls"><button id="exportHistoryCsv" type="button">Exportar histórico CSV</button><button id="printHistoryReport" type="button" class="secondary">Imprimir / Salvar em PDF</button></div>
+      <div id="historySummary" class="report-summary"></div>
+      <div id="historyUpdatedAt" class="muted small" style="margin:8px 0 12px">Aguardando histórico...</div>
+      <section class="card dashboard-card" style="margin-top:14px">
+        <h3>Inventários finalizados</h3>
+        <p class="muted small">Mostra as sessões de inventário salvas, com data, seção e quantidade de produtos conferidos.</p>
+        <div class="tablewrap"><table><thead><tr><th>Finalizado em</th><th>Inventário</th><th>Seção</th><th>Produtos contados</th><th>Responsável</th></tr></thead><tbody id="historyInventoriesTable"><tr><td colspan="5">Carregando...</td></tr></tbody></table></div>
+      </section>
+      <section class="card dashboard-card" style="margin-top:14px">
+        <h3>Itens contados e diferenças</h3>
+        <p class="muted small">Exibe até 500 contagens recentes disponíveis para sua conta. A contagem rápida registra a conferência; o inventário completo atualiza o saldo oficial ao ser finalizado.</p>
+        <div class="tablewrap"><table><thead><tr><th>Data</th><th>Origem / inventário</th><th>Produto / EAN</th><th>Saldo registrado</th><th>Contado</th><th>Diferença</th><th>Responsável</th></tr></thead><tbody id="historyCountsTable"><tr><td colspan="7">Carregando...</td></tr></tbody></table></div>
+      </section>
     </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 1.5 · Relatório em tempo real e contagem física. Acesso protegido por HTTPS.</footer>
+    </section>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 1.6 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -189,7 +214,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { user:null, role:null, products:[], sections:[], counts:[], inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{}, eanLookupToken:0, eanLookupCache:{}, stockUpdatedAt:null };
+  const state = { user:null, role:null, products:[], sections:[], counts:[], finishedInventories:[], inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{}, eanLookupToken:0, eanLookupCache:{}, stockUpdatedAt:null, historyUpdatedAt:null };
   const roleRank = { colaborador:1, gerente:2, administrador:3 };
   function message(text, type='notice') { const el=$('message'); el.textContent=text; el.className='notice '+(type==='error'?'error':type==='success'?'success':''); el.classList.remove('hidden'); window.scrollTo({top:0,behavior:'smooth'}); }
   function clearMessage(){ $('message').classList.add('hidden'); }
@@ -419,7 +444,7 @@
     state.scannerCaptured[key]=false;
     if(!Object.keys(state.scanners).length) document.body.classList.remove('scanner-open');
   }
-  function setTab(tab){ ['products','sections','count','inventory','report'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==tab)); document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('secondary',b.dataset.tab!==tab)}); if(tab==='report')renderStockReport(); }
+  function setTab(tab){ ['products','sections','count','inventory','report','history'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==tab)); document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('secondary',b.dataset.tab!==tab)}); if(tab==='report')renderStockReport(); if(tab==='history')renderHistory(); }
   function getStockStatus(product){
     const stock=Number(product.stock||0);
     if(stock<=0)return {code:'zero',label:'Sem estoque',pill:'zero'};
@@ -501,6 +526,104 @@
     link.href=url;link.download='relatorio-estoque-'+new Date().toISOString().slice(0,10)+'.csv';
     document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
+  function historyMillis(value){
+    const d=value&&typeof value.toDate==='function'?value.toDate():(value instanceof Date?value:new Date(value||0));
+    return Number.isFinite(d.getTime())?d.getTime():0;
+  }
+  function historyDateKey(value){
+    const ms=historyMillis(value);
+    if(!ms)return '';
+    const d=new Date(ms);
+    return String(d.getFullYear())+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  function historyDateInRange(value){
+    const date=historyDateKey(value);
+    const from=$('historyDateFrom').value;
+    const to=$('historyDateTo').value;
+    if(!date)return !from&&!to;
+    if(from&&date<from)return false;
+    if(to&&date>to)return false;
+    return true;
+  }
+  function historyInventoryName(id){
+    if(!id)return 'Contagem rápida';
+    const inv=state.finishedInventories.find(item=>item.id===id);
+    return inv?.name||'Inventário completo';
+  }
+  function getFilteredCountHistory(){
+    const q=$('historySearch').value.trim().toLocaleLowerCase('pt-BR');
+    const sectionId=$('historySection').value;
+    const origin=$('historyOrigin').value;
+    const result=$('historyResult').value;
+    return state.counts.filter(item=>{
+      const isInventory=!!item.inventoryId;
+      if(origin==='inventory'&&!isInventory)return false;
+      if(origin==='quick'&&isInventory)return false;
+      if(sectionId&&item.sectionId!==sectionId)return false;
+      if(!historyDateInRange(item.createdAt))return false;
+      const name=String(item.productName||'').toLocaleLowerCase('pt-BR');
+      const ean=String(item.ean||'');
+      const inventoryName=historyInventoryName(item.inventoryId).toLocaleLowerCase('pt-BR');
+      if(q&&!name.includes(q)&&!ean.includes(q)&&!inventoryName.includes(q))return false;
+      const diff=Number(item.countedQty||0)-Number(item.systemStock||0);
+      if(result==='difference'&&diff===0)return false;
+      if(result==='match'&&diff!==0)return false;
+      return true;
+    }).sort((a,b)=>historyMillis(b.createdAt)-historyMillis(a.createdAt));
+  }
+  function getFilteredInventories(){
+    const sectionId=$('historySection').value;
+    const from=$('historyDateFrom').value;
+    const to=$('historyDateTo').value;
+    const q=$('historySearch').value.trim().toLocaleLowerCase('pt-BR');
+    const origin=$('historyOrigin').value;
+    if(origin==='quick')return [];
+    return state.finishedInventories.filter(inv=>{
+      if(!historyDateInRange(inv.finishedAt))return false;
+      if(sectionId&&inv.sectionId!==sectionId)return false;
+      const name=String(inv.name||'').toLocaleLowerCase('pt-BR');
+      if(q&&!name.includes(q)&&!sectionName(inv.sectionId).toLocaleLowerCase('pt-BR').includes(q))return false;
+      return true;
+    }).sort((a,b)=>historyMillis(b.finishedAt)-historyMillis(a.finishedAt));
+  }
+  function renderHistory(){
+    if(!$('historyCountsTable'))return;
+    const rows=getFilteredCountHistory();
+    const inventories=getFilteredInventories();
+    const different=rows.filter(item=>Number(item.countedQty||0)!==Number(item.systemStock||0)).length;
+    $('historySummary').innerHTML='<span>Contagens filtradas <strong>'+rows.length+'</strong></span><span>Com diferença <strong>'+different+'</strong></span><span>Sem diferença <strong>'+(rows.length-different)+'</strong></span><span>Inventários finalizados <strong>'+inventories.length+'</strong></span>';
+    $('historyCountsTable').innerHTML=rows.map(item=>{
+      const diff=Number(item.countedQty||0)-Number(item.systemStock||0);
+      const diffText=(diff>0?'+':'')+fmt(diff);
+      const origin=item.inventoryId?'Inventário completo':'Contagem rápida';
+      const invName=item.inventoryId?historyInventoryName(item.inventoryId):'—';
+      const status=diff===0?'ok':'low';
+      return '<tr><td>'+safe(dateFmt(item.createdAt))+'</td><td>'+safe(origin)+(item.inventoryId?'<br><span class="muted small">'+safe(invName)+'</span>':'')+'</td><td><strong>'+safe(item.productName||'Produto')+'</strong><br><span class="muted small">'+safe(item.ean||'EAN não informado')+'</span></td><td>'+fmt(item.systemStock)+'</td><td>'+fmt(item.countedQty)+'</td><td><span class="status-pill '+status+'">'+safe(diffText)+'</span></td><td>'+safe(item.userEmail||'Não informado')+'</td></tr>';
+    }).join('')||'<tr><td colspan="7">Nenhuma contagem corresponde aos filtros.</td></tr>';
+    $('historyInventoriesTable').innerHTML=inventories.map(inv=>'<tr><td>'+safe(dateFmt(inv.finishedAt))+'</td><td>'+safe(inv.name||'Inventário sem nome')+'</td><td>'+safe(sectionName(inv.sectionId))+'</td><td>'+fmt(inv.itemCount||0)+'</td><td>'+safe(inv.userEmail||'Não informado')+'</td></tr>').join('')||'<tr><td colspan="5">Nenhum inventário finalizado corresponde aos filtros.</td></tr>';
+    const updated=state.historyUpdatedAt?state.historyUpdatedAt.toLocaleString('pt-BR'):'aguardando dados';
+    $('historyUpdatedAt').textContent='Última atualização do histórico: '+updated+'. A tela mostra até 500 contagens recentes e até 200 inventários finalizados, conforme as permissões da conta.';
+    $('historyFreshness').textContent=state.historyUpdatedAt?'Histórico sincronizado':'Aguardando dados';
+  }
+  function exportHistoryCsv(){
+    const rows=getFilteredCountHistory();
+    const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
+    const matrix=[['Data','Origem','Inventário','Produto','EAN','Seção','Saldo registrado','Quantidade contada','Diferença','Responsável']];
+    rows.forEach(item=>{
+      const diff=Number(item.countedQty||0)-Number(item.systemStock||0);
+      matrix.push([historyDateKey(item.createdAt),item.inventoryId?'Inventário completo':'Contagem rápida',historyInventoryName(item.inventoryId),item.productName||'',item.ean||'',sectionName(item.sectionId),Number(item.systemStock||0),Number(item.countedQty||0),diff,item.userEmail||'']);
+    });
+    const csv='\\uFEFF'+matrix.map(row=>row.map(cell).join(';')).join('\\r\\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url;link.download='historico-contagens-'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  function printHistory(){
+    document.body.classList.add('print-history');
+    window.print();
+  }
   function renderSectionOptions(){
     const opts='<option value="">Selecione a seção</option>'+state.sections.slice().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(s=>`<option value="${safe(s.id)}">${safe(s.name)}</option>`).join('');
     $('pSection').innerHTML=opts;
@@ -509,8 +632,13 @@
     const selectedReportSection=reportSection.value;
     reportSection.innerHTML='<option value="">Todas as seções</option>'+state.sections.map(s=>`<option value="${safe(s.id)}">${safe(s.name)}</option>`).join('');
     if(state.sections.some(s=>s.id===selectedReportSection))reportSection.value=selectedReportSection;
+    const historySection=$('historySection');
+    const selectedHistorySection=historySection.value;
+    historySection.innerHTML='<option value="">Todas as seções</option>'+state.sections.map(s=>`<option value="${safe(s.id)}">${safe(s.name)}</option>`).join('');
+    if(state.sections.some(s=>s.id===selectedHistorySection))historySection.value=selectedHistorySection;
     $('sectionsTable').innerHTML=state.sections.slice().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(s=>`<tr><td>${safe(s.name)}</td><td>${safe(s.description||'—')}</td></tr>`).join('')||'<tr><td colspan="2">Nenhuma seção cadastrada.</td></tr>';
     renderStockReport();
+    renderHistory();
   }
   function renderProducts(){
     const q=$('productSearch').value.trim().toLocaleLowerCase('pt-BR');
@@ -522,6 +650,7 @@
   function renderCounts(){
     $('countsTable').innerHTML=state.counts.slice(0,50).map(c=>`<tr><td>${safe(dateFmt(c.createdAt))}</td><td>${safe(c.productName)}</td><td>${fmt(c.systemStock)}</td><td>${fmt(c.countedQty)}</td><td>${fmt(Number(c.countedQty)-Number(c.systemStock))}</td><td>${safe(c.userEmail||'')}</td></tr>`).join('')||'<tr><td colspan="6">Nenhuma contagem registrada.</td></tr>';
     renderDashboard();
+    renderHistory();
   }
   function renderInventory(){
     $('inventoryState').textContent=state.inventory?`Inventário aberto: ${state.inventory.name} · ${state.inventoryItems.length} produto(s) contado(s). Revise as diferenças antes de finalizar.`:'Nenhum inventário aberto.';
@@ -532,7 +661,11 @@
     stopListeners();
     unsubs.push(db.collection('sections').orderBy('name').onSnapshot(s=>{state.sections=s.docs.map(d=>({id:d.id,...d.data()}));renderSectionOptions();renderProducts();},e=>message('Falha ao carregar seções: '+e.message,'error')));
     unsubs.push(db.collection('products').orderBy('name').onSnapshot(s=>{state.products=s.docs.map(d=>({id:d.id,...d.data()}));state.stockUpdatedAt=new Date();renderProducts();},e=>message('Falha ao carregar produtos: '+e.message,'error')));
-    unsubs.push(db.collection('counts').orderBy('createdAt','desc').limit(50).onSnapshot(s=>{state.counts=s.docs.map(d=>({id:d.id,...d.data()}));renderCounts();},e=>message('Falha ao carregar contagens: '+e.message,'error')));
+    const canViewAllHistory=state.role==='administrador'||state.role==='gerente';
+    const countQuery=canViewAllHistory?db.collection('counts').orderBy('createdAt','desc').limit(500):db.collection('counts').where('userId','==',state.user.uid).limit(500);
+    unsubs.push(countQuery.onSnapshot(s=>{state.counts=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>historyMillis(b.createdAt)-historyMillis(a.createdAt));state.historyUpdatedAt=new Date();renderCounts();},e=>message('Falha ao carregar histórico de contagens: '+e.message,'error')));
+    const inventoryQuery=canViewAllHistory?db.collection('inventories').orderBy('finishedAt','desc').limit(200):db.collection('inventories').where('userId','==',state.user.uid).limit(200);
+    unsubs.push(inventoryQuery.onSnapshot(s=>{state.finishedInventories=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>historyMillis(b.finishedAt)-historyMillis(a.finishedAt));state.historyUpdatedAt=new Date();renderHistory();},e=>message('Falha ao carregar histórico de inventários: '+e.message,'error')));
   }
   async function loadRole(user){
     const snap=await db.collection('users').doc(user.uid).get();
@@ -544,7 +677,7 @@
     $('appPanel').classList.remove('hidden'); $('authPanel').classList.add('hidden'); attachListeners();
   }
   async function onAuth(user){
-    stopListeners(); state.user=user; state.role=null; state.products=[]; state.sections=[]; state.counts=[]; state.stockUpdatedAt=null;
+    stopListeners(); state.user=user; state.role=null; state.products=[]; state.sections=[]; state.counts=[]; state.finishedInventories=[]; state.stockUpdatedAt=null; state.historyUpdatedAt=null;
     if(!user){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.add('hidden');return;}
     try{await loadRole(user);clearMessage();}catch(e){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.remove('hidden');$('userEmail').textContent=user.email||'';message(e.message,'error');}
   }
@@ -579,7 +712,11 @@
     $('stockReportSection').addEventListener('change',renderStockReport);
     $('stockReportStatus').addEventListener('change',renderStockReport);
     $('exportStockCsv').addEventListener('click',exportStockReportCsv);
-    $('printStockReport').addEventListener('click',()=>window.print());
+    $('printStockReport').addEventListener('click',()=>{document.body.classList.remove('print-history');window.print();});
+    ['historySearch','historyDateFrom','historyDateTo','historySection','historyOrigin','historyResult'].forEach(id=>$(id).addEventListener(id==='historySearch'?'input':'change',renderHistory));
+    $('exportHistoryCsv').addEventListener('click',exportHistoryCsv);
+    $('printHistoryReport').addEventListener('click',printHistory);
+    window.addEventListener('afterprint',()=>document.body.classList.remove('print-history'));
     $('clearProductBtn').addEventListener('click',()=>{$('productForm').reset();$('productId').value='';$('pStock').value='0';});
     $('productsTable').addEventListener('click',e=>{const b=e.target.closest('[data-edit]');if(!b)return;const p=state.products.find(x=>x.id===b.dataset.edit);if(!p)return;$('productId').value=p.id;$('pEan').value=p.ean||'';$('pName').value=p.name;$('pSection').value=p.sectionId;$('pUnit').value=p.unit||'UN';$('pStock').value=p.stock;window.scrollTo({top:0,behavior:'smooth'});});
     $('pEan').addEventListener('change',lookupProductFromEanField);
