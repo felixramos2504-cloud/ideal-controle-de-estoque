@@ -22,6 +22,23 @@
     #scanner{max-width:480px;width:100%;margin-top:12px} .small{font-size:13px}.right{margin-left:auto}
     .lookup-status{font-size:13px;min-height:1.3em;margin-top:6px;color:var(--muted)}
     .lookup-status.success{color:#166534}.lookup-status.warning{color:#92400e}.lookup-status.error{color:#991b1b}
+    .dashboard-panels{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px;margin-top:14px}
+    .dashboard-card{min-width:0;margin:0}
+    .dashboard-card-wide{grid-column:1 / -1}
+    .dashboard-card h3{margin:0 0 10px;font-size:17px}
+    .dashboard-mini-table{font-size:13px}
+    .dashboard-mini-table th,.dashboard-mini-table td{padding:8px}
+    .dashboard-list{display:flex;flex-direction:column;gap:8px}
+    .dashboard-list-item{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+    .dashboard-list-item strong{display:block}
+    .dashboard-list-item .subline{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+    .dashboard-list-item .item-right{text-align:right;white-space:nowrap;font-weight:700}
+    .status-pill{display:inline-block;padding:3px 7px;border-radius:999px;font-size:11px;font-weight:750}
+    .status-pill.zero{background:#fee2e2;color:#991b1b}
+    .status-pill.low{background:#fef3c7;color:#92400e}
+    .status-pill.ok{background:#dcfce7;color:#166534}
+    .dashboard-empty{padding:12px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:13px}
+    @media(max-width:760px){.dashboard-panels{grid-template-columns:1fr}.dashboard-card-wide{grid-column:auto}.dashboard-list-item{gap:8px}.dashboard-list-item .item-right{white-space:normal}}
     body.scanner-open{overflow:hidden;overscroll-behavior:none}
     .scanner-overlay{position:fixed;inset:0;z-index:99999;width:100vw;height:100vh;height:100dvh;background:#050806;color:#fff;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;flex-direction:column;gap:12px;overflow:hidden;margin:0;border:0;border-radius:0;box-shadow:none}
     .scanner-header{flex:0 0 auto;text-align:center;padding:2px 8px}
@@ -41,7 +58,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 1.2 · Inventário, movimentações e consulta EAN</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 1.3 · Dashboard, inventário e consulta EAN</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -65,6 +82,26 @@
         <div class="card"><div class="muted">Seções cadastradas</div><div id="statSections" class="stat">—</div></div>
         <div class="card"><div class="muted">Estoque baixo</div><div id="statLow" class="stat">—</div></div>
         <div class="card"><div class="muted">Sem estoque</div><div id="statZero" class="stat">—</div></div>
+      </div>
+      <div class="dashboard-panels">
+        <section class="card dashboard-card dashboard-card-wide">
+          <div class="section-title"><h3>Atenção ao estoque</h3><span id="stockAttentionBadge" class="badge">Verificando</span></div>
+          <p class="muted small">Produtos que precisam de reposição, incluindo estoque zerado.</p>
+          <div id="stockAttentionList" class="dashboard-list"><div class="dashboard-empty">Carregando alertas de estoque...</div></div>
+        </section>
+        <section class="card dashboard-card">
+          <div class="section-title"><h3>Resumo por seção</h3></div>
+          <div class="tablewrap">
+            <table class="dashboard-mini-table">
+              <thead><tr><th>Seção</th><th>Produtos</th><th>Alertas</th></tr></thead>
+              <tbody id="dashboardSections"><tr><td colspan="3">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card dashboard-card">
+          <div class="section-title"><h3>Movimentações recentes</h3></div>
+          <div id="dashboardMovements" class="dashboard-list"><div class="dashboard-empty">Carregando movimentações...</div></div>
+        </section>
       </div>
     </div>
 
@@ -129,7 +166,7 @@
       <div class="tablewrap"><table><thead><tr><th>Data</th><th>Produto / EAN</th><th>Tipo</th><th>Quantidade</th><th>Responsável</th><th>Motivo</th></tr></thead><tbody id="movementsTable"></tbody></table></div>
     </section>
   </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 1.2 · Proteja as credenciais e publique apenas em HTTPS.</footer>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 1.3 · Proteja as credenciais e publique apenas em HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -374,9 +411,59 @@
   }
   function setTab(tab){ ['products','sections','count','inventory','movements'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==tab)); document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('secondary',b.dataset.tab!==tab)}); }
   function renderDashboard(){
-    $('statProducts').textContent=state.products.length; $('statSections').textContent=state.sections.length;
-    $('statLow').textContent=state.products.filter(p=>Number(p.stock)>0 && Number(p.stock)<=Number(p.minStock)).length;
-    $('statZero').textContent=state.products.filter(p=>Number(p.stock)<=0).length;
+    const lowProducts=state.products.filter(p=>Number(p.stock)>0 && Number(p.stock)<=Number(p.minStock));
+    const zeroProducts=state.products.filter(p=>Number(p.stock)<=0);
+    const attention=[...zeroProducts,...lowProducts].sort((a,b)=>{
+      const az=Number(a.stock)<=0?0:1, bz=Number(b.stock)<=0?0:1;
+      return az-bz || String(a.name||'').localeCompare(String(b.name||''),'pt-BR');
+    });
+    $('statProducts').textContent=state.products.length;
+    $('statSections').textContent=state.sections.length;
+    $('statLow').textContent=lowProducts.length;
+    $('statZero').textContent=zeroProducts.length;
+
+    const badge=$('stockAttentionBadge');
+    if(badge)badge.textContent=attention.length ? attention.length+' alerta(s)' : 'Tudo em ordem';
+    const attentionList=$('stockAttentionList');
+    if(attentionList){
+      if(!state.products.length){
+        attentionList.innerHTML='<div class="dashboard-empty">Ainda não há produtos cadastrados. Cadastre produtos para começar a acompanhar o estoque.</div>';
+      }else if(!attention.length){
+        attentionList.innerHTML='<div class="notice success" style="margin:0">Nenhum produto com estoque baixo ou zerado no momento.</div>';
+      }else{
+        attentionList.innerHTML=attention.slice(0,10).map(p=>{
+          const zero=Number(p.stock)<=0;
+          return `<div class="dashboard-list-item">
+            <div><strong>${safe(p.name||'Produto sem nome')}</strong><span class="subline">EAN: ${safe(p.ean||'não informado')} · Seção: ${safe(sectionName(p.sectionId))}</span></div>
+            <div class="item-right"><span class="status-pill ${zero?'zero':'low'}">${zero?'SEM ESTOQUE':'ESTOQUE BAIXO'}</span><span class="subline">Atual: ${fmt(p.stock)} ${safe(p.unit||'UN')} · Mínimo: ${fmt(p.minStock)}</span></div>
+          </div>`;
+        }).join('')+(attention.length>10?'<div class="dashboard-empty">Mostrando os 10 primeiros de '+attention.length+' produtos com alerta. Consulte Produtos para ver a lista completa.</div>':'');
+      }
+    }
+
+    const sectionBody=$('dashboardSections');
+    if(sectionBody){
+      sectionBody.innerHTML=state.sections.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR')).map(section=>{
+        const products=state.products.filter(p=>p.sectionId===section.id);
+        const alerts=products.filter(p=>Number(p.stock)<=0 || (Number(p.stock)>0 && Number(p.stock)<=Number(p.minStock))).length;
+        return `<tr><td>${safe(section.name)}</td><td>${products.length}</td><td>${alerts?'<span class="status-pill low">'+alerts+'</span>':'<span class="status-pill ok">0</span>'}</td></tr>`;
+      }).join('')||'<tr><td colspan="3">Nenhuma seção cadastrada.</td></tr>';
+    }
+
+    const recent=$('dashboardMovements');
+    if(recent){
+      const recentItems=state.movements.slice(0,5);
+      recent.innerHTML=recentItems.map(m=>{
+        const type=String(m.type||'').toLowerCase();
+        const label=type==='entrada'?'ENTRADA':type==='saida'?'SAÍDA':type==='ajuste'?'AJUSTE':type==='ajuste_inventario'?'AJUSTE DE INVENTÁRIO':String(m.type||'MOVIMENTAÇÃO').toUpperCase();
+        const pill=type==='entrada'?'ok':type==='saida'?'low':'zero';
+        const amount=(type==='saida' || Number(m.quantity)<0?'-':'+')+fmt(Math.abs(Number(m.quantity||0)))+' '+safe(m.unit||'');
+        return `<div class="dashboard-list-item">
+          <div><strong>${safe(m.productName||'Produto')}</strong><span class="subline">${safe(dateFmt(m.createdAt))} · ${safe(m.userEmail||'Responsável não informado')}</span><span class="subline">${safe(m.reason||'Sem observação')}</span></div>
+          <div class="item-right"><span class="status-pill ${pill}">${safe(label)}</span><span class="subline">${amount.trim()}</span></div>
+        </div>`;
+      }).join('')||'<div class="dashboard-empty">Nenhuma movimentação registrada ainda.</div>';
+    }
   }
   function renderSectionOptions(){
     const opts='<option value="">Selecione a seção</option>'+state.sections.slice().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(s=>`<option value="${safe(s.id)}">${safe(s.name)}</option>`).join('');
@@ -395,6 +482,7 @@
   }
   function renderMovements(){
     $('movementsTable').innerHTML=state.movements.slice(0,50).map(m=>`<tr><td>${safe(dateFmt(m.createdAt))}</td><td>${safe(m.productName)}<br><span class="muted small">${safe(m.ean)}</span></td><td>${safe(m.type)}</td><td>${fmt(m.quantity)}</td><td>${safe(m.userEmail||'')}</td><td>${safe(m.reason)}</td></tr>`).join('')||'<tr><td colspan="6">Nenhuma movimentação.</td></tr>';
+    renderDashboard();
   }
   function renderInventory(){
     $('inventoryState').textContent=state.inventory?`Inventário aberto: ${state.inventory.name} · ${state.inventoryItems.length} produto(s) contado(s). Revise as diferenças antes de finalizar.`:'Nenhum inventário aberto.';
