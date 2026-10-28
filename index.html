@@ -58,6 +58,14 @@
     .audit-entity{display:block;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
     .audit-action{font-weight:700}
     #auditTable td{vertical-align:top}
+    .integrity-summary{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+    .integrity-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:13px}
+    .integrity-summary strong{font-size:16px;margin-left:4px}
+    .backup-note{border-left:3px solid var(--green2);padding:10px 12px;background:#f0fdf4;border-radius:6px;font-size:13px}
+    .severity{display:inline-block;border-radius:999px;padding:3px 7px;font-weight:700;font-size:11px}
+    .severity.error{background:#fee2e2;color:#991b1b}
+    .severity.warning{background:#fef3c7;color:#92400e}
+    #integrityTable td{vertical-align:top}
     .user-uid{display:block;max-width:360px;overflow-wrap:anywhere;font-size:11px;color:var(--muted);margin-top:3px}
     @media print{body *{visibility:hidden!important}#tab-report,#tab-report *,#tab-history,#tab-history *{visibility:visible!important}#tab-report,#tab-history{display:block!important;position:absolute!important;left:0!important;top:0!important;width:100%!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;background:#fff!important}body:not(.print-history) #tab-history,body.print-history #tab-report{display:none!important}#tab-report .report-controls,#tab-report .actions,#tab-history .report-controls,#tab-history .actions,#message{display:none!important}#tab-report .tablewrap,#tab-history .tablewrap{overflow:visible!important;border:0!important}#tab-report table,#tab-history table{font-size:8pt}#tab-report th,#tab-report td,#tab-history th,#tab-history td{padding:4px!important;border:1px solid #ccc!important;color:#000!important}#tab-history .card{margin-top:10px!important;padding:8px!important}}
     .dashboard-empty{padding:12px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:13px}
@@ -81,7 +89,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 2.1 · Histórico de inventários e contagens</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 2.2 · Histórico de inventários e contagens</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -131,7 +139,7 @@
     <nav aria-label="Módulos">
       <button data-tab="products">Produtos</button><button data-tab="sections" class="secondary">Seções</button>
       <button data-tab="count" class="secondary">Contagem rápida</button><button data-tab="inventory" class="secondary">Inventário completo</button>
-      <button data-tab="report" class="secondary">Relatório de estoque</button><button data-tab="history" class="secondary">Histórico de contagens</button><button id="usersTabBtn" data-tab="users" class="secondary hidden">Usuários</button><button id="auditTabBtn" data-tab="audit" class="secondary hidden">Auditoria</button>
+      <button data-tab="report" class="secondary">Relatório de estoque</button><button data-tab="history" class="secondary">Histórico de contagens</button><button id="usersTabBtn" data-tab="users" class="secondary hidden">Usuários</button><button id="auditTabBtn" data-tab="audit" class="secondary hidden">Auditoria</button><button id="backupTabBtn" data-tab="backup" class="secondary hidden">Backup</button>
     </nav>
 
     <section id="tab-products" class="panel">
@@ -184,13 +192,33 @@
       <div class="section-title"><div><h2 style="margin:0">Auditoria de alterações</h2><p class="muted small" style="margin:5px 0 0">Registros de operações do sistema, com responsável, data e detalhes. A auditoria não altera o estoque.</p></div><span id="auditFreshness" class="badge">Aguardando dados</span></div>
       <div class="formgrid report-controls">
         <div><label for="auditSearch">Pesquisar auditoria</label><input id="auditSearch" placeholder="Responsável, EAN, produto ou detalhe"></div>
-        <div><label for="auditActionFilter">Tipo de operação</label><select id="auditActionFilter"><option value="all">Todas as operações</option><option value="product_created">Produto cadastrado</option><option value="product_updated">Produto atualizado</option><option value="section_created">Seção cadastrada</option><option value="quick_count_registered">Contagem rápida registrada</option><option value="inventory_finalized">Inventário finalizado</option><option value="user_created">Usuário criado</option><option value="user_access_updated">Perfil ou acesso alterado</option></select></div>
+        <div><label for="auditActionFilter">Tipo de operação</label><select id="auditActionFilter"><option value="all">Todas as operações</option><option value="product_created">Produto cadastrado</option><option value="product_updated">Produto atualizado</option><option value="section_created">Seção cadastrada</option><option value="quick_count_registered">Contagem rápida registrada</option><option value="inventory_finalized">Inventário finalizado</option><option value="user_created">Usuário criado</option><option value="user_access_updated">Perfil ou acesso alterado</option><option value="backup_exported">Backup exportado</option></select></div>
       </div>
       <div class="actions report-controls"><button id="exportAuditCsv" type="button">Exportar auditoria CSV</button></div>
       <div id="auditSummary" class="audit-summary"></div>
       <div id="auditUpdatedAt" class="muted small" style="margin:8px 0 12px">Aguardando registros de auditoria...</div>
       <div class="tablewrap"><table><thead><tr><th>Data e hora</th><th>Responsável</th><th>Operação</th><th>Detalhes</th></tr></thead><tbody id="auditTable"><tr><td colspan="4">Carregando auditoria...</td></tr></tbody></table></div>
       <p class="muted small" style="margin-top:12px">São exibidos até 500 registros recentes. Os registros de auditoria não podem ser alterados nem excluídos pelo aplicativo.</p>
+    </section>
+
+    <section id="tab-backup" class="panel hidden">
+      <div class="section-title"><div><h2 style="margin:0">Backup e integridade</h2><p class="muted small" style="margin:5px 0 0">Ferramentas administrativas para cópia de segurança e conferência da qualidade do cadastro.</p></div><span class="badge">Somente administrador</span></div>
+      <div class="backup-note" style="margin:14px 0">O backup é baixado para o seu computador em formato JSON. Ele inclui os dados do Firestore disponíveis às permissões do administrador, mas não inclui senhas nem credenciais do Firebase Authentication. Guarde o arquivo em local seguro. Esta tela não restaura nem sobrescreve dados.</div>
+      <section class="card" style="margin-top:14px">
+        <h3>1. Cópia de segurança</h3>
+        <p class="muted small">Exporta produtos, seções, perfis de usuários, contagens, inventários e auditoria. A operação apenas lê e baixa os dados; não altera o estoque.</p>
+        <div class="actions"><button id="downloadBackupBtn" type="button">Gerar e baixar backup JSON</button></div>
+        <div id="backupStatus" class="muted small" style="margin-top:10px">Nenhum backup gerado nesta sessão.</div>
+      </section>
+      <section class="card" style="margin-top:14px">
+        <h3>2. Verificação do cadastro</h3>
+        <p class="muted small">Procura EAN duplicado ou inválido, seção inexistente, saldo negativo ou inválido, nomes de seção repetidos e produtos sem nome.</p>
+        <div class="actions"><button id="runIntegrityBtn" type="button">Verificar integridade agora</button><button id="exportIntegrityCsv" type="button" class="secondary" disabled>Exportar resultado CSV</button></div>
+        <div id="integrityStatus" class="muted small" style="margin-top:10px">A verificação ainda não foi executada.</div>
+        <div id="integritySummary" class="integrity-summary"></div>
+        <div class="tablewrap"><table><thead><tr><th>Gravidade</th><th>Item</th><th>Problema encontrado</th></tr></thead><tbody id="integrityTable"><tr><td colspan="3">Execute a verificação para ver os resultados.</td></tr></tbody></table></div>
+      </section>
+      <p class="muted small">A verificação é uma fotografia dos dados no momento da execução. Corrija os avisos manualmente e rode a conferência novamente. O sistema não corrige nem apaga registros automaticamente.</p>
     </section>
 
     <section id="tab-count" class="panel hidden">
@@ -258,7 +286,7 @@
       </section>
     </section>
     </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 2.1 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 2.2 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -270,7 +298,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { user:null, role:null, products:[], productsLoaded:false, sections:[], counts:[], finishedInventories:[], users:[], usersLoaded:false, auditLogs:[], auditLoaded:false, auditUpdatedAt:null, inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{}, eanLookupToken:0, eanLookupCache:{}, stockUpdatedAt:null, historyUpdatedAt:null };
+  const state = { user:null, role:null, products:[], productsLoaded:false, sections:[], counts:[], finishedInventories:[], users:[], usersLoaded:false, auditLogs:[], auditLoaded:false, auditUpdatedAt:null, integrityIssues:[], integritySummary:null, integrityCheckedAt:null, inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{}, eanLookupToken:0, eanLookupCache:{}, stockUpdatedAt:null, historyUpdatedAt:null };
   const roleRank = { colaborador:1, gerente:2, administrador:3 };
   function message(text, type='notice') { const el=$('message'); el.textContent=text; el.className='notice '+(type==='error'?'error':type==='success'?'success':''); el.classList.remove('hidden'); window.scrollTo({top:0,behavior:'smooth'}); }
   function clearMessage(){ $('message').classList.add('hidden'); }
@@ -500,7 +528,7 @@
     state.scannerCaptured[key]=false;
     if(!Object.keys(state.scanners).length) document.body.classList.remove('scanner-open');
   }
-  function setTab(tab){ if(tab==='users'&&state.role!=='administrador')tab='products'; if(tab==='audit'&&!['administrador','gerente'].includes(state.role))tab='products'; ['products','sections','count','inventory','report','history','users','audit'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==tab)); document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('secondary',b.dataset.tab!==tab)}); if(tab==='report')renderStockReport(); if(tab==='history')renderHistory(); if(tab==='users')renderUsers(); if(tab==='audit')renderAudit(); }
+  function setTab(tab){ if(tab==='users'&&state.role!=='administrador')tab='products'; if(tab==='backup'&&state.role!=='administrador')tab='products'; if(tab==='audit'&&!['administrador','gerente'].includes(state.role))tab='products'; ['products','sections','count','inventory','report','history','users','audit','backup'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==tab)); document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('secondary',b.dataset.tab!==tab)}); if(tab==='report')renderStockReport(); if(tab==='history')renderHistory(); if(tab==='users')renderUsers(); if(tab==='audit')renderAudit(); if(tab==='backup')renderIntegrity(); }
   function getStockStatus(product){
     const stock=Number(product.stock||0);
     if(stock<=0)return {code:'zero',label:'Sem estoque',pill:'zero'};
@@ -836,7 +864,8 @@
     quick_count_registered:'Contagem rápida registrada',
     inventory_finalized:'Inventário finalizado',
     user_created:'Usuário criado',
-    user_access_updated:'Perfil ou acesso alterado'
+    user_access_updated:'Perfil ou acesso alterado',
+    backup_exported:'Backup exportado'
   };
   function auditDetailsText(log){
     const d=log.details&&typeof log.details==='object'?log.details:{};
@@ -882,6 +911,145 @@
       const haystack=[log.userEmail,log.userId,log.action,auditActionNames[log.action]||'',log.summary,auditDetailsText(log),log.entityId].join(' ').toLocaleLowerCase('pt-BR');
       return haystack.includes(query);
     }).sort((a,b)=>historyMillis(b.createdAt)-historyMillis(a.createdAt));
+  }
+  function plainBackupValue(value){
+    if(value&&typeof value.toDate==='function')return value.toDate().toISOString();
+    if(value instanceof Date)return value.toISOString();
+    if(Array.isArray(value))return value.map(plainBackupValue);
+    if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,val])=>[key,plainBackupValue(val)]));
+    return value;
+  }
+  async function readCollectionForExport(name){
+    const snapshot=await db.collection(name).get();
+    return snapshot.docs.map(doc=>({id:doc.id,...plainBackupValue(doc.data())}));
+  }
+  function downloadJson(filename,data){
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8;'});
+    const url=URL.createObjectURL(blob),link=document.createElement('a');
+    link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }
+  async function downloadSystemBackup(){
+    const btn=$('downloadBackupBtn');
+    if(btn.disabled)return;
+    btn.disabled=true;
+    $('backupStatus').textContent='Lendo as coleções autorizadas do Firestore...';
+    try{
+      await requireRole('administrador');
+      await recordAudit('backup_exported','backup','system','Backup JSON exportado',{collections:['products','sections','users','counts','inventories','auditLogs']});
+      const names=['products','sections','users','counts','inventories','auditLogs'];
+      const pairs=await Promise.all(names.map(async name=>[name,await readCollectionForExport(name)]));
+      const collections=Object.fromEntries(pairs);
+      const total=Object.values(collections).reduce((sum,rows)=>sum+rows.length,0);
+      const createdAt=new Date().toISOString();
+      const backup={
+        metadata:{
+          application:'IDEAL Controle de Estoque',
+          version:'MASTER 2.2',
+          type:'firestore-data-export',
+          generatedAt:createdAt,
+          projectId:window.IDEAL_FIREBASE_CONFIG?.projectId||'não informado',
+          collectionCount:names.length,
+          documentCount:total,
+          warning:'Exportação de dados do Firestore. Não inclui senhas ou credenciais do Firebase Authentication. Este JSON não é um mecanismo automático de restauração.'
+        },
+        collections:collections
+      };
+      const stamp=createdAt.slice(0,19).replace(/[:T]/g,'-');
+      downloadJson('backup-ideal-estoque-'+stamp+'.json',backup);
+      $('backupStatus').textContent='Backup baixado: '+total.toLocaleString('pt-BR')+' documento(s), em '+names.length+' coleções. Data: '+new Date(createdAt).toLocaleString('pt-BR')+'.';
+      message('Backup JSON gerado e baixado. Guarde o arquivo em local seguro.','success');
+    }catch(err){
+      $('backupStatus').textContent='Falha ao gerar o backup. Verifique as permissões do Firestore e tente novamente.';
+      message('Não foi possível gerar o backup: '+(err.message||err),'error');
+    }finally{btn.disabled=false;}
+  }
+  function runIntegrityAnalysis(products,sections){
+    const issues=[];
+    const add=(severity,code,item,details)=>issues.push({severity:severity,code:code,item:item,details:details});
+    const sectionIds=new Set(sections.map(section=>section.id));
+    const eanGroups=new Map();
+    products.forEach(p=>{
+      const name=String(p.name||'').trim()||'(sem nome)';
+      const ean=String(p.ean||'').trim();
+      if(!String(p.name||'').trim())add('error','missing_name',name,'Produto sem nome. ID: '+p.id);
+      if(!ean)add('warning','missing_ean',name,'Produto sem EAN. ID: '+p.id);
+      else{
+        if(!validEan(ean)||!eanChecksum(ean))add('error','invalid_ean',name,'EAN inválido: '+ean+'. ID: '+p.id);
+        const normalized=ean.replace(/\s/g,'');
+        if(!eanGroups.has(normalized))eanGroups.set(normalized,[]);
+        eanGroups.get(normalized).push(p);
+      }
+      if(!p.sectionId||!sectionIds.has(p.sectionId))add('error','missing_section',name,'Seção não cadastrada ou removida. ID do produto: '+p.id+'; sectionId: '+(p.sectionId||'vazio'));
+      const stock=Number(p.stock);
+      if(!Number.isFinite(stock)||stock<0)add('error','invalid_stock',name,'Saldo inválido: '+String(p.stock)+'; ID: '+p.id);
+    });
+    eanGroups.forEach((group,ean)=>{
+      if(group.length>1)add('error','duplicate_ean',ean,'EAN repetido em '+group.length+' produtos: '+group.map(p=>String(p.name||p.id)+' [ID '+p.id+']').join('; '));
+    });
+    const sectionNameGroups=new Map();
+    sections.forEach(section=>{
+      const key=normalizeLookupText(section.name||'');
+      if(!key){add('error','empty_section_name','Seção sem nome','ID da seção: '+section.id);return;}
+      if(!sectionNameGroups.has(key))sectionNameGroups.set(key,[]);
+      sectionNameGroups.get(key).push(section);
+    });
+    sectionNameGroups.forEach((group,key)=>{
+      if(group.length>1)add('warning','duplicate_section',key,'Nome de seção duplicado ou equivalente: '+group.map(s=>String(s.name)+' [ID '+s.id+']').join('; '));
+    });
+    const errors=issues.filter(issue=>issue.severity==='error').length;
+    const warnings=issues.filter(issue=>issue.severity==='warning').length;
+    return {issues:issues,summary:{products:products.length,sections:sections.length,errors:errors,warnings:warnings,eanDuplicates:issues.filter(i=>i.code==='duplicate_ean').length},checkedAt:new Date()};
+  }
+  async function runIntegrityCheck(){
+    const btn=$('runIntegrityBtn');
+    if(btn.disabled)return;
+    btn.disabled=true;
+    $('integrityStatus').textContent='Conferindo produtos e seções no Firestore...';
+    $('integrityTable').innerHTML='<tr><td colspan="3">Verificando cadastro...</td></tr>';
+    try{
+      await requireRole('administrador');
+      const [productsSnap,sectionsSnap]=await Promise.all([db.collection('products').get(),db.collection('sections').get()]);
+      const products=productsSnap.docs.map(d=>({id:d.id,...d.data()}));
+      const sections=sectionsSnap.docs.map(d=>({id:d.id,...d.data()}));
+      const result=runIntegrityAnalysis(products,sections);
+      state.integrityIssues=result.issues;
+      state.integritySummary=result.summary;
+      state.integrityCheckedAt=result.checkedAt;
+      $('exportIntegrityCsv').disabled=!result.issues.length;
+      renderIntegrity();
+      message('Verificação concluída: '+result.summary.errors+' erro(s) e '+result.summary.warnings+' aviso(s).','success');
+    }catch(err){
+      $('integrityStatus').textContent='Falha na verificação. Confira as permissões do administrador no Firestore.';
+      $('integrityTable').innerHTML='<tr><td colspan="3">Não foi possível concluir a verificação.</td></tr>';
+      message('Não foi possível verificar o cadastro: '+(err.message||err),'error');
+    }finally{btn.disabled=false;}
+  }
+  function renderIntegrity(){
+    const tbody=$('integrityTable');
+    if(!tbody)return;
+    if(!state.integrityCheckedAt||!state.integritySummary){
+      $('integrityStatus').textContent='A verificação ainda não foi executada.';
+      $('integritySummary').innerHTML='';
+      return;
+    }
+    const result=state.integritySummary;
+    $('integrityStatus').textContent='Última verificação: '+state.integrityCheckedAt.toLocaleString('pt-BR')+'. Os resultados são uma fotografia dos dados naquele momento.';
+    $('integritySummary').innerHTML='<span>Produtos <strong>'+result.products+'</strong></span><span>Seções <strong>'+result.sections+'</strong></span><span>Erros <strong>'+result.errors+'</strong></span><span>Avisos <strong>'+result.warnings+'</strong></span><span>EAN duplicados <strong>'+result.eanDuplicates+'</strong></span>';
+    tbody.innerHTML=state.integrityIssues.slice(0,200).map(issue=>'<tr><td><span class="severity '+safe(issue.severity)+'">'+(issue.severity==='error'?'ERRO':'AVISO')+'</span></td><td><strong>'+safe(issue.item)+'</strong><span class="audit-entity">'+safe(issue.code)+'</span></td><td>'+safe(issue.details)+'</td></tr>').join('')||'<tr><td colspan="3"><div class="notice success" style="margin:0">Nenhum problema encontrado nos critérios verificados.</div></td></tr>';
+    if(state.integrityIssues.length>200)tbody.insertAdjacentHTML('beforeend','<tr><td colspan="3">Exibindo 200 de '+state.integrityIssues.length+' ocorrências. Exporte o CSV para consultar todas.</td></tr>');
+  }
+  function exportIntegrityCsv(){
+    if(!state.integrityCheckedAt)return;
+    const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
+    const matrix=[['Verificado em','Gravidade','Código','Item','Detalhes']];
+    state.integrityIssues.forEach(issue=>matrix.push([state.integrityCheckedAt.toLocaleString('pt-BR'),issue.severity,issue.code,issue.item,issue.details]));
+    if(state.integrityIssues.length===0)matrix.push([state.integrityCheckedAt.toLocaleString('pt-BR'),'OK','no_issues','Cadastro','Nenhum problema encontrado nos critérios verificados.']);
+    const csv='\uFEFF'+matrix.map(row=>row.map(cell).join(';')).join('\r\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob),link=document.createElement('a');
+    link.href=url;link.download='integridade-estoque-'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
   }
   function renderAudit(){
     if(!$('auditTable'))return;
@@ -1017,12 +1185,13 @@
     document.querySelectorAll('[data-tab="sections"],#sectionForm,#finishInventoryBtn').forEach(el=>{el.classList.toggle('hidden',roleRank[role]<roleRank.gerente)});
     $('usersTabBtn').classList.toggle('hidden',role!=='administrador');
     $('auditTabBtn').classList.toggle('hidden',!['administrador','gerente'].includes(role));
-    $('tab-users').classList.add('hidden');$('tab-audit').classList.add('hidden');
+    $('backupTabBtn').classList.toggle('hidden',role!=='administrador');
+    $('tab-users').classList.add('hidden');$('tab-audit').classList.add('hidden');$('tab-backup').classList.add('hidden');
     restoreInventoryDraft(user);
     $('appPanel').classList.remove('hidden'); $('authPanel').classList.add('hidden'); attachListeners();
   }
   async function onAuth(user){
-    stopListeners(); state.user=user; state.role=null; state.products=[]; state.productsLoaded=false; state.sections=[]; state.counts=[]; state.finishedInventories=[]; state.users=[]; state.usersLoaded=false; state.auditLogs=[]; state.auditLoaded=false; state.auditUpdatedAt=null; state.inventory=null; state.inventoryItems=[]; state.stockUpdatedAt=null; state.historyUpdatedAt=null;
+    stopListeners(); state.user=user; state.role=null; state.products=[]; state.productsLoaded=false; state.sections=[]; state.counts=[]; state.finishedInventories=[]; state.users=[]; state.usersLoaded=false; state.auditLogs=[]; state.auditLoaded=false; state.auditUpdatedAt=null; state.integrityIssues=[];state.integritySummary=null;state.integrityCheckedAt=null;state.inventory=null; state.inventoryItems=[]; state.stockUpdatedAt=null; state.historyUpdatedAt=null;
     if(!user){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.add('hidden');return;}
     try{await loadRole(user);clearMessage();}catch(e){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.remove('hidden');$('userEmail').textContent=user.email||'';message(e.message,'error');}
   }
@@ -1106,6 +1275,9 @@
     $('loginForm').addEventListener('submit',async e=>{e.preventDefault();try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);clearMessage();}catch(err){message('Não foi possível entrar: confira e-mail e senha e se a conta foi autorizada.','error');}});
     $('logoutBtn').addEventListener('click',()=>auth.signOut());
     $('managedUserForm').addEventListener('submit',createManagedUser);
+    $('downloadBackupBtn').addEventListener('click',downloadSystemBackup);
+    $('runIntegrityBtn').addEventListener('click',runIntegrityCheck);
+    $('exportIntegrityCsv').addEventListener('click',exportIntegrityCsv);
     $('auditSearch').addEventListener('input',renderAudit);
     $('auditActionFilter').addEventListener('change',renderAudit);
     $('exportAuditCsv').addEventListener('click',exportAuditCsv);
