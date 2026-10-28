@@ -85,11 +85,11 @@ input:focus,select:focus{outline:3px solid #9bbcff80;border-color:#0047AB}
 <div class="toolbar"><div><h2>Lista da coleta</h2><div class="muted small">Confira as quantidades antes de enviar.</div></div><span id="collectionCount" class="status-pill">0 produtos</span></div>
 <div class="metric-row"><div class="metric"><span>Produtos na lista</span><strong id="metricProducts">0</strong></div><div class="metric"><span>Novos saldos informados</span><strong id="metricBalances">0</strong></div><div class="metric"><span>Alterações previstas</span><strong id="metricChanges">0</strong></div></div>
 <div class="tablewrap"><table><thead><tr><th>Produto</th><th>Saldo contado</th><th>Saldo atual</th><th></th></tr></thead><tbody id="collectionTable"><tr><td colspan="4">Nenhum produto na coleta.</td></tr></tbody></table></div>
-<div id="draftStatus" class="muted small" style="margin-top:10px">A lista fica salva como rascunho neste dispositivo.</div><div id="collectionStatus" class="muted small" style="margin-top:6px">Nada foi enviado ainda.</div><div class="actions"><button id="sendBtn" type="button" disabled>Enviar para o banco de dados</button><button id="clearBtn" type="button" class="secondary">Limpar lista</button></div>
+<div id="draftStatus" class="muted small" style="margin-top:10px">A lista fica salva como rascunho neste dispositivo.</div><div id="collectionStatus" class="muted small" style="margin-top:6px">Pronto para coletar. Os saldos só chegam ao dashboard depois de tocar em “Transmitir coleta para o dashboard”.</div><div class="actions"><button id="sendBtn" type="button" disabled>Transmitir coleta para o dashboard</button><button id="clearBtn" type="button" class="secondary">Limpar lista</button></div>
 </div>
-<div class="card"><h3>Como o envio funciona</h3><p class="muted small">Ao enviar, os saldos dos produtos listados serão substituídos pelas quantidades coletadas. O dashboard principal acompanha as alterações pelo Firestore. Produtos que não estão na lista permanecem iguais. Confirme a quantidade real antes de enviar.</p></div>
+<div class="card"><h3>Coleta e transmissão em tempo real</h3><p class="muted small">1. Leia os produtos e informe as quantidades reais. 2. Confira a lista. 3. Toque em “Transmitir coleta para o dashboard”. Após a confirmação no Firestore, o dashboard principal recebe as alterações automaticamente em tempo real. Produtos fora desta lista não são alterados.</p></div>
 </section>
-<footer>IDEAL Controle de Estoque · Coleta MASTER 2.0</footer>
+<footer>IDEAL Controle de Estoque · Coleta MASTER 2.1</footer>
 </main>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
@@ -222,6 +222,7 @@ input:focus,select:focus{outline:3px solid #9bbcff80;border-color:#0047AB}
     $('metricBalances').textContent=fmt(collectionItems.length);
     $('metricChanges').textContent=fmt(collectionItems.filter(item=>Number(item.quantity)!==Number(item.currentStock)).length);
     $('sendBtn').disabled=busy||!collectionItems.length||loadingProducts||collectionItems.some(item=>!Number.isFinite(Number(item.quantity))||Number(item.quantity)<=0);
+    if(!busy&&collectionItems.length&&$('collectionStatus'))$('collectionStatus').textContent=fmt(collectionItems.length)+' produto(s) aguardando transmissão. O dashboard ainda não foi alterado por esta lista.';
     $('clearBtn').disabled=busy||!collectionItems.length;
   }
   function addSelectedProduct(continueScanning=false){
@@ -238,7 +239,7 @@ input:focus,select:focus{outline:3px solid #9bbcff80;border-color:#0047AB}
   async function sendCollection(){
     if(busy||!collectionItems.length)return;
     if(!window.confirm('Enviar '+collectionItems.length+' produto(s) e substituir seus saldos pelas quantidades coletadas? Os demais produtos não serão modificados.'))return;
-    busy=true;renderCollection();$('collectionStatus').textContent='Enviando os saldos para o banco de dados...';
+    busy=true;renderCollection();$('collectionStatus').textContent='Transmitindo '+fmt(collectionItems.length)+' produto(s) ao Firestore para atualizar o dashboard...';
     let sent=0;
     try{
       const freshProducts=new Map(products.map(product=>[product.id,product]));
@@ -265,8 +266,8 @@ input:focus,select:focus{outline:3px solid #9bbcff80;border-color:#0047AB}
         await db.collection('auditLogs').add({action:'stock_collection_sent',entityType:'products',entityId:'collection',summary:'Coleta de estoque enviada: '+sent+' produto(s)',details:{rowsProcessed:sent,items:collectionItems.map(item=>({productName:item.name,ean:item.ean,newStock:Number(item.quantity)}))},userId:auth.currentUser.uid,userEmail:String(auth.currentUser.email||''),role:currentRole,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
       }catch(auditError){console.warn('Não foi possível registrar a auditoria da coleta:',auditError);}
       collectionItems=[];selectedProduct=null;$('selectedProductCard').classList.add('hidden');$('eanInput').value='';
-      saveCollectionDraft();renderCollection();$('collectionStatus').textContent='Envio concluído. O dashboard principal será atualizado automaticamente pelo Firestore.';
-      showMessage(fmt(sent)+' produto(s) enviados. Os novos saldos foram gravados no banco de dados.','success');
+      saveCollectionDraft();renderCollection();const transmittedAt=new Date().toLocaleString('pt-BR');$('collectionStatus').textContent='Transmissão concluída às '+transmittedAt+'. Os saldos foram gravados no Firestore; o dashboard recebe as alterações automaticamente em tempo real.';
+      showMessage(fmt(sent)+' produto(s) transmitidos. O dashboard principal receberá os novos saldos em tempo real.','success');
     }catch(err){
       $('collectionStatus').textContent='Falha no envio. Confira as permissões e tente novamente.';
       const denied=String(err.code||'').includes('permission-denied')||/permission|permissão/i.test(err.message||'');
