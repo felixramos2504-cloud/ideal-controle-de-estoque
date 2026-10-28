@@ -20,6 +20,8 @@
     table{width:100%;border-collapse:collapse;background:white}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:13px;color:var(--muted)}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px}
     .section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.badge{display:inline-block;padding:3px 8px;border-radius:99px;background:#e7eee9;color:var(--green);font-size:12px;font-weight:700}
     #scanner{max-width:480px;width:100%;margin-top:12px} .small{font-size:13px}.right{margin-left:auto}
+    .lookup-status{font-size:13px;min-height:1.3em;margin-top:6px;color:var(--muted)}
+    .lookup-status.success{color:#166534}.lookup-status.warning{color:#92400e}.lookup-status.error{color:#991b1b}
     body.scanner-open{overflow:hidden;overscroll-behavior:none}
     .scanner-overlay{position:fixed;inset:0;z-index:99999;width:100vw;height:100vh;height:100dvh;background:#050806;color:#fff;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;flex-direction:column;gap:12px;overflow:hidden;margin:0;border:0;border-radius:0;box-shadow:none}
     .scanner-header{flex:0 0 auto;text-align:center;padding:2px 8px}
@@ -77,7 +79,7 @@
       <form id="productForm">
         <input type="hidden" id="productId">
         <div class="formgrid">
-          <div><label for="pEan">Código EAN</label><input id="pEan" inputmode="numeric" autocomplete="off" placeholder="Leia ou digite o EAN"></div>
+          <div><label for="pEan">Código EAN</label><input id="pEan" inputmode="numeric" autocomplete="off" placeholder="Leia ou digite o EAN"><div id="eanLookupMessage" class="lookup-status" aria-live="polite">Leia um EAN para buscar automaticamente nome e categoria do produto.</div></div>
           <div style="align-self:end"><button id="scanProductBtn" type="button" class="secondary">📷 Ler EAN pela câmera</button></div>
           <div><label for="pName">Nome do produto *</label><input id="pName" required maxlength="160"></div>
           <div><label for="pSection">Seção *</label><select id="pSection" required><option value="">Cadastre uma seção primeiro</option></select></div>
@@ -139,7 +141,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { user:null, role:null, products:[], sections:[], counts:[], movements:[], inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{} };
+  const state = { user:null, role:null, products:[], sections:[], counts:[], movements:[], inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{}, eanLookupToken:0, eanLookupCache:{} };
   const roleRank = { colaborador:1, gerente:2, administrador:3 };
   function message(text, type='notice') { const el=$('message'); el.textContent=text; el.className='notice '+(type==='error'?'error':type==='success'?'success':''); el.classList.remove('hidden'); window.scrollTo({top:0,behavior:'smooth'}); }
   function clearMessage(){ $('message').classList.add('hidden'); }
@@ -153,6 +155,166 @@
   function sectionName(id){ return state.sections.find(s=>s.id===id)?.name || 'Seção removida'; }
   function findProductByEan(ean){ return state.products.find(p=>p.ean===String(ean).trim()); }
   function validEan(v){ return /^\d{8}$|^\d{13}$/.test(v); }
+  function normalizeBarcode(value){ const digits=String(value||'').replace(/\D/g,''); return digits.length===12?'0'+digits:digits; }
+  function normalizeLookupText(value){ return String(value??'').toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/^[a-z]{2}:/,'').replace(/[-_]/g,' ').replace(/\s+/g,' ').trim(); }
+  function setEanLookupStatus(text,type=''){ const el=$('eanLookupMessage'); if(!el)return; el.className='lookup-status'+(type?' '+type:''); el.textContent=text; }
+  function externalProductName(product){
+    const name=String(product?.product_name_pt||product?.product_name||product?.abbreviated_product_name||product?.generic_name_pt||product?.generic_name||'').trim();
+    if(!name)return '';
+    const brands=String(product?.brands||'').split(',').map(x=>x.trim()).filter(Boolean);
+    const brand=brands[0]||'';
+    return brand && !normalizeLookupText(name).includes(normalizeLookupText(brand)) ? brand+' '+name : name;
+  }
+  function categoryHints(product){
+    const out=[];
+    const keys=['categories','categories_tags','categories_hierarchy','categories_tags_pt','categories_tags_en','main_category','main_category_pt','main_category_en','food_groups','food_groups_tags','pnns_groups_1','pnns_groups_2','pnns_groups_1_tags','pnns_groups_2_tags'];
+    for(const key of keys){
+      const value=product?.[key];
+      if(Array.isArray(value)) value.forEach(item=>out.push(typeof item==='string'?item:(item?.lc_name||item?.name||item?.id||'')));
+      else if(typeof value==='string') value.split(/[;,]/).forEach(item=>out.push(item));
+    }
+    return [...new Set(out.map(normalizeLookupText).filter(Boolean))];
+  }
+  const sectionCategoryGroups=[
+    {names:['bebidas','bebida'],aliases:['beverages','beverage','drinks','drink','water','waters','mineral water','juice','juices','soft drinks','soda','sodas','cola','coffee','tea','refrigerantes','sucos','suco','agua','aguas','isotonic drinks','energy drinks']},
+    {names:['macarrao'],aliases:['pasta','noodles','spaghetti','macaroni','lasagna','instant noodles','macarrao','massa alimenticia']},
+    {names:['biscoitos e bolachas','biscoitos','bolachas'],aliases:['biscuits','cookies','crackers','wafers','biscoitos','bolachas','sweet biscuits','savory biscuits']},
+    {names:['leites','leite'],aliases:['milk','dairy','milk powder','powdered milk','milk drinks','leite','leites','lactose free milk']},
+    {names:['descartaveis'],aliases:['disposable','disposables','paper plates','paper cups','plastic cups','disposable products','descartaveis']},
+    {names:['racoes','racao'],aliases:['pet food','petfood','dog food','cat food','animal feed','dry cat food','dry dog food','racoes','racao']},
+    {names:['limpeza'],aliases:['cleaning','cleaning products','detergent','detergents','laundry','cleaner','cleaners','disinfectant','dishwashing','limpeza','detergente','amaciante']},
+    {names:['perfumaria'],aliases:['personal care','cosmetics','toiletries','perfume','perfumes','shampoo','deodorant','body care','skin care','oral care','perfumaria','hygiene products','higiene pessoal']},
+    {names:['bomboniere'],aliases:['chocolate','chocolates','candies','candy','confectionery','sweets','gummies','bonbons','balas','doces','bomboniere']},
+    {names:['salgados','salgadinho'],aliases:['snacks','crisps','chips','savory snacks','savoury snacks','salty snacks','salgadinhos','salgados']},
+    {names:['padaria'],aliases:['bread','breads','bakery','cakes','pastry','pastries','buns','baguettes','padaria','panificacao']},
+    {names:['acougue'],aliases:['meat','meats','beef','pork','chicken','poultry','sausage','sausages','bacon','ham','acougue','carnes']},
+    {names:['hortifruti'],aliases:['fruits','fruit','vegetables','vegetable','fresh produce','produce','hortifruti','legumes frescos','frutas','verduras']},
+    {names:['farinaceos'],aliases:['flour','flours','starch','cornmeal','wheat flour','manioc flour','farinaceos','farinha','fuba','polvilho']},
+    {names:['sandalias'],aliases:['sandals','flip flops','footwear','shoes','sandalias','calcados']},
+    {names:['utilidades'],aliases:['kitchenware','household utensils','utensils','home accessories','household goods','utilidades domesticas']},
+    {names:['bazar'],aliases:['stationery','stationery products','home products','household items','toys','bazar']},
+    {names:['mercearia'],aliases:['grocery','groceries','pantry','grocery products','canned foods','rice','beans','cereals','food staples','dry foods','mercearia']}
+  ];
+  function chooseSectionForProduct(product, productName=''){
+    if(!state.sections.length)return null;
+    const hints=categoryHints(product||{});
+    const normalizedName=normalizeLookupText(productName||externalProductName(product||{}));
+    const ranked=state.sections.map(section=>{
+      const sectionNorm=normalizeLookupText(section.name);
+      let score=0;
+      for(const hint of hints){
+        if(hint===sectionNorm) score=Math.max(score,100);
+        else if(sectionNorm.length>3 && hint.includes(sectionNorm)) score=Math.max(score,50);
+        else if(sectionNorm.length>3 && sectionNorm.includes(hint) && hint.length>4) score=Math.max(score,35);
+      }
+      const group=sectionCategoryGroups.find(g=>g.names.some(name=>{const n=normalizeLookupText(name);return sectionNorm===n || sectionNorm.includes(n) || (n.length>5 && n.includes(sectionNorm));}));
+      if(group){
+        for(const alias of group.aliases){
+          const a=normalizeLookupText(alias);
+          for(const hint of hints){
+            if(hint===a) score=Math.max(score,85);
+            else if(hint.includes(a) && a.length>3) score=Math.max(score,65);
+            else if(a.includes(hint) && hint.length>5) score=Math.max(score,32);
+          }
+          if(normalizedName && a.length>3 && normalizedName.includes(a)) score=Math.max(score,12);
+        }
+      }
+      return {section,score};
+    }).sort((a,b)=>b.score-a.score);
+    if(ranked[0]?.score>0)return ranked[0].section;
+    const mercearia=state.sections.find(s=>normalizeLookupText(s.name)==='mercearia');
+    if(mercearia)return mercearia;
+    if(state.sections.length===1)return state.sections[0];
+    return null;
+  }
+  async function fetchOpenFoodFactsProduct(ean){
+    const fields='code,product_name,product_name_pt,abbreviated_product_name,generic_name,generic_name_pt,brands,quantity,product_quantity,product_quantity_unit,categories,categories_tags,categories_hierarchy,categories_tags_pt,categories_tags_en,main_category,main_category_pt,main_category_en,food_groups,food_groups_tags,pnns_groups_1,pnns_groups_2,pnns_groups_1_tags,pnns_groups_2_tags,product_type';
+    const endpoints=[
+      'https://world.openfoodfacts.org/api/v3/product/'+encodeURIComponent(ean)+'?product_type=all&cc=br&lc=pt&tags_lc=pt&fields='+encodeURIComponent(fields),
+      'https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(ean)+'.json?fields='+encodeURIComponent(fields)
+    ];
+    for(const url of endpoints){
+      try{
+        const controller=new AbortController(); const timeout=setTimeout(()=>controller.abort(),10000);
+        let response;
+        try{response=await fetch(url,{method:'GET',headers:{Accept:'application/json'},cache:'no-store',signal:controller.signal});}
+        finally{clearTimeout(timeout);}
+        if(!response.ok)continue;
+        const data=await response.json();
+        const product=data?.product;
+        if(product && (externalProductName(product) || categoryHints(product).length))return product;
+      }catch(_){ /* tenta o endpoint de compatibilidade; se ambos falharem, permite preenchimento manual */ }
+    }
+    return null;
+  }
+  async function lookupProductByEan(rawEan){
+    const ean=normalizeBarcode(rawEan);
+    if(!ean)return;
+    $('pEan').value=ean;
+    const token=++state.eanLookupToken;
+    if(!/^\d{8}$|^\d{13}$/.test(ean)){
+      setEanLookupStatus('Informe um EAN-8 ou EAN-13 válido para consultar a base de produtos.','warning');
+      return;
+    }
+    const local=state.products.find(p=>p.ean===ean);
+    if(local){
+      $('productId').value=local.id;
+      $('pName').value=local.name||'';
+      $('pSection').value=local.sectionId||'';
+      $('pUnit').value=local.unit||'UN';
+      $('pStock').value=Number(local.stock||0);
+      $('pMin').value=Number(local.minStock||0);
+      setEanLookupStatus('Este EAN já está cadastrado. Os dados locais foram carregados para edição.','success');
+      return;
+    }
+    if(!eanChecksum(ean)){
+      setEanLookupStatus('O dígito verificador deste EAN não confere. Confira os números antes de salvar.','warning');
+    }else{
+      setEanLookupStatus('Consultando a base pública Open Food Facts…');
+    }
+    let product;
+    try{
+      if(Object.prototype.hasOwnProperty.call(state.eanLookupCache,ean)) product=state.eanLookupCache[ean];
+      else {product=await fetchOpenFoodFactsProduct(ean);state.eanLookupCache[ean]=product||null;}
+    }catch(_){product=null;}
+    if(token!==state.eanLookupToken)return;
+    if(!product){
+      const fallbackSection=chooseSectionForProduct(null,'');
+      if(fallbackSection && !$('pSection').value)$('pSection').value=fallbackSection.id;
+      setEanLookupStatus('EAN não localizado na base pública. O código foi mantido; preencha o nome e confira a seção antes de salvar.','warning');
+      return;
+    }
+    const name=externalProductName(product);
+    if(name)$('pName').value=name;
+    const section=chooseSectionForProduct(product,name);
+    if(section)$('pSection').value=section.id;
+    const category=String(product.main_category_pt||product.main_category||product.categories||'').split(',')[0].trim();
+    if(name && section){
+      setEanLookupStatus('Produto encontrado na Open Food Facts: '+name+'. Seção sugerida: '+section.name+(category?' · Categoria na base: '+category:'')+'. Confira os dados antes de salvar.','success');
+    }else if(name){
+      setEanLookupStatus('Nome encontrado: '+name+'. Não consegui relacionar a categoria a uma seção cadastrada; selecione a seção manualmente antes de salvar.','warning');
+    }else if(section){
+      setEanLookupStatus('Produto localizado, mas a base não possui nome preenchido. Seção sugerida: '+section.name+'; complete o nome manualmente.','warning');
+    }else{
+      setEanLookupStatus('Produto encontrado, mas a base não informa nome ou uma categoria compatível. Complete o cadastro manualmente.','warning');
+    }
+  }
+  function lookupProductFromEanField(){
+    const raw=$('pEan').value.trim();
+    if(!raw)return;
+    const ean=normalizeBarcode(raw);
+    $('pEan').value=ean;
+    if(!validEan(ean)){
+      setEanLookupStatus('Digite ou leia um EAN-8 ou EAN-13. Códigos UPC-A de 12 dígitos são convertidos para EAN-13.','warning');
+      return;
+    }
+    if(!eanChecksum(ean)){
+      setEanLookupStatus('O código tem 8 ou 13 dígitos, mas o dígito verificador não confere. Confira a leitura.','warning');
+      return;
+    }
+    lookupProductByEan(ean);
+  }
+
   function eanChecksum(v){
     if(!validEan(v)) return false;
     const digits=v.split('').map(Number), check=digits.pop();
@@ -267,7 +429,7 @@
       if(state.products.some(p=>p.ean===ean && ean && p.id!==id))throw new Error('Este EAN já está cadastrado em outro produto.');
       if(!data.name||data.stock<0||data.minStock<0)throw new Error('Confira nome e quantidades.');
       if(id){await db.collection('products').doc(id).update(data);}else{data.createdAt=firebase.firestore.FieldValue.serverTimestamp();data.createdBy=state.user.uid;await db.collection('products').add(data);}
-      $('productForm').reset();$('productId').value='';$('pStock').value='0';$('pMin').value='0';message('Produto salvo com sucesso.','success');
+      $('productForm').reset();$('productId').value='';$('pStock').value='0';$('pMin').value='0';setEanLookupStatus('Produto salvo. Leia outro EAN para consultar automaticamente o próximo produto.','success');message('Produto salvo com sucesso.','success');
     }catch(err){message(err.message,'error');}
   }
   async function lookupCountProduct(){
@@ -289,7 +451,9 @@
     $('productSearch').addEventListener('input',renderProducts);document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
     $('clearProductBtn').addEventListener('click',()=>{$('productForm').reset();$('productId').value='';$('pStock').value='0';$('pMin').value='0';});
     $('productsTable').addEventListener('click',e=>{const b=e.target.closest('[data-edit]');if(!b)return;const p=state.products.find(x=>x.id===b.dataset.edit);if(!p)return;$('productId').value=p.id;$('pEan').value=p.ean||'';$('pName').value=p.name;$('pSection').value=p.sectionId;$('pUnit').value=p.unit||'UN';$('pStock').value=p.stock;$('pMin').value=p.minStock;window.scrollTo({top:0,behavior:'smooth'});});
-    $('scanProductBtn').addEventListener('click',()=>startScanner('product','productScanner',v=>{$('pEan').value=v; if(!eanChecksum(v))message('Código lido, mas o dígito verificador não passou na validação. Confira antes de salvar.','error');}));
+    $('pEan').addEventListener('change',lookupProductFromEanField);
+    $('pEan').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lookupProductFromEanField();}});
+    $('scanProductBtn').addEventListener('click',()=>startScanner('product','productScanner',v=>{const ean=normalizeBarcode(v);$('pEan').value=ean;lookupProductByEan(ean);}));
     $('stopProductScanner').addEventListener('click',()=>stopScanner('product'));
     $('scanCountBtn').addEventListener('click',()=>startScanner('count','countScanner',v=>{$('countEan').value=v;lookupCountProduct();}));$('stopCountScanner').addEventListener('click',()=>stopScanner('count'));
     $('lookupCountBtn').addEventListener('click',lookupCountProduct);$('saveCountBtn').addEventListener('click',saveQuickCount);
