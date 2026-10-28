@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#14532d">
+<meta name="theme-color" content="#0047AB">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Coleta IDEAL">
@@ -13,7 +13,7 @@
 <title>IDEAL — Coleta de Produtos</title>
 <link rel="manifest" href="./manifest-coleta.json">
 <style>
-:root{--green:#14532d;--green2:#166534;--bg:#f3f6f4;--card:#fff;--line:#d8e2db;--text:#17251b;--muted:#68766c;--red:#b91c1c}
+:root{--green:#0047AB;--green2:#0056D6;--bg:#f4f7ff;--card:#fff;--line:#d8e4f8;--text:#17243a;--muted:#61718a;--red:#b91c1c}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 header{background:var(--green);color:white;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}h1{font-size:20px;margin:0}header small{opacity:.85}.header-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.install-button{background:#fff;color:var(--green);box-shadow:0 2px 8px #0002}.install-button[hidden]{display:none!important}#userBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 main{max-width:900px;margin:18px auto;padding:0 12px 30px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px #17211b0a}
@@ -42,6 +42,18 @@ body.scanner-open{overflow:hidden;overscroll-behavior:none}
 .qty-edit{min-width:90px;max-width:120px;padding:8px;min-height:40px}.status-pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#dcfce7;color:#166534;font-weight:750;font-size:11px}
 .toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}#userEmail{font-size:12px;overflow-wrap:anywhere}footer{text-align:center;padding:8px;color:var(--muted);font-size:12px}
 @media(max-width:520px){main{margin:10px auto;padding:0 9px 22px}.card{padding:13px}.formgrid{grid-template-columns:1fr}.metric{padding:9px}.metric strong{font-size:20px}header{align-items:flex-start}h1{font-size:18px}.actions button{width:100%}}
+
+/* MASTER 2.0 · Identidade azul cobalto compartilhada */
+header{background:linear-gradient(120deg,#003b95 0%,#0047AB 56%,#1767df 100%);box-shadow:0 5px 18px #003b9520}
+button,.button{box-shadow:0 3px 10px #0047ab15;transition:transform .16s ease,box-shadow .16s ease}
+button:hover:not(:disabled),.button:hover{box-shadow:0 6px 16px #0047ab25}
+button.secondary{background:#eaf1ff;color:#0047AB}
+input:focus,select:focus{outline:3px solid #9bbcff80;border-color:#0047AB}
+.product-found{background:#eff5ff;border-color:#c7d9ff}
+.status-pill{background:#e8f0ff;color:#0047AB}
+.metric{border-color:#d6e3f8}
+.metric strong{color:#0047AB}
+
 </style>
 </head>
 <body>
@@ -77,7 +89,7 @@ body.scanner-open{overflow:hidden;overscroll-behavior:none}
 </div>
 <div class="card"><h3>Como o envio funciona</h3><p class="muted small">Ao enviar, os saldos dos produtos listados serão substituídos pelas quantidades coletadas. O dashboard principal acompanha as alterações pelo Firestore. Produtos que não estão na lista permanecem iguais. Confirme a quantidade real antes de enviar.</p></div>
 </section>
-<footer>IDEAL Controle de Estoque · Coleta MASTER 1.5</footer>
+<footer>IDEAL Controle de Estoque · Coleta MASTER 2.0</footer>
 </main>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
