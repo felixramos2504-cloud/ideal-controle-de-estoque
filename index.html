@@ -132,7 +132,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 3.3 · Histórico de inventários e contagens</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 3.4 · Histórico de inventários e contagens</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -392,7 +392,7 @@
       </section>
     </section>
     </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 3.3 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 3.4 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -415,7 +415,7 @@
   let db, auth, unsubs=[];
   function stopListeners(){ unsubs.forEach(fn=>{try{fn()}catch(_){}}); unsubs=[]; }
   async function requireRole(minRole){ if(!state.user || roleRank[state.role] < roleRank[minRole]) throw new Error('Seu perfil não tem permissão para esta operação.'); }
-  function sectionName(id){ return state.sections.find(s=>s.id===id)?.name || 'Seção removida'; }
+  function sectionName(id){ return state.sections.find(s=>s.id===id)?.name || (id ? 'Seção removida' : 'Sem seção'); }
   function findProductByEan(ean){ return state.products.find(p=>p.ean===String(ean).trim()); }
   function validEan(v){ return /^\d{8}$|^\d{13}$/.test(v); }
   function normalizeBarcode(value){ const digits=String(value||'').replace(/\D/g,''); return digits.length===12?'0'+digits:digits; }
@@ -731,7 +731,7 @@
     const generatedAt=new Date();
     const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
     const matrix=[
-      ['POSIÇÃO ATUAL DO ESTOQUE IDEAL','MASTER 3.3'],
+      ['POSIÇÃO ATUAL DO ESTOQUE IDEAL','MASTER 3.4'],
       ['Gerado em',generatedAt.toLocaleString('pt-BR')],
       ['Filtro de pesquisa',$('reportSearch').value.trim()||'Todos os produtos'],
       ['Filtro de seção',sectionFilter],
@@ -906,7 +906,7 @@
     const different=rows.filter(item=>Number(item.countedQty||0)!==Number(item.systemStock||0)).length;
     const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
     const matrix=[
-      ['RELATÓRIO DE CONTAGENS IDEAL','MASTER 3.3'],
+      ['RELATÓRIO DE CONTAGENS IDEAL','MASTER 3.4'],
       ['Gerado em',new Date().toLocaleString('pt-BR')],
       ['Data inicial',$('historyDateFrom').value||'Sem limite inicial'],
       ['Data final',$('historyDateTo').value||'Sem limite final'],
@@ -1175,7 +1175,7 @@
       const backup={
         metadata:{
           application:'IDEAL Controle de Estoque',
-          version:'MASTER 3.3',
+          version:'MASTER 3.4',
           type:'firestore-data-export',
           generatedAt:createdAt,
           projectId:window.IDEAL_FIREBASE_CONFIG?.projectId||'não informado',
