@@ -183,17 +183,17 @@ button,.button{font:inherit;font-weight:700;border:0;border-radius:10px;backgrou
     $('sendBtn').disabled=busy||!collectionItems.length||loadingProducts||collectionItems.some(entry=>!Number.isFinite(Number(entry.quantity))||Number(entry.quantity)<=0);
   });
   $('collectionTable').addEventListener('click',event=>{const button=event.target.closest('[data-remove]');if(button){collectionItems=collectionItems.filter(item=>item.id!==button.dataset.remove);renderCollection();}});
+  try{
+    if(!window.IDEAL_FIREBASE_CONFIG||!window.IDEAL_FIREBASE_CONFIG.apiKey||String(window.IDEAL_FIREBASE_CONFIG.apiKey).includes('COLOQUE_'))throw new Error('firebase-config.js ainda não está configurado.');
+    if(!firebase.apps.length)firebase.initializeApp(window.IDEAL_FIREBASE_CONFIG);
+    auth=firebase.auth();db=firebase.firestore();$('sendBtn').disabled=true;
+  }catch(err){showMessage('Erro ao iniciar o Firebase: '+err.message,'error');}
   auth.onAuthStateChanged(async user=>{
     stopCamera();
     if(!user){stopDataListeners();products=[];sections=[];collectionItems=[];selectedProduct=null;$('authPanel').classList.remove('hidden');$('appPanel').classList.add('hidden');$('userBar').classList.add('hidden');$('email').value='';$('password').value='';renderCollection();return;}
     try{await loadProfile(user);hideMessage();attachDataListeners();}
     catch(err){$('authPanel').classList.remove('hidden');$('appPanel').classList.add('hidden');showMessage(err.message||'Falha ao verificar seu perfil.','error');}
   });
-  try{
-    if(!window.IDEAL_FIREBASE_CONFIG||!window.IDEAL_FIREBASE_CONFIG.apiKey||String(window.IDEAL_FIREBASE_CONFIG.apiKey).includes('COLOQUE_'))throw new Error('firebase-config.js ainda não está configurado.');
-    if(!firebase.apps.length)firebase.initializeApp(window.IDEAL_FIREBASE_CONFIG);
-    auth=firebase.auth();db=firebase.firestore();$('sendBtn').disabled=true;
-  }catch(err){showMessage('Erro ao iniciar o Firebase: '+err.message,'error');}
   try{if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-worker.js').catch(()=>{});}catch(_){}
 })();
 </script>
