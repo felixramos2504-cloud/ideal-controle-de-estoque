@@ -194,6 +194,7 @@ button,.button{font:inherit;font-weight:700;border:0;border-radius:10px;backgrou
     if(!firebase.apps.length)firebase.initializeApp(window.IDEAL_FIREBASE_CONFIG);
     auth=firebase.auth();db=firebase.firestore();$('sendBtn').disabled=true;
   }catch(err){showMessage('Erro ao iniciar o Firebase: '+err.message,'error');}
+  try{if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-worker.js').catch(()=>{});}catch(_){}
 })();
 </script>
 </body>
