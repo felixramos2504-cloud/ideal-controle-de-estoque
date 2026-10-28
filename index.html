@@ -147,7 +147,7 @@
       <div id="dashboardKpis" class="grid" style="margin-top:16px">
         <div class="card dashboard-kpi kpi-good"><div class="kpi-label">Produtos com saldo</div><div id="statAvailable" class="stat">—</div><div class="kpi-note">Itens atualmente no estoque</div></div>
         <div class="card dashboard-kpi"><div class="kpi-label">Seções com produtos</div><div id="statSections" class="stat">—</div><div class="kpi-note">Seções com saldo cadastrado</div></div>
-        <div class="card dashboard-kpi"><div class="kpi-label">Catálogo total</div><div id="statProducts" class="stat">—</div><div class="kpi-note">Produtos cadastrados no sistema</div></div>
+        <div class="card dashboard-kpi"><div class="kpi-label">Saldos atualizados hoje</div><div id="statUpdatedToday" class="stat">—</div><div class="kpi-note">Produtos com saldo positivo editados hoje</div></div>
       </div>
       <div class="dashboard-toolbar">
         <div id="dashboardUpdatedAt" class="dashboard-sync">Aguardando sincronização do estoque...</div>
@@ -630,7 +630,9 @@
       if(selectedSection&&p.sectionId!==selectedSection)return false;
       return true;
     }).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));
-    $('statProducts').textContent=fmt(state.products.length);
+    const todayKey=historyDateKey(new Date());
+    const updatedToday=stockedProducts.filter(p=>historyDateKey(p.updatedAt)===todayKey).length;
+    $('statUpdatedToday').textContent=fmt(updatedToday);
     $('statSections').textContent=fmt(stockedSectionIds.size);
     $('statAvailable').textContent=fmt(stockedProducts.length);
     const sectionSelect=$('dashboardStockSection');
