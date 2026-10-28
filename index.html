@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#14532d">
+  <meta name="theme-color" content="#0047AB">
   <meta name="description" content="Controle de estoque IDEAL com inventário e leitura de código de barras.">
   <title>IDEAL Controle de Estoque</title>
   <link rel="manifest" href="./manifest.json">
   <style>
-    :root{--green:#14532d;--green2:#166534;--bg:#f3f6f4;--card:#fff;--text:#17211b;--muted:#647067;--line:#dce5de;--red:#b91c1c;--amber:#a16207}
+    :root{--green:#0047AB;--green2:#0056D6;--bg:#f4f7ff;--card:#fff;--text:#17243a;--muted:#61718a;--line:#d8e4f8;--red:#b91c1c;--amber:#a16207}
     *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     header{background:var(--green);color:#fff;padding:18px max(16px,calc((100% - 1180px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
     header h1{font-size:20px;margin:0} header small{opacity:.85} main{max-width:1180px;margin:22px auto;padding:0 16px}
@@ -128,11 +128,41 @@
     @media(max-width:600px){.scanner-overlay{padding-left:10px;padding-right:10px;gap:10px}.scanner-header h2{font-size:18px}.scanner-stage{border-radius:8px}}
     @media(max-width:800px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.formgrid{grid-template-columns:1fr}header{padding:16px}main{margin:14px auto}.stat{font-size:24px}}
     @media(max-width:420px){.grid{grid-template-columns:1fr 1fr}#dashboardKpis{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-kpi .stat{font-size:23px}.panel,.card{padding:13px}button{padding:9px 11px}}
+  
+    /* MASTER 4.0 · Tema azul cobalto e painel de entrada */
+    header{background:linear-gradient(120deg,#003b95 0%,#0047AB 56%,#1767df 100%);box-shadow:0 5px 18px #003b9520}
+    button,.button{box-shadow:0 3px 10px #0047ab12;transition:transform .16s ease,box-shadow .16s ease,background .16s ease}
+    button:hover:not(:disabled),.button:hover{box-shadow:0 6px 16px #0047ab24}
+    button.secondary{background:#eaf1ff;color:#0047AB}
+    input:focus,select:focus{outline:3px solid #9bbcff80;border-color:#0047AB}
+    .app-dashboard-panel{border:1px solid #cbdcff;border-top:5px solid #0047AB;box-shadow:0 10px 30px #0047ab0d}
+    .dashboard-overline{font-size:11px;letter-spacing:.12em;font-weight:800;color:#0047AB;margin-bottom:4px}
+    .dashboard-kpi{border-top:3px solid #d4e2ff}
+    .dashboard-kpi.kpi-good{border-top-color:#0047AB}
+    .dashboard-toolbar{border-color:#d8e4f8}
+    .dashboard-sync{color:#315c9f}
+    .module-launcher-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:4px 0 12px;padding:0 2px}
+    .module-launcher-heading h2{margin:0;font-size:21px}
+    .module-launcher-heading p{margin:4px 0 0}
+    .launcher-hint{font-size:10px;letter-spacing:.12em;font-weight:800;color:#5d79a6;background:#eaf1ff;border-radius:999px;padding:7px 10px}
+    nav.module-launcher{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0 0 18px}
+    nav.module-launcher button{min-width:0;min-height:112px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:14px 8px;border:1px solid #d6e3f8;border-radius:16px;background:#fff;color:#244266;text-align:center;font-size:13px;line-height:1.25;white-space:normal;box-shadow:0 4px 14px #133d7d0b}
+    nav.module-launcher button .module-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:#eaf1ff;color:#0047AB;font-size:25px;line-height:1}
+    nav.module-launcher button .module-label{display:block;max-width:100%}
+    nav.module-launcher button:not(.secondary){background:linear-gradient(145deg,#003b95,#0056D6);color:#fff;border-color:#0047AB;box-shadow:0 8px 18px #0047ab2a}
+    nav.module-launcher button:not(.secondary) .module-icon{background:#ffffff24;color:#fff}
+    nav.module-launcher button:hover:not(:disabled){transform:translateY(-2px);border-color:#7aa4ef}
+    nav.module-launcher button.hidden{display:none!important}
+    .badge{background:#eaf1ff;color:#0047AB;border-color:#c9dbff}
+    @media(max-width:900px){nav.module-launcher{grid-template-columns:repeat(4,minmax(0,1fr))}}
+    @media(max-width:620px){nav.module-launcher{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}nav.module-launcher button{min-height:100px;border-radius:13px;padding:11px 5px;font-size:12px}nav.module-launcher button .module-icon{width:40px;height:40px;border-radius:12px;font-size:22px}.module-launcher-heading h2{font-size:19px}.launcher-hint{font-size:9px;padding:6px 8px}}
+    @media(max-width:390px){nav.module-launcher{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
   </style>
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 3.4 · Histórico de inventários e contagens</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 4.0 · Histórico de inventários e contagens</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -149,8 +179,8 @@
   </section>
 
   <section id="appPanel" class="hidden">
-    <div class="panel">
-      <div class="section-title"><div><h2 style="margin:0">Painel de estoque</h2><span class="muted small">Os números são atualizados conforme os dados autorizados mudam no Firestore.</span></div><span id="roleBadge" class="badge">Perfil: verificando</span></div>
+    <div class="panel app-dashboard-panel">
+      <div class="section-title"><div><div class="dashboard-overline">VISÃO GERAL · ESTOQUE EM TEMPO REAL</div><h2 style="margin:0">Painel de estoque</h2><span class="muted small">Resumo atualizado automaticamente conforme as alterações do estoque.</span></div><span id="roleBadge" class="badge">Perfil: verificando</span></div>
       <div id="dashboardKpis" class="grid" style="margin-top:16px">
         <div class="card dashboard-kpi kpi-good"><div class="kpi-label">Produtos com saldo</div><div id="statAvailable" class="stat">—</div><div class="kpi-note">Itens atualmente no estoque</div></div>
         <div class="card dashboard-kpi"><div class="kpi-label">Seções com produtos</div><div id="statSections" class="stat">—</div><div class="kpi-note">Seções com saldo cadastrado</div></div>
@@ -194,10 +224,18 @@
       </div>
     </div>
 
-    <nav aria-label="Módulos">
-      <button data-tab="products">Produtos</button><button data-tab="sections" class="secondary">Seções</button>
-      <button data-tab="count" class="secondary">Contagem rápida</button><button data-tab="inventory" class="secondary">Inventário completo</button>
-      <button data-tab="report" class="secondary">Relatório de estoque</button><button data-tab="history" class="secondary">Histórico de contagens</button><button id="usersTabBtn" data-tab="users" class="secondary hidden">Usuários</button><button id="auditTabBtn" data-tab="audit" class="secondary hidden">Auditoria</button><button id="backupTabBtn" data-tab="backup" class="secondary hidden">Backup</button><button id="analysisTabBtn" data-tab="analysis" class="secondary hidden">Análise gerencial</button>
+    <div class="module-launcher-heading"><div><h2>Acesso rápido</h2><p class="muted small">Toque em um ícone para abrir a área desejada.</p></div><span class="launcher-hint">MÓDULOS DO SISTEMA</span></div>
+    <nav class="module-launcher" aria-label="Módulos">
+      <button data-tab="products"><span class="module-icon" aria-hidden="true">📦</span><span class="module-label">Produtos</span></button>
+      <button data-tab="sections" class="secondary"><span class="module-icon" aria-hidden="true">🗂️</span><span class="module-label">Seções</span></button>
+      <button data-tab="count" class="secondary"><span class="module-icon" aria-hidden="true">🔢</span><span class="module-label">Contagem rápida</span></button>
+      <button data-tab="inventory" class="secondary"><span class="module-icon" aria-hidden="true">📋</span><span class="module-label">Inventário completo</span></button>
+      <button data-tab="report" class="secondary"><span class="module-icon" aria-hidden="true">📊</span><span class="module-label">Relatório de estoque</span></button>
+      <button data-tab="history" class="secondary"><span class="module-icon" aria-hidden="true">🕘</span><span class="module-label">Histórico de contagens</span></button>
+      <button id="usersTabBtn" data-tab="users" class="secondary hidden"><span class="module-icon" aria-hidden="true">👥</span><span class="module-label">Usuários</span></button>
+      <button id="auditTabBtn" data-tab="audit" class="secondary hidden"><span class="module-icon" aria-hidden="true">🛡️</span><span class="module-label">Auditoria</span></button>
+      <button id="backupTabBtn" data-tab="backup" class="secondary hidden"><span class="module-icon" aria-hidden="true">💾</span><span class="module-label">Backup</span></button>
+      <button id="analysisTabBtn" data-tab="analysis" class="secondary hidden"><span class="module-icon" aria-hidden="true">📈</span><span class="module-label">Análise gerencial</span></button>
     </nav>
 
     <section id="tab-products" class="panel">
@@ -392,7 +430,7 @@
       </section>
     </section>
     </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 3.4 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 4.0 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -731,7 +769,7 @@
     const generatedAt=new Date();
     const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
     const matrix=[
-      ['POSIÇÃO ATUAL DO ESTOQUE IDEAL','MASTER 3.4'],
+      ['POSIÇÃO ATUAL DO ESTOQUE IDEAL','MASTER 4.0'],
       ['Gerado em',generatedAt.toLocaleString('pt-BR')],
       ['Filtro de pesquisa',$('reportSearch').value.trim()||'Todos os produtos'],
       ['Filtro de seção',sectionFilter],
@@ -906,7 +944,7 @@
     const different=rows.filter(item=>Number(item.countedQty||0)!==Number(item.systemStock||0)).length;
     const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
     const matrix=[
-      ['RELATÓRIO DE CONTAGENS IDEAL','MASTER 3.4'],
+      ['RELATÓRIO DE CONTAGENS IDEAL','MASTER 4.0'],
       ['Gerado em',new Date().toLocaleString('pt-BR')],
       ['Data inicial',$('historyDateFrom').value||'Sem limite inicial'],
       ['Data final',$('historyDateTo').value||'Sem limite final'],
@@ -1175,7 +1213,7 @@
       const backup={
         metadata:{
           application:'IDEAL Controle de Estoque',
-          version:'MASTER 3.4',
+          version:'MASTER 4.0',
           type:'firestore-data-export',
           generatedAt:createdAt,
           projectId:window.IDEAL_FIREBASE_CONFIG?.projectId||'não informado',
