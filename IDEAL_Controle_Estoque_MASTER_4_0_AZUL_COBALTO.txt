@@ -129,7 +129,7 @@
     @media(max-width:800px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.formgrid{grid-template-columns:1fr}header{padding:16px}main{margin:14px auto}.stat{font-size:24px}}
     @media(max-width:420px){.grid{grid-template-columns:1fr 1fr}#dashboardKpis{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-kpi .stat{font-size:23px}.panel,.card{padding:13px}button{padding:9px 11px}}
   
-    /* MASTER 4.0 · Tema azul cobalto e painel de entrada */
+    /* MASTER 4.1 · Tema azul cobalto e painel de entrada */
     header{background:linear-gradient(120deg,#003b95 0%,#0047AB 56%,#1767df 100%);box-shadow:0 5px 18px #003b9520}
     button,.button{box-shadow:0 3px 10px #0047ab12;transition:transform .16s ease,box-shadow .16s ease,background .16s ease}
     button:hover:not(:disabled),.button:hover{box-shadow:0 6px 16px #0047ab24}
@@ -162,7 +162,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 4.0 · Histórico de inventários e contagens</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 4.1 · Histórico de inventários e contagens</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -430,7 +430,7 @@
       </section>
     </section>
     </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 4.0 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 4.1 · Histórico e relatório de estoque. Acesso protegido por HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -703,7 +703,7 @@
     }
     if($('dashboardUpdatedAt')){
       const stockTime=state.stockUpdatedAt?state.stockUpdatedAt.toLocaleString('pt-BR'):'aguardando dados';
-      $('dashboardUpdatedAt').textContent='Última sincronização do estoque: '+stockTime+'. O painel mostra apenas os produtos que têm saldo.';
+      $('dashboardUpdatedAt').textContent='Sincronização em tempo real ativa · última atualização recebida: '+stockTime+'. Os dados transmitidos pela Coleta IDEAL aparecem aqui automaticamente.';
     }
     if($('dashboardStockBadge'))$('dashboardStockBadge').textContent=fmt(stockedProducts.length)+' produto(s) com saldo';
     if($('dashboardStockSummary'))$('dashboardStockSummary').innerHTML='<span>Produtos com saldo <strong>'+fmt(stockedProducts.length)+'</strong></span><span>Na pesquisa atual <strong>'+fmt(rows.length)+'</strong></span><span>Seções com saldo <strong>'+fmt(stockedSectionIds.size)+'</strong></span>';
@@ -769,7 +769,7 @@
     const generatedAt=new Date();
     const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
     const matrix=[
-      ['POSIÇÃO ATUAL DO ESTOQUE IDEAL','MASTER 4.0'],
+      ['POSIÇÃO ATUAL DO ESTOQUE IDEAL','MASTER 4.1'],
       ['Gerado em',generatedAt.toLocaleString('pt-BR')],
       ['Filtro de pesquisa',$('reportSearch').value.trim()||'Todos os produtos'],
       ['Filtro de seção',sectionFilter],
@@ -944,7 +944,7 @@
     const different=rows.filter(item=>Number(item.countedQty||0)!==Number(item.systemStock||0)).length;
     const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
     const matrix=[
-      ['RELATÓRIO DE CONTAGENS IDEAL','MASTER 4.0'],
+      ['RELATÓRIO DE CONTAGENS IDEAL','MASTER 4.1'],
       ['Gerado em',new Date().toLocaleString('pt-BR')],
       ['Data inicial',$('historyDateFrom').value||'Sem limite inicial'],
       ['Data final',$('historyDateTo').value||'Sem limite final'],
@@ -1213,7 +1213,7 @@
       const backup={
         metadata:{
           application:'IDEAL Controle de Estoque',
-          version:'MASTER 4.0',
+          version:'MASTER 4.1',
           type:'firestore-data-export',
           generatedAt:createdAt,
           projectId:window.IDEAL_FIREBASE_CONFIG?.projectId||'não informado',
