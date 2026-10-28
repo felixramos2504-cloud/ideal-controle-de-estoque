@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ideal-estoque-master-3-0';
+const CACHE_NAME = 'ideal-estoque-master-3-1';
 const APP_SHELL = ['./', './index.html', './coleta.html', './manifest.json', './manifest-coleta.json', './firebase-config.js'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL).catch(() => {})));
