@@ -7,45 +7,49 @@ service cloud.firestore {
     function userDoc() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
+    function activeUser() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && (!userDoc().data.keys().hasAny(['ativo']) || userDoc().data.ativo == true);
+    }
     function hasRole(role) {
-      return signedIn() && userDoc().data.role == role;
+      return activeUser() && userDoc().data.role == role;
     }
     function managerOrAdmin() {
-      return signedIn() && userDoc().data.role in ['gerente', 'administrador'];
+      return activeUser() && userDoc().data.role in ['gerente', 'administrador'];
     }
     function admin() {
       return hasRole('administrador');
     }
 
-    // Cada conta precisa ter um documento users/{UID} provisionado por um administrador.
-    // Não permita que usuários criem ou alterem o próprio perfil.
+    // O usuário pode ler o próprio perfil mesmo quando inativo para que o app
+    // detecte a desativação. Somente administrador ativo pode alterar perfis.
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || admin());
       allow create, update, delete: if admin();
     }
 
     match /sections/{id} {
-      allow read: if signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      allow read: if activeUser();
       allow create, update, delete: if managerOrAdmin();
     }
     match /products/{id} {
-      allow read: if signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      allow read: if activeUser();
       allow create, update, delete: if managerOrAdmin();
     }
     match /counts/{id} {
-      allow read: if managerOrAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
-      allow create: if signedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && request.resource.data.userId == request.auth.uid;
+      allow read: if managerOrAdmin() || (activeUser() && resource.data.userId == request.auth.uid);
+      allow create: if activeUser() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if managerOrAdmin();
     }
     match /inventories/{id} {
-      allow read: if managerOrAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+      allow read: if managerOrAdmin() || (activeUser() && resource.data.userId == request.auth.uid);
       allow create: if managerOrAdmin() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if managerOrAdmin();
     }
+    // Mantido sem módulo visível no app; ainda protegido pela regra de perfil ativo.
     match /movements/{id} {
-      allow read: if managerOrAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+      allow read: if managerOrAdmin() || (activeUser() && resource.data.userId == request.auth.uid);
       allow create: if managerOrAdmin() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if admin();
     }
