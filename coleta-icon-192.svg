@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 512 512" role="img" aria-label="Coleta IDEAL">
+<rect width="512" height="512" rx="112" fill="#14532d"/>
+<circle cx="256" cy="256" r="186" fill="#ffffff" opacity=".08"/>
+<path d="M115 151h45l29 177c4 24 22 40 46 40h119c22 0 41-15 46-37l26-115H174" fill="none" stroke="#ffffff" stroke-width="21" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M204 222v92M228 222v92M250 222v92M278 222v92M302 222v92M327 222v92M350 222v92" stroke="#ffffff" stroke-width="11" stroke-linecap="round"/>
+<circle cx="224" cy="405" r="18" fill="#a7f3d0"/><circle cx="357" cy="405" r="18" fill="#a7f3d0"/>
+<path d="M194 115h124" stroke="#a7f3d0" stroke-width="18" stroke-linecap="round"/>
+</svg>
