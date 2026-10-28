@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#14532d">
 <meta name="description" content="Coleta de produtos por código de barras para atualizar o estoque IDEAL.">
 <title>IDEAL — Coleta de Produtos</title>
-<link rel="manifest" href="./manifest.json">
+<link rel="manifest" href="./manifest-coleta.json">
 <style>
 :root{--green:#14532d;--green2:#166534;--bg:#f3f6f4;--card:#fff;--line:#d8e2db;--text:#17251b;--muted:#68766c;--red:#b91c1c}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -65,7 +65,8 @@ button,.button{font:inherit;font-weight:700;border:0;border-radius:10px;backgrou
   'use strict';
   const $=id=>document.getElementById(id);
   const allowedRoles=['colaborador','gerente','administrador'];
-  let auth,db,scanner=null,products=[],sections=[],selectedProduct=null,collectionItems=[],busy=false,loadingProducts=false,currentRole='';
+  let auth,db,scanner=null,products=[],sections=[],selectedProduct=null,collectionItems=[],busy=false,loadingProducts=false,currentRole='',dataUnsubs=[];
+  function stopDataListeners(){dataUnsubs.forEach(unsubscribe=>{try{unsubscribe();}catch(_){}});dataUnsubs=[];}
   function safe(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
   function fmt(value){return Number(value||0).toLocaleString('pt-BR',{maximumFractionDigits:3});}
   function showMessage(text,type=''){const el=$('message');el.textContent=text;el.className='notice'+(type?' '+type:'');el.classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'});}
@@ -158,13 +159,13 @@ button,.button{font:inherit;font-weight:700;border:0;border-radius:10px;backgrou
     $('userBar').classList.remove('hidden');$('authPanel').classList.add('hidden');$('appPanel').classList.remove('hidden');
   }
   function attachDataListeners(){
-    loadingProducts=true;$('sendBtn').disabled=true;
-    db.collection('sections').orderBy('name').onSnapshot(snapshot=>{sections=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));renderCollection();},err=>showMessage('Não foi possível ler seções: '+err.message,'error'));
-    db.collection('products').orderBy('name').onSnapshot(snapshot=>{
+    stopDataListeners();loadingProducts=true;$('sendBtn').disabled=true;
+    dataUnsubs.push(db.collection('sections').orderBy('name').onSnapshot(snapshot=>{sections=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));renderCollection();},err=>showMessage('Não foi possível ler seções: '+err.message,'error')));
+    dataUnsubs.push(db.collection('products').orderBy('name').onSnapshot(snapshot=>{
       products=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));loadingProducts=false;
       collectionItems=collectionItems.map(item=>{const current=products.find(p=>p.id===item.id);return current?{...item,name:current.name||item.name,ean:normalizeEan(current.ean||item.ean),sectionId:current.sectionId||item.sectionId,unit:current.unit||item.unit,currentStock:Number(current.stock||0)}:item;});
       renderCollection();
-    },err=>{loadingProducts=false;renderCollection();showMessage('Não foi possível carregar o catálogo: '+err.message,'error');});
+    },err=>{loadingProducts=false;renderCollection();showMessage('Não foi possível carregar o catálogo: '+err.message,'error');}));
   }
   $('loginForm').addEventListener('submit',async event=>{event.preventDefault();hideMessage();try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);}catch(err){showMessage('Não foi possível entrar: '+(err.message||err),'error');}});
   $('logoutBtn').addEventListener('click',()=>auth.signOut());
@@ -176,13 +177,15 @@ button,.button{font:inherit;font-weight:700;border:0;border-radius:10px;backgrou
   $('collectionTable').addEventListener('input',event=>{
     const input=event.target.closest('[data-quantity]');if(!input)return;
     const item=collectionItems.find(entry=>entry.id===input.dataset.quantity);if(!item)return;
-    item.quantity=Number(input.value);input.setCustomValidity(!Number.isFinite(item.quantity)||item.quantity<=0?'Informe um saldo maior que zero.':'');
-    renderCollection();
+    item.quantity=input.value===''?NaN:Number(input.value);
+    input.setCustomValidity(!Number.isFinite(item.quantity)||item.quantity<=0?'Informe um saldo maior que zero.':'');
+    $('metricChanges').textContent=fmt(collectionItems.filter(entry=>Number.isFinite(Number(entry.quantity))&&Number(entry.quantity)!==Number(entry.currentStock)).length);
+    $('sendBtn').disabled=busy||!collectionItems.length||loadingProducts||collectionItems.some(entry=>!Number.isFinite(Number(entry.quantity))||Number(entry.quantity)<=0);
   });
   $('collectionTable').addEventListener('click',event=>{const button=event.target.closest('[data-remove]');if(button){collectionItems=collectionItems.filter(item=>item.id!==button.dataset.remove);renderCollection();}});
   auth.onAuthStateChanged(async user=>{
     stopCamera();
-    if(!user){products=[];sections=[];collectionItems=[];selectedProduct=null;$('authPanel').classList.remove('hidden');$('appPanel').classList.add('hidden');$('userBar').classList.add('hidden');$('email').value='';$('password').value='';renderCollection();return;}
+    if(!user){stopDataListeners();products=[];sections=[];collectionItems=[];selectedProduct=null;$('authPanel').classList.remove('hidden');$('appPanel').classList.add('hidden');$('userBar').classList.add('hidden');$('email').value='';$('password').value='';renderCollection();return;}
     try{await loadProfile(user);hideMessage();attachDataListeners();}
     catch(err){$('authPanel').classList.remove('hidden');$('appPanel').classList.add('hidden');showMessage(err.message||'Falha ao verificar seu perfil.','error');}
   });
