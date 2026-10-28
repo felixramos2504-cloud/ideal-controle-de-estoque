@@ -13,7 +13,7 @@
     header{background:var(--green);color:#fff;padding:18px max(16px,calc((100% - 1180px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
     header h1{font-size:20px;margin:0} header small{opacity:.85} main{max-width:1180px;margin:22px auto;padding:0 16px}
     .panel,.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 2px 8px #17211b0a;margin-bottom:16px}
-    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.stat{font-size:28px;font-weight:750;margin-top:4px}.muted{color:var(--muted)} .hidden{display:none!important}
+    .grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.stat{font-size:28px;font-weight:750;margin-top:4px}.muted{color:var(--muted)} .hidden{display:none!important}
     nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}button,.button{border:0;border-radius:9px;background:var(--green2);color:#fff;padding:10px 14px;font:inherit;font-weight:650;cursor:pointer}button.secondary{background:#e7eee9;color:var(--green)}button.danger{background:var(--red)}button:disabled{opacity:.55;cursor:not-allowed}
     input,select{width:100%;padding:10px 11px;border:1px solid #c8d5cc;border-radius:8px;font:inherit;background:white;color:var(--text)}label{display:block;font-weight:650;margin:10px 0 5px}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
     .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.notice{padding:12px;border-radius:9px;background:#eff6ff;color:#1e40af;margin-bottom:12px}.error{background:#fef2f2;color:#991b1b}.success{background:#f0fdf4;color:#166534}
@@ -37,6 +37,12 @@
     .status-pill.zero{background:#fee2e2;color:#991b1b}
     .status-pill.low{background:#fef3c7;color:#92400e}
     .status-pill.ok{background:#dcfce7;color:#166534}
+    .status-pill.missing{background:#e0e7ff;color:#3730a3}
+    .report-controls{margin-top:12px}
+    .report-summary{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+    .report-summary span{padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:13px}
+    .report-summary strong{font-size:16px;margin-left:4px}
+    @media print{body *{visibility:hidden!important}#tab-report,#tab-report *{visibility:visible!important}#tab-report{display:block!important;position:absolute!important;left:0!important;top:0!important;width:100%!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;background:#fff!important}#tab-report .report-controls,#tab-report .actions,#message{display:none!important}#tab-report .tablewrap{overflow:visible!important;border:0!important}#tab-report table{font-size:9pt}#tab-report th,#tab-report td{padding:5px!important;border:1px solid #ccc!important;color:#000!important}}
     .dashboard-empty{padding:12px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:13px}
     @media(max-width:760px){.dashboard-panels{grid-template-columns:1fr}.dashboard-card-wide{grid-column:auto}.dashboard-list-item{gap:8px}.dashboard-list-item .item-right{white-space:normal}}
     body.scanner-open{overflow:hidden;overscroll-behavior:none}
@@ -58,7 +64,7 @@
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 1.3 · Dashboard, inventário e consulta EAN</small></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 1.4 · Relatório de estoque em tempo real</small></div>
   <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
 </header>
 <main>
@@ -82,6 +88,7 @@
         <div class="card"><div class="muted">Seções cadastradas</div><div id="statSections" class="stat">—</div></div>
         <div class="card"><div class="muted">Estoque baixo</div><div id="statLow" class="stat">—</div></div>
         <div class="card"><div class="muted">Sem estoque</div><div id="statZero" class="stat">—</div></div>
+        <div class="card"><div class="muted">Sem mínimo definido</div><div id="statMinMissing" class="stat">—</div></div>
       </div>
       <div class="dashboard-panels">
         <section class="card dashboard-card dashboard-card-wide">
@@ -99,8 +106,8 @@
           </div>
         </section>
         <section class="card dashboard-card">
-          <div class="section-title"><h3>Movimentações recentes</h3></div>
-          <div id="dashboardMovements" class="dashboard-list"><div class="dashboard-empty">Carregando movimentações...</div></div>
+          <div class="section-title"><h3>Últimas contagens</h3></div>
+          <div id="dashboardCounts" class="dashboard-list"><div class="dashboard-empty">Carregando contagens...</div></div>
         </section>
       </div>
     </div>
@@ -108,7 +115,7 @@
     <nav aria-label="Módulos">
       <button data-tab="products">Produtos</button><button data-tab="sections" class="secondary">Seções</button>
       <button data-tab="count" class="secondary">Contagem rápida</button><button data-tab="inventory" class="secondary">Inventário completo</button>
-      <button data-tab="movements" class="secondary">Entradas e saídas</button>
+      <button data-tab="report" class="secondary">Relatório de estoque</button>
     </nav>
 
     <section id="tab-products" class="panel">
@@ -159,14 +166,20 @@
       <div class="tablewrap"><table><thead><tr><th>Produto</th><th>Registrado</th><th>Contado</th><th>Diferença</th><th></th></tr></thead><tbody id="inventoryTable"></tbody></table></div>
     </section>
 
-    <section id="tab-movements" class="panel hidden">
-      <h2>Entradas e saídas</h2>
-      <form id="movementForm"><div class="formgrid"><div><label for="movementEan">EAN do produto</label><input id="movementEan" inputmode="numeric" required></div><div><label for="movementType">Tipo</label><select id="movementType"><option value="entrada">Entrada</option><option value="saida">Saída</option><option value="ajuste">Ajuste</option></select></div><div><label for="movementQty">Quantidade</label><input id="movementQty" type="number" min="0.001" step="0.001" required></div><div><label for="movementReason">Motivo / documento</label><input id="movementReason" maxlength="200" required></div></div><div class="actions"><button type="submit">Registrar movimentação</button></div></form>
-      <p class="muted small">Movimentações atualizam o saldo e ficam registradas no histórico. Ajustes exigem motivo.</p>
-      <div class="tablewrap"><table><thead><tr><th>Data</th><th>Produto / EAN</th><th>Tipo</th><th>Quantidade</th><th>Responsável</th><th>Motivo</th></tr></thead><tbody id="movementsTable"></tbody></table></div>
+    <section id="tab-report" class="panel hidden">
+      <div class="section-title"><div><h2 style="margin:0">Relatório de estoque em tempo real</h2><p class="muted small" style="margin:5px 0 0">O relatório reflete os saldos atuais cadastrados e é atualizado quando produtos ou inventários são alterados.</p></div><span id="reportFreshness" class="badge">Aguardando dados</span></div>
+      <div class="formgrid report-controls">
+        <div><label for="reportSearch">Pesquisar produto</label><input id="reportSearch" placeholder="Nome do produto ou código EAN"></div>
+        <div><label for="stockReportSection">Seção</label><select id="stockReportSection"><option value="">Todas as seções</option></select></div>
+        <div><label for="stockReportStatus">Situação do estoque</label><select id="stockReportStatus"><option value="all">Todas as situações</option><option value="zero">Sem estoque</option><option value="low">Estoque baixo</option><option value="missing">Mínimo não definido</option><option value="ok">Normal</option></select></div>
+      </div>
+      <div class="actions report-controls"><button id="exportStockCsv" type="button">Exportar CSV</button><button id="printStockReport" type="button" class="secondary">Imprimir / Salvar em PDF</button></div>
+      <div id="reportSummary" class="report-summary"></div>
+      <div id="reportUpdatedAt" class="muted small" style="margin:8px 0 12px">Aguardando atualização do estoque...</div>
+      <div class="tablewrap"><table><thead><tr><th>Produto</th><th>EAN</th><th>Seção</th><th>Estoque atual</th><th>Estoque mínimo</th><th>Situação</th></tr></thead><tbody id="stockReportTable"><tr><td colspan="6">Carregando relatório...</td></tr></tbody></table></div>
     </section>
-  </section>
-  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 1.3 · Proteja as credenciais e publique apenas em HTTPS.</footer>
+    </section>
+  <footer class="muted small" style="padding:10px 2px 28px">IDEAL Controle de Estoque · MASTER 1.4 · Relatório de estoque em tempo real. Acesso protegido por HTTPS.</footer>
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -178,7 +191,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { user:null, role:null, products:[], sections:[], counts:[], movements:[], inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{}, eanLookupToken:0, eanLookupCache:{} };
+  const state = { user:null, role:null, products:[], sections:[], counts:[], inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{}, eanLookupToken:0, eanLookupCache:{}, stockUpdatedAt:null };
   const roleRank = { colaborador:1, gerente:2, administrador:3 };
   function message(text, type='notice') { const el=$('message'); el.textContent=text; el.className='notice '+(type==='error'?'error':type==='success'?'success':''); el.classList.remove('hidden'); window.scrollTo({top:0,behavior:'smooth'}); }
   function clearMessage(){ $('message').classList.add('hidden'); }
@@ -409,18 +422,28 @@
     state.scannerCaptured[key]=false;
     if(!Object.keys(state.scanners).length) document.body.classList.remove('scanner-open');
   }
-  function setTab(tab){ ['products','sections','count','inventory','movements'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==tab)); document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('secondary',b.dataset.tab!==tab)}); }
+  function setTab(tab){ ['products','sections','count','inventory','report'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==tab)); document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('secondary',b.dataset.tab!==tab)}); if(tab==='report')renderStockReport(); }
+  function getStockStatus(product){
+    const stock=Number(product.stock||0);
+    const minimum=Number(product.minStock||0);
+    if(stock<=0)return {code:'zero',label:'Sem estoque',pill:'zero'};
+    if(minimum<=0)return {code:'missing',label:'Definir mínimo',pill:'missing'};
+    if(stock<=minimum)return {code:'low',label:'Estoque baixo',pill:'low'};
+    return {code:'ok',label:'Normal',pill:'ok'};
+  }
   function renderDashboard(){
-    const lowProducts=state.products.filter(p=>Number(p.stock)>0 && Number(p.stock)<=Number(p.minStock));
-    const zeroProducts=state.products.filter(p=>Number(p.stock)<=0);
-    const attention=[...zeroProducts,...lowProducts].sort((a,b)=>{
-      const az=Number(a.stock)<=0?0:1, bz=Number(b.stock)<=0?0:1;
-      return az-bz || String(a.name||'').localeCompare(String(b.name||''),'pt-BR');
+    const zeroProducts=state.products.filter(p=>Number(p.stock||0)<=0);
+    const lowProducts=state.products.filter(p=>Number(p.stock||0)>0 && Number(p.minStock||0)>0 && Number(p.stock||0)<=Number(p.minStock||0));
+    const missingMinimum=state.products.filter(p=>Number(p.stock||0)>0 && Number(p.minStock||0)<=0);
+    const attention=[...zeroProducts,...lowProducts,...missingMinimum].sort((a,b)=>{
+      const priority={zero:0,low:1,missing:2};
+      return priority[getStockStatus(a).code]-priority[getStockStatus(b).code] || String(a.name||'').localeCompare(String(b.name||''),'pt-BR');
     });
     $('statProducts').textContent=state.products.length;
     $('statSections').textContent=state.sections.length;
     $('statLow').textContent=lowProducts.length;
     $('statZero').textContent=zeroProducts.length;
+    $('statMinMissing').textContent=missingMinimum.length;
 
     const badge=$('stockAttentionBadge');
     if(badge)badge.textContent=attention.length ? attention.length+' alerta(s)' : 'Tudo em ordem';
@@ -429,15 +452,12 @@
       if(!state.products.length){
         attentionList.innerHTML='<div class="dashboard-empty">Ainda não há produtos cadastrados. Cadastre produtos para começar a acompanhar o estoque.</div>';
       }else if(!attention.length){
-        attentionList.innerHTML='<div class="notice success" style="margin:0">Nenhum produto com estoque baixo ou zerado no momento.</div>';
+        attentionList.innerHTML='<div class="notice success" style="margin:0">Nenhum produto com estoque baixo ou zerado, e todos possuem estoque mínimo definido.</div>';
       }else{
         attentionList.innerHTML=attention.slice(0,10).map(p=>{
-          const zero=Number(p.stock)<=0;
-          return `<div class="dashboard-list-item">
-            <div><strong>${safe(p.name||'Produto sem nome')}</strong><span class="subline">EAN: ${safe(p.ean||'não informado')} · Seção: ${safe(sectionName(p.sectionId))}</span></div>
-            <div class="item-right"><span class="status-pill ${zero?'zero':'low'}">${zero?'SEM ESTOQUE':'ESTOQUE BAIXO'}</span><span class="subline">Atual: ${fmt(p.stock)} ${safe(p.unit||'UN')} · Mínimo: ${fmt(p.minStock)}</span></div>
-          </div>`;
-        }).join('')+(attention.length>10?'<div class="dashboard-empty">Mostrando os 10 primeiros de '+attention.length+' produtos com alerta. Consulte Produtos para ver a lista completa.</div>':'');
+          const status=getStockStatus(p);
+          return '<div class="dashboard-list-item"><div><strong>'+safe(p.name||'Produto sem nome')+'</strong><span class="subline">EAN: '+safe(p.ean||'não informado')+' · Seção: '+safe(sectionName(p.sectionId))+'</span></div><div class="item-right"><span class="status-pill '+status.pill+'">'+status.label.toUpperCase()+'</span><span class="subline">Atual: '+fmt(p.stock)+' '+safe(p.unit||'UN')+' · Mínimo: '+(Number(p.minStock||0)>0?fmt(p.minStock):'não definido')+'</span></div></div>';
+        }).join('')+(attention.length>10?'<div class="dashboard-empty">Mostrando os 10 primeiros de '+attention.length+' itens que precisam de atenção. Consulte o relatório completo para ver todos.</div>':'');
       }
     }
 
@@ -445,43 +465,88 @@
     if(sectionBody){
       sectionBody.innerHTML=state.sections.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR')).map(section=>{
         const products=state.products.filter(p=>p.sectionId===section.id);
-        const alerts=products.filter(p=>Number(p.stock)<=0 || (Number(p.stock)>0 && Number(p.stock)<=Number(p.minStock))).length;
-        return `<tr><td>${safe(section.name)}</td><td>${products.length}</td><td>${alerts?'<span class="status-pill low">'+alerts+'</span>':'<span class="status-pill ok">0</span>'}</td></tr>`;
+        const alerts=products.filter(p=>getStockStatus(p).code!=='ok').length;
+        return '<tr><td>'+safe(section.name)+'</td><td>'+products.length+'</td><td>'+(alerts?'<span class="status-pill low">'+alerts+'</span>':'<span class="status-pill ok">0</span>')+'</td></tr>';
       }).join('')||'<tr><td colspan="3">Nenhuma seção cadastrada.</td></tr>';
     }
-
-    const recent=$('dashboardMovements');
-    if(recent){
-      const recentItems=state.movements.slice(0,5);
-      recent.innerHTML=recentItems.map(m=>{
-        const type=String(m.type||'').toLowerCase();
-        const label=type==='entrada'?'ENTRADA':type==='saida'?'SAÍDA':type==='ajuste'?'AJUSTE':type==='ajuste_inventario'?'AJUSTE DE INVENTÁRIO':String(m.type||'MOVIMENTAÇÃO').toUpperCase();
-        const pill=type==='entrada'?'ok':type==='saida'?'low':'zero';
-        const amount=(type==='saida' || Number(m.quantity)<0?'-':'+')+fmt(Math.abs(Number(m.quantity||0)))+' '+safe(m.unit||'');
-        return `<div class="dashboard-list-item">
-          <div><strong>${safe(m.productName||'Produto')}</strong><span class="subline">${safe(dateFmt(m.createdAt))} · ${safe(m.userEmail||'Responsável não informado')}</span><span class="subline">${safe(m.reason||'Sem observação')}</span></div>
-          <div class="item-right"><span class="status-pill ${pill}">${safe(label)}</span><span class="subline">${amount.trim()}</span></div>
-        </div>`;
-      }).join('')||'<div class="dashboard-empty">Nenhuma movimentação registrada ainda.</div>';
+    const recentCounts=$('dashboardCounts');
+    if(recentCounts){
+      recentCounts.innerHTML=state.counts.slice(0,5).map(c=>{
+        const difference=Number(c.countedQty||0)-Number(c.systemStock||0);
+        const diffText=(difference>0?'+':'')+fmt(difference);
+        const pill=difference===0?'ok':Math.abs(difference)>0?'low':'ok';
+        return '<div class="dashboard-list-item"><div><strong>'+safe(c.productName||'Produto')+'</strong><span class="subline">EAN: '+safe(c.ean||'não informado')+' · '+safe(dateFmt(c.createdAt))+'</span><span class="subline">Responsável: '+safe(c.userEmail||'não informado')+'</span></div><div class="item-right"><span class="status-pill '+pill+'">'+(difference===0?'CONFERE':'DIFERENÇA')+'</span><span class="subline">Sistema: '+fmt(c.systemStock)+' · Contado: '+fmt(c.countedQty)+'</span></div></div>';
+      }).join('')||'<div class="dashboard-empty">Nenhuma contagem registrada ainda.</div>';
     }
+  }
+  function getStockReportRows(){
+    const query=$('reportSearch').value.trim().toLocaleLowerCase('pt-BR');
+    const sectionId=$('stockReportSection').value;
+    const status=$('stockReportStatus').value;
+    return state.products.filter(p=>{
+      const name=String(p.name||'').toLocaleLowerCase('pt-BR');
+      const ean=String(p.ean||'');
+      if(query&&!name.includes(query)&&!ean.includes(query))return false;
+      if(sectionId&&p.sectionId!==sectionId)return false;
+      const code=getStockStatus(p).code;
+      if(status!=='all'&&code!==status)return false;
+      return true;
+    }).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));
+  }
+  function renderStockReport(){
+    if(!$('stockReportTable'))return;
+    const rows=getStockReportRows();
+    const all=state.products;
+    const counts={
+      total:all.length,
+      zero:all.filter(p=>getStockStatus(p).code==='zero').length,
+      low:all.filter(p=>getStockStatus(p).code==='low').length,
+      missing:all.filter(p=>getStockStatus(p).code==='missing').length,
+      ok:all.filter(p=>getStockStatus(p).code==='ok').length
+    };
+    $('reportSummary').innerHTML='<span>Produtos filtrados <strong>'+rows.length+'</strong></span><span>Sem estoque <strong>'+counts.zero+'</strong></span><span>Estoque baixo <strong>'+counts.low+'</strong></span><span>Mínimo não definido <strong>'+counts.missing+'</strong></span><span>Normal <strong>'+counts.ok+'</strong></span>';
+    $('stockReportTable').innerHTML=rows.map(p=>{
+      const status=getStockStatus(p);
+      return '<tr><td>'+safe(p.name||'Produto sem nome')+'</td><td>'+safe(p.ean||'—')+'</td><td>'+safe(sectionName(p.sectionId))+'</td><td>'+fmt(p.stock)+' '+safe(p.unit||'UN')+'</td><td>'+(Number(p.minStock||0)>0?fmt(p.minStock)+' '+safe(p.unit||'UN'):'Não definido')+'</td><td><span class="status-pill '+status.pill+'">'+status.label+'</span></td></tr>';
+    }).join('')||'<tr><td colspan="6">Nenhum produto corresponde aos filtros.</td></tr>';
+    const timestamp=state.stockUpdatedAt ? state.stockUpdatedAt.toLocaleString('pt-BR') : 'aguardando dados';
+    $('reportUpdatedAt').textContent='Última atualização recebida do estoque: '+timestamp+'. O relatório acompanha as mudanças publicadas no Firestore.';
+    $('reportFreshness').textContent=state.stockUpdatedAt?'Dados sincronizados':'Aguardando dados';
+  }
+  function exportStockReportCsv(){
+    const rows=getStockReportRows();
+    const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
+    const matrix=[['Produto','EAN','Seção','Estoque atual','Unidade','Estoque mínimo','Situação']];
+    rows.forEach(p=>{
+      matrix.push([p.name||'',p.ean||'',sectionName(p.sectionId),Number(p.stock||0),p.unit||'UN',Number(p.minStock||0),getStockStatus(p).label]);
+    });
+    const csv='\uFEFF'+matrix.map(row=>row.map(cell).join(';')).join('\r\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url;link.download='relatorio-estoque-'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
   function renderSectionOptions(){
     const opts='<option value="">Selecione a seção</option>'+state.sections.slice().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(s=>`<option value="${safe(s.id)}">${safe(s.name)}</option>`).join('');
     $('pSection').innerHTML=opts;
     $('inventorySection').innerHTML='<option value="">Todas as seções</option>'+state.sections.map(s=>`<option value="${safe(s.id)}">${safe(s.name)}</option>`).join('');
+    const reportSection=$('stockReportSection');
+    const selectedReportSection=reportSection.value;
+    reportSection.innerHTML='<option value="">Todas as seções</option>'+state.sections.map(s=>`<option value="${safe(s.id)}">${safe(s.name)}</option>`).join('');
+    if(state.sections.some(s=>s.id===selectedReportSection))reportSection.value=selectedReportSection;
     $('sectionsTable').innerHTML=state.sections.slice().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(s=>`<tr><td>${safe(s.name)}</td><td>${safe(s.description||'—')}</td></tr>`).join('')||'<tr><td colspan="2">Nenhuma seção cadastrada.</td></tr>';
+    renderStockReport();
   }
   function renderProducts(){
     const q=$('productSearch').value.trim().toLocaleLowerCase('pt-BR');
     const list=state.products.filter(p=>!q||p.name.toLocaleLowerCase('pt-BR').includes(q)||p.ean.includes(q));
     $('productsTable').innerHTML=list.map(p=>`<tr><td><strong>${safe(p.name)}</strong><br><span class="muted small">${safe(p.ean||'Sem EAN')}</span></td><td>${safe(sectionName(p.sectionId))}</td><td>${fmt(p.stock)} ${safe(p.unit||'UN')}</td><td>${fmt(p.minStock)}</td><td><div class="actions"><button class="secondary" data-edit="${safe(p.id)}" type="button">Editar</button></div></td></tr>`).join('')||'<tr><td colspan="5">Nenhum produto encontrado.</td></tr>';
     renderDashboard();
+    renderStockReport();
   }
   function renderCounts(){
     $('countsTable').innerHTML=state.counts.slice(0,50).map(c=>`<tr><td>${safe(dateFmt(c.createdAt))}</td><td>${safe(c.productName)}</td><td>${fmt(c.systemStock)}</td><td>${fmt(c.countedQty)}</td><td>${fmt(Number(c.countedQty)-Number(c.systemStock))}</td><td>${safe(c.userEmail||'')}</td></tr>`).join('')||'<tr><td colspan="6">Nenhuma contagem registrada.</td></tr>';
-  }
-  function renderMovements(){
-    $('movementsTable').innerHTML=state.movements.slice(0,50).map(m=>`<tr><td>${safe(dateFmt(m.createdAt))}</td><td>${safe(m.productName)}<br><span class="muted small">${safe(m.ean)}</span></td><td>${safe(m.type)}</td><td>${fmt(m.quantity)}</td><td>${safe(m.userEmail||'')}</td><td>${safe(m.reason)}</td></tr>`).join('')||'<tr><td colspan="6">Nenhuma movimentação.</td></tr>';
     renderDashboard();
   }
   function renderInventory(){
@@ -492,9 +557,8 @@
   function attachListeners(){
     stopListeners();
     unsubs.push(db.collection('sections').orderBy('name').onSnapshot(s=>{state.sections=s.docs.map(d=>({id:d.id,...d.data()}));renderSectionOptions();renderProducts();},e=>message('Falha ao carregar seções: '+e.message,'error')));
-    unsubs.push(db.collection('products').orderBy('name').onSnapshot(s=>{state.products=s.docs.map(d=>({id:d.id,...d.data()}));renderProducts();},e=>message('Falha ao carregar produtos: '+e.message,'error')));
+    unsubs.push(db.collection('products').orderBy('name').onSnapshot(s=>{state.products=s.docs.map(d=>({id:d.id,...d.data()}));state.stockUpdatedAt=new Date();renderProducts();},e=>message('Falha ao carregar produtos: '+e.message,'error')));
     unsubs.push(db.collection('counts').orderBy('createdAt','desc').limit(50).onSnapshot(s=>{state.counts=s.docs.map(d=>({id:d.id,...d.data()}));renderCounts();},e=>message('Falha ao carregar contagens: '+e.message,'error')));
-    unsubs.push(db.collection('movements').orderBy('createdAt','desc').limit(50).onSnapshot(s=>{state.movements=s.docs.map(d=>({id:d.id,...d.data()}));renderMovements();},e=>message('Falha ao carregar movimentações: '+e.message,'error')));
   }
   async function loadRole(user){
     const snap=await db.collection('users').doc(user.uid).get();
@@ -502,11 +566,11 @@
     const role=snap.data().role;
     if(!roleRank[role]) throw new Error('Perfil inválido. Contate o administrador.');
     state.role=role; $('roleBadge').textContent='Perfil: '+role; $('userEmail').textContent=user.email||'Usuário'; $('userBar').classList.remove('hidden');
-    document.querySelectorAll('[data-tab="sections"],#sectionForm,[data-tab="movements"],#movementForm,#finishInventoryBtn').forEach(el=>{el.classList.toggle('hidden',roleRank[role]<roleRank.gerente)});
+    document.querySelectorAll('[data-tab="sections"],#sectionForm,#finishInventoryBtn').forEach(el=>{el.classList.toggle('hidden',roleRank[role]<roleRank.gerente)});
     $('appPanel').classList.remove('hidden'); $('authPanel').classList.add('hidden'); attachListeners();
   }
   async function onAuth(user){
-    stopListeners(); state.user=user; state.role=null; state.products=[]; state.sections=[]; state.counts=[]; state.movements=[];
+    stopListeners(); state.user=user; state.role=null; state.products=[]; state.sections=[]; state.counts=[]; state.stockUpdatedAt=null;
     if(!user){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.add('hidden');return;}
     try{await loadRole(user);clearMessage();}catch(e){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.remove('hidden');$('userEmail').textContent=user.email||'';message(e.message,'error');}
   }
@@ -529,15 +593,19 @@
   async function startInventory(){try{await requireRole('colaborador');if(state.inventory)throw new Error('Já existe um inventário aberto nesta sessão.');state.inventory={name:$('inventoryName').value.trim()||'Inventário sem título',sectionId:$('inventorySection').value||null,startedAt:new Date().toISOString()};state.inventoryItems=[];renderInventory();message('Inventário iniciado nesta sessão. Adicione os produtos contados.','success');}catch(e){message(e.message,'error');}}
   async function addInventoryItem(){try{if(!state.inventory)throw new Error('Inicie um inventário primeiro.');const ean=$('inventoryEan').value.trim();const p=findProductByEan(ean);if(!p)throw new Error('Produto não encontrado pelo EAN.');if(state.inventory.sectionId&&p.sectionId!==state.inventory.sectionId)throw new Error('Este produto não pertence à seção selecionada.');const qty=Number($('inventoryQty').value);if(!Number.isFinite(qty)||qty<0)throw new Error('Quantidade inválida.');const existing=state.inventoryItems.find(i=>i.productId===p.id);if(existing)existing.countedQty=qty;else state.inventoryItems.push({productId:p.id,productName:p.name,ean:p.ean,systemStock:Number(p.stock),countedQty:qty,sectionId:p.sectionId,unit:p.unit||'UN'});$('inventoryEan').value='';$('inventoryQty').value='1';renderInventory();}catch(e){message(e.message,'error');}}
   async function finishInventory(){try{await requireRole('gerente');if(!state.inventory||!state.inventoryItems.length)throw new Error('Não há inventário com produtos para finalizar.');const batch=db.batch();const invRef=db.collection('inventories').doc();batch.set(invRef,{name:state.inventory.name,sectionId:state.inventory.sectionId,startedAt:state.inventory.startedAt,finishedAt:firebase.firestore.FieldValue.serverTimestamp(),status:'finalizado',itemCount:state.inventoryItems.length,userId:state.user.uid,userEmail:state.user.email||''});
-      for(const it of state.inventoryItems){const pRef=db.collection('products').doc(it.productId);batch.update(pRef,{stock:Number(it.countedQty),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:state.user.uid});const cRef=db.collection('counts').doc();batch.set(cRef,{...it,systemStock:Number(it.systemStock),countedQty:Number(it.countedQty),difference:Number(it.countedQty)-Number(it.systemStock),userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),inventoryId:invRef.id});const mRef=db.collection('movements').doc();batch.set(mRef,{productId:it.productId,productName:it.productName,ean:it.ean,type:'ajuste_inventario',quantity:Number(it.countedQty)-Number(it.systemStock),beforeStock:Number(it.systemStock),afterStock:Number(it.countedQty),reason:'Finalização de inventário: '+state.inventory.name,userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),inventoryId:invRef.id});}
+      for(const it of state.inventoryItems){const pRef=db.collection('products').doc(it.productId);batch.update(pRef,{stock:Number(it.countedQty),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:state.user.uid});const cRef=db.collection('counts').doc();batch.set(cRef,{...it,systemStock:Number(it.systemStock),countedQty:Number(it.countedQty),difference:Number(it.countedQty)-Number(it.systemStock),userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp(),inventoryId:invRef.id});}
       await batch.commit();state.inventory=null;state.inventoryItems=[];renderInventory();message('Inventário finalizado. Estoques atualizados e diferenças registradas no histórico.','success');
     }catch(e){message('Não foi possível finalizar o inventário: '+e.message,'error');}}
-  async function movement(e){e.preventDefault();try{await requireRole('gerente');const ean=$('movementEan').value.trim();const p=findProductByEan(ean);if(!p)throw new Error('Produto não encontrado pelo EAN.');const type=$('movementType').value,qty=Number($('movementQty').value),reason=$('movementReason').value.trim();if(!Number.isFinite(qty)||qty<=0)throw new Error('Informe uma quantidade maior que zero.');let after=Number(p.stock);if(type==='entrada')after+=qty;else if(type==='saida')after-=qty;else after=qty;if(after<0)throw new Error('A saída não pode deixar o estoque negativo.');const batch=db.batch();batch.update(db.collection('products').doc(p.id),{stock:after,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:state.user.uid});batch.set(db.collection('movements').doc(),{productId:p.id,productName:p.name,ean:p.ean,type,quantity:qty,beforeStock:Number(p.stock),afterStock:after,reason,userId:state.user.uid,userEmail:state.user.email||'',createdAt:firebase.firestore.FieldValue.serverTimestamp()});await batch.commit();$('movementForm').reset();message('Movimentação registrada e estoque atualizado.','success');}catch(err){message(err.message,'error');}}
   function bind(){
     $('loginForm').addEventListener('submit',async e=>{e.preventDefault();try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);clearMessage();}catch(err){message('Não foi possível entrar: confira e-mail e senha e se a conta foi autorizada.','error');}});
     $('logoutBtn').addEventListener('click',()=>auth.signOut());
-    $('productForm').addEventListener('submit',saveProduct);$('sectionForm').addEventListener('submit',createSection);$('movementForm').addEventListener('submit',movement);
+    $('productForm').addEventListener('submit',saveProduct);$('sectionForm').addEventListener('submit',createSection);
     $('productSearch').addEventListener('input',renderProducts);document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+    $('reportSearch').addEventListener('input',renderStockReport);
+    $('stockReportSection').addEventListener('change',renderStockReport);
+    $('stockReportStatus').addEventListener('change',renderStockReport);
+    $('exportStockCsv').addEventListener('click',exportStockReportCsv);
+    $('printStockReport').addEventListener('click',()=>window.print());
     $('clearProductBtn').addEventListener('click',()=>{$('productForm').reset();$('productId').value='';$('pStock').value='0';$('pMin').value='0';});
     $('productsTable').addEventListener('click',e=>{const b=e.target.closest('[data-edit]');if(!b)return;const p=state.products.find(x=>x.id===b.dataset.edit);if(!p)return;$('productId').value=p.id;$('pEan').value=p.ean||'';$('pName').value=p.name;$('pSection').value=p.sectionId;$('pUnit').value=p.unit||'UN';$('pStock').value=p.stock;$('pMin').value=p.minStock;window.scrollTo({top:0,behavior:'smooth'});});
     $('pEan').addEventListener('change',lookupProductFromEanField);
