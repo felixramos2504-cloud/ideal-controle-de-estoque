@@ -116,12 +116,41 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
 .manual-ean-button:active{transform:scale(.98)}
 @media(max-width:420px){.manual-ean-entry{padding:11px}.manual-ean-row{grid-template-columns:1fr}.manual-ean-button{min-height:56px;width:100%;font-size:14px}#eanInput{font-size:18px;min-height:58px}}
 
+
+/* MASTER 2.5 · Conta e instalação dentro do menu de três linhas */
+.menu-container{position:relative;margin-left:auto}
+.hamburger-button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:54px;height:54px;min-height:54px;padding:10px;border-radius:14px;background:#fff;color:#0047AB;border:1px solid #d8e4f8;box-shadow:0 4px 12px #003b951f}
+.hamburger-button span{display:block;width:25px;height:3px;border-radius:99px;background:#0047AB;transition:transform .16s ease,opacity .16s ease}
+.hamburger-button[aria-expanded="true"] span:first-child{transform:translateY(9px) rotate(45deg)}
+.hamburger-button[aria-expanded="true"] span:nth-child(2){opacity:0}
+.hamburger-button[aria-expanded="true"] span:last-child{transform:translateY(-9px) rotate(-45deg)}
+.app-menu{position:absolute;top:calc(100% + 10px);right:0;z-index:10010;width:min(300px,88vw);padding:10px;border:1px solid #c9dbff;border-radius:17px;background:#fff;color:#17243a;box-shadow:0 16px 38px #09285a35}
+.app-menu.hidden{display:none!important}
+.menu-user-options{display:flex;flex-direction:column;gap:8px;padding:7px 7px 10px;border-bottom:1px solid #e1eaff;margin-bottom:8px}
+.menu-email{font-size:13px;font-weight:650;color:#315078;overflow-wrap:anywhere;line-height:1.35;padding:4px}
+button.menu-option{display:flex;align-items:center;justify-content:flex-start;gap:10px;width:100%;min-height:50px;padding:12px;border-radius:12px;background:#edf3ff;color:#0047AB;font-size:15px;font-weight:800;text-align:left;box-shadow:none}
+button.menu-option span{font-size:20px;line-height:1}
+button.menu-option:hover{background:#dce8ff}
+button.install-menu-option[hidden]{display:none!important}
+@media(max-width:520px){.hamburger-button{width:50px;height:50px;min-height:50px}.app-menu{width:min(300px,90vw)}}
+
 </style>
 </head>
 <body>
 <header>
 <div class="brand-lockup"><h1>Coleta IDEAL</h1></div>
-<div class="header-actions"><button id="installAppBtn" class="install-button" type="button"><span aria-hidden="true">⬇</span> Instalar no celular</button><div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary" type="button">Sair</button></div></div>
+<div class="header-actions menu-container">
+  <button id="menuToggle" class="hamburger-button" type="button" aria-label="Abrir menu" aria-controls="appMenu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+  <div id="appMenu" class="app-menu hidden" aria-label="Opções da coleta">
+    <div id="userBar" class="menu-user-options hidden">
+      <span id="userEmail" class="menu-email"></span>
+      <button id="logoutBtn" class="menu-option" type="button"><span aria-hidden="true">↪</span> Sair</button>
+    </div>
+    <button id="installAppBtn" class="menu-option install-menu-option" type="button"><span aria-hidden="true">⬇</span> Instalar no celular</button>
+  </div>
+</div>
 </header>
 <main>
 <div id="message" class="notice hidden" role="status"></div>
@@ -157,7 +186,7 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
 </div>
 
 </section>
-<footer>IDEAL Controle de Estoque · Coleta MASTER 2.4</footer>
+<footer>IDEAL Controle de Estoque · Coleta MASTER 2.5</footer>
 </main>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
@@ -184,6 +213,11 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
     help.classList.remove('hidden');
     help.scrollIntoView({behavior:'smooth',block:'center'});
   }
+  function closeAppMenu(){
+    const menu=$('appMenu'),toggle=$('menuToggle');
+    if(menu)menu.classList.add('hidden');
+    if(toggle){toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-label','Abrir menu');}
+  }
   function setupInstallPrompt(){
     const button=$('installAppBtn');
     if(appIsStandalone()){button.hidden=true;return;}
@@ -197,6 +231,7 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
       showMessage('Coleta IDEAL instalada no dispositivo. Abra pelo ícone da tela inicial.','success');
     });
     button.addEventListener('click',async()=>{
+      closeAppMenu();
       if(appIsStandalone()){button.hidden=true;return;}
       if(deferredInstallPrompt){
         deferredInstallPrompt.prompt();
@@ -418,7 +453,15 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
     },err=>{loadingProducts=false;$('collectBtn').disabled=true;renderCollection();showMessage('Não foi possível carregar o catálogo do estoque: '+err.message,'error');}));
   }
   $('loginForm').addEventListener('submit',async event=>{event.preventDefault();hideMessage();try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);}catch(err){showMessage('Não foi possível entrar: '+(err.message||err),'error');}});
-  $('logoutBtn').addEventListener('click',()=>auth.signOut());
+  $('menuToggle').addEventListener('click',()=>{
+    const menu=$('appMenu'),opening=menu.classList.contains('hidden');
+    menu.classList.toggle('hidden');
+    $('menuToggle').setAttribute('aria-expanded',String(opening));
+    $('menuToggle').setAttribute('aria-label',opening?'Fechar menu':'Abrir menu');
+  });
+  document.addEventListener('click',event=>{if(!event.target.closest('.menu-container'))closeAppMenu();});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape')closeAppMenu();});
+  $('logoutBtn').addEventListener('click',()=>{closeAppMenu();auth.signOut();});
   $('collectBtn').addEventListener('click',startCamera);$('stopCameraBtn').addEventListener('click',stopCamera);
   $('eanInput').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();prepareProductForCollection();}});
   $('manualEanBtn').addEventListener('click',prepareProductForCollection);
