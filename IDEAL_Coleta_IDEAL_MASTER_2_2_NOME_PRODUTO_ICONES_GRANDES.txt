@@ -384,7 +384,7 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
     $('userBar').classList.remove('hidden');$('authPanel').classList.add('hidden');$('appPanel').classList.remove('hidden');
   }
   function attachDataListeners(){
-    stopDataListeners();loadingProducts=true;$('sendBtn').disabled=true;
+    stopDataListeners();loadingProducts=true;$('collectBtn').disabled=true;$('sendBtn').disabled=true;
     dataUnsubs.push(db.collection('sections').orderBy('name').onSnapshot(snapshot=>{sections=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));renderCollection();},err=>showMessage('Não foi possível ler seções: '+err.message,'error')));
     dataUnsubs.push(db.collection('products').onSnapshot(snapshot=>{
       products=snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));loadingProducts=false;$('collectBtn').disabled=false;
