@@ -210,7 +210,7 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
         seen.add(ean);
         const id=product?product.id:(item.id||'ean_'+ean);
         const storedName=String(product?.name||'');
-        const keepResolvedName=!!item.externalNameFound&&/^Produto EAN\\s/i.test(storedName)&&!!item.name;
+        const keepResolvedName=!!item.externalNameFound&&/^Produto EAN\s/i.test(storedName)&&!!item.name;
         restored.push({id,ean,name:keepResolvedName?item.name:(product?.name||item.name||'Produto EAN '+ean),sectionId:product?.sectionId||item.sectionId||'',unit:product?.unit||item.unit||'UN',currentStock:product?Number(product.stock||0):Number(item.currentStock||0),quantity,isNew:!product,externalNameFound:!!item.externalNameFound});
       });
       collectionItems=restored;
@@ -351,14 +351,14 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
             const updateData={stock:Number(item.quantity),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:auth.currentUser.uid};
             const existingName=String(existing.name||'');
             const collectedName=String(item.name||'').trim();
-            if(item.externalNameFound&&/^Produto EAN\\s/i.test(existingName)&&collectedName&&!/^Produto EAN\\s/i.test(collectedName))updateData.name=collectedName.slice(0,160);
+            if(item.externalNameFound&&/^Produto EAN\s/i.test(existingName)&&collectedName&&!/^Produto EAN\s/i.test(collectedName))updateData.name=collectedName.slice(0,160);
             batch.update(db.collection('products').doc(existing.id),updateData);
           }else{
             const newId='ean_'+itemEan,occupied=freshProducts.get(newId);
             if(occupied&&normalizeEan(occupied.ean)!==itemEan)throw new Error('Conflito no identificador do EAN '+item.ean+'. Nenhuma linha desse lote foi enviada; avise a gerência.');
             const ref=db.collection('products').doc(newId);
             const collectedName=String(item.name||'').trim();
-            const productName=item.externalNameFound&&collectedName&&!/^Produto EAN\\s/i.test(collectedName)?collectedName.slice(0,160):'Produto EAN '+itemEan;
+            const productName=item.externalNameFound&&collectedName&&!/^Produto EAN\s/i.test(collectedName)?collectedName.slice(0,160):'Produto EAN '+itemEan;
             batch.set(ref,{ean:itemEan,name:productName,sectionId:'',unit:'UN',stock:Number(item.quantity),createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:auth.currentUser.uid,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:auth.currentUser.uid});
           }
         });
@@ -388,7 +388,7 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
     dataUnsubs.push(db.collection('products').orderBy('name').onSnapshot(snapshot=>{
       products=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));loadingProducts=false;
       if(!draftRestored){restoreCollectionDraft();draftRestored=true;}
-      collectionItems=collectionItems.map(item=>{const current=products.find(p=>p.id===item.id)||products.find(p=>normalizeEan(p.ean)===normalizeEan(item.ean));const keepResolvedName=current&&item.externalNameFound&&/^Produto EAN\\s/i.test(String(current.name||''))&&item.name;return current?{...item,id:current.id,isNew:false,name:keepResolvedName?item.name:(current.name||item.name),ean:normalizeEan(current.ean||item.ean),sectionId:current.sectionId||item.sectionId,unit:current.unit||item.unit,currentStock:Number(current.stock||0)}:item;});
+      collectionItems=collectionItems.map(item=>{const current=products.find(p=>p.id===item.id)||products.find(p=>normalizeEan(p.ean)===normalizeEan(item.ean));const keepResolvedName=current&&item.externalNameFound&&/^Produto EAN\s/i.test(String(current.name||''))&&item.name;return current?{...item,id:current.id,isNew:false,name:keepResolvedName?item.name:(current.name||item.name),ean:normalizeEan(current.ean||item.ean),sectionId:current.sectionId||item.sectionId,unit:current.unit||item.unit,currentStock:Number(current.stock||0)}:item;});
       renderCollection();saveCollectionDraft();
     },err=>{loadingProducts=false;renderCollection();showMessage('Não foi possível carregar o catálogo: '+err.message,'error');}));
   }
