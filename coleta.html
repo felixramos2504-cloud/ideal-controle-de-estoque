@@ -237,6 +237,7 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
   }
   async function startCamera(){
     if(busy)return;
+    if(loadingProducts){showMessage('Aguarde o carregamento dos produtos para identificar os nomes corretamente.','error');return;}
     if(!window.Html5Qrcode){showMessage('O leitor de código não carregou. Verifique a internet e tente novamente.','error');return;}
     stopCamera();document.body.classList.add('scanner-open');$('scannerWrap').classList.remove('hidden');$('stopCameraBtn').classList.remove('hidden');$('collectBtn').disabled=true;
     try{
@@ -385,12 +386,12 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
   function attachDataListeners(){
     stopDataListeners();loadingProducts=true;$('sendBtn').disabled=true;
     dataUnsubs.push(db.collection('sections').orderBy('name').onSnapshot(snapshot=>{sections=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));renderCollection();},err=>showMessage('Não foi possível ler seções: '+err.message,'error')));
-    dataUnsubs.push(db.collection('products').orderBy('name').onSnapshot(snapshot=>{
-      products=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));loadingProducts=false;
+    dataUnsubs.push(db.collection('products').onSnapshot(snapshot=>{
+      products=snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));loadingProducts=false;$('collectBtn').disabled=false;
       if(!draftRestored){restoreCollectionDraft();draftRestored=true;}
       collectionItems=collectionItems.map(item=>{const current=products.find(p=>p.id===item.id)||products.find(p=>normalizeEan(p.ean)===normalizeEan(item.ean));const keepResolvedName=current&&item.externalNameFound&&/^Produto EAN\s/i.test(String(current.name||''))&&item.name;return current?{...item,id:current.id,isNew:false,name:keepResolvedName?item.name:(current.name||item.name),ean:normalizeEan(current.ean||item.ean),sectionId:current.sectionId||item.sectionId,unit:current.unit||item.unit,currentStock:Number(current.stock||0)}:item;});
       renderCollection();saveCollectionDraft();
-    },err=>{loadingProducts=false;renderCollection();showMessage('Não foi possível carregar o catálogo: '+err.message,'error');}));
+    },err=>{loadingProducts=false;$('collectBtn').disabled=true;renderCollection();showMessage('Não foi possível carregar o catálogo do estoque: '+err.message,'error');}));
   }
   $('loginForm').addEventListener('submit',async event=>{event.preventDefault();hideMessage();try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);}catch(err){showMessage('Não foi possível entrar: '+(err.message||err),'error');}});
   $('logoutBtn').addEventListener('click',()=>auth.signOut());
