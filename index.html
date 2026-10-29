@@ -262,7 +262,7 @@
         <div><label for="sectionProductSearch">Pesquisar produto / EAN</label><input id="sectionProductSearch" placeholder="Digite o nome ou código de barras"></div>
       </div>
       <div id="sectionProductSummary" class="report-summary"></div>
-      <div class="tablewrap"><table><thead><tr><th>Produto / EAN</th><th>Quantidade atual</th><th>Última atualização</th></tr></thead><tbody id="sectionProductTable"><tr><td colspan="3">Selecione uma seção.</td></tr></tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>Produto / EAN</th><th>Quantidade atual</th><th>Última atualização</th><th>Ações</th></tr></thead><tbody id="sectionProductTable"><tr><td colspan="4">Selecione uma seção.</td></tr></tbody></table></div>
     </section>
     <div class="panel app-dashboard-panel hidden">
       <div class="section-title"><div><div class="dashboard-overline">VISÃO GERAL · ESTOQUE EM TEMPO REAL</div><h2 style="margin:0">Painel de estoque</h2><span class="muted small">Resumo atualizado automaticamente conforme as alterações do estoque.</span></div></div>
@@ -824,7 +824,8 @@
     const rows=all.filter(p=>!query||String(p.name||'').toLocaleLowerCase('pt-BR').includes(query)||String(p.ean||'').includes(query));
     const stocked=all.filter(p=>Number(p.stock||0)>0).length;
     summary.innerHTML='<span>Produtos cadastrados <strong>'+fmt(all.length)+'</strong></span><span>Produtos com saldo <strong>'+fmt(stocked)+'</strong></span><span>Exibidos na pesquisa <strong>'+fmt(rows.length)+'</strong></span>';
-    table.innerHTML=rows.map(p=>'<tr><td><strong>'+safe(p.name||'Produto sem nome')+'</strong><br><span class="muted small">EAN: '+safe(p.ean||'Sem EAN')+'</span></td><td>'+fmt(p.stock)+' '+safe(p.unit||'UN')+'</td><td>'+safe(p.updatedAt?dateFmt(p.updatedAt):'—')+'</td></tr>').join('')||'<tr><td colspan="3">Nenhum produto encontrado nesta seção.</td></tr>';
+    const canManage=!!state.user&&Number(roleRank[state.role]||0)>=Number(roleRank.gerente||0);
+    table.innerHTML=rows.map(p=>'<tr><td><strong>'+safe(p.name||'Produto sem nome')+'</strong><br><span class="muted small">EAN: '+safe(p.ean||'Sem EAN')+'</span></td><td>'+fmt(p.stock)+' '+safe(p.unit||'UN')+'</td><td>'+safe(p.updatedAt?dateFmt(p.updatedAt):'—')+'</td><td>'+(canManage?'<div class="actions"><button type="button" class="secondary" data-section-edit="'+safe(p.id)+'">✏️ Editar</button><button type="button" class="danger" data-section-delete="'+safe(p.id)+'">🗑️ Excluir</button></div>':'<span class="muted small">Acesso gerencial</span>')+'</td></tr>').join('')||'<tr><td colspan="4">Nenhum produto encontrado nesta seção.</td></tr>';
   }
   function getStockStatus(product){
     const stock=Number(product.stock||0);
@@ -1937,6 +1938,33 @@
       if($('bulkStockImportStatus'))$('bulkStockImportStatus').textContent='Falha após '+fmt(processed)+' linha(s) gravada(s). '+(err.message||err);
     }finally{bulkStockImportBusy=false;renderStockImportControls();}
   }
+  async function deleteSectionProduct(productId){
+    try{
+      await requireRole('gerente');
+      const product=state.products.find(p=>p.id===productId);
+      if(!product)throw new Error('Produto não encontrado. Atualize a tela e tente novamente.');
+      const confirmed=window.confirm('Deseja realmente excluir "'+String(product.name||'este produto')+'" do cadastro? Esta ação não pode ser desfeita.');
+      if(!confirmed)return;
+      await db.collection('products').doc(productId).delete();
+      await recordAudit('product_deleted','product',productId,'Produto excluído pela consulta de compras: '+String(product.name||''),{productName:product.name||'',ean:product.ean||'',sectionName:sectionName(product.sectionId),stock:Number(product.stock||0),unit:product.unit||'UN'});
+      message('Produto "'+String(product.name||'')+'" excluído com sucesso.','success');
+      renderSelectedSection();
+    }catch(err){message(err.message||'Não foi possível excluir o produto.','error');}
+  }
+  function editSectionProduct(productId){
+    const p=state.products.find(item=>item.id===productId);
+    if(!p)return;
+    $('productId').value=p.id;
+    $('pEan').value=p.ean||'';
+    $('pName').value=p.name||'';
+    $('pSection').value=p.sectionId||'';
+    $('pUnit').value=p.unit||'UN';
+    $('pStock').value=Number(p.stock||0);
+    setTab('products');
+    window.scrollTo({top:0,behavior:'smooth'});
+    $('pName').focus();
+    message('Produto carregado para edição. Faça as alterações e clique em “Salvar produto”.','success');
+  }
   async function saveProduct(e){
     e.preventDefault();try{
       await requireRole('gerente');
@@ -2050,6 +2078,12 @@
     $('homeSectionsGrid').addEventListener('click',e=>{const tile=e.target.closest('[data-home-section]');if(tile)openHomeSection(tile.dataset.homeSection);});
     $('backToSectionsBtn').addEventListener('click',showHomeSections);
     $('sectionProductSearch').addEventListener('input',renderSelectedSection);
+    $('sectionProductTable').addEventListener('click',e=>{
+      const editButton=e.target.closest('[data-section-edit]');
+      if(editButton){editSectionProduct(editButton.dataset.sectionEdit);return;}
+      const deleteButton=e.target.closest('[data-section-delete]');
+      if(deleteButton)deleteSectionProduct(deleteButton.dataset.sectionDelete);
+    });
     $('reportSearch').addEventListener('input',renderStockReport);
     $('stockReportSection').addEventListener('change',renderStockReport);
     $('dashboardOpenProducts').addEventListener('click',()=>{setTab('products');window.scrollTo({top:0,behavior:'smooth'});$('pEan').focus();});
