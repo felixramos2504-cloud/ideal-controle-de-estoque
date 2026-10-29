@@ -55,7 +55,8 @@ input:focus,select:focus{outline:3px solid #9bbcff80;border-color:#0047AB}
 .metric strong{color:#0047AB}
 
 
-/* MASTER 2.2 · Tela simplificada e ações grandes para operação de loja */
+/* MASTER 2.3 · Consulta pública sequencial e tela simples */
+.metric-row{display:none!important}
 .brand-lockup h1{font-size:24px;letter-spacing:.01em}
 header{padding:16px 18px;min-height:76px}
 main{max-width:760px;margin:12px auto;padding:0 12px 24px}
@@ -139,7 +140,7 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
 </div>
 
 </section>
-<footer>IDEAL Controle de Estoque · Coleta MASTER 2.2</footer>
+<footer>IDEAL Controle de Estoque · Coleta MASTER 2.3</footer>
 </main>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
@@ -249,35 +250,41 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
   }
 
   function getPublicProductName(product){
-    const name=String(product?.product_name_pt||product?.product_name||product?.abbreviated_product_name||product?.generic_name_pt||product?.generic_name||'').trim();
+    const fields=[product?.product_name_pt,product?.product_name,product?.product_name_en,product?.abbreviated_product_name,product?.generic_name_pt,product?.generic_name,product?.generic_name_en];
+    const name=String(fields.find(value=>String(value||'').trim())||'').trim();
     if(!name)return '';
     const brand=String(product?.brands||'').split(',').map(value=>value.trim()).filter(Boolean)[0]||'';
     return brand&&!normalizeText(name).includes(normalizeText(brand))?(brand+' '+name).slice(0,160):name.slice(0,160);
   }
+  async function fetchPublicProductName(url){
+    const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),5000);
+    try{
+      const response=await fetch(url,{method:'GET',headers:{Accept:'application/json'},cache:'no-store',signal:controller.signal});
+      if(!response.ok)return '';
+      const data=await response.json();
+      const product=data?.product||data?.data?.product||data?.result?.product||null;
+      return getPublicProductName(product||data);
+    }catch(_){return '';}finally{clearTimeout(timeout);}
+  }
   async function lookupPublicProductName(ean){
     if(Object.prototype.hasOwnProperty.call(productNameLookupCache,ean))return productNameLookupCache[ean];
-    const fields='code,product_name,product_name_pt,abbreviated_product_name,generic_name,generic_name_pt,brands';
-    const urls=[
-      'https://world.openfoodfacts.org/api/v3/product/'+encodeURIComponent(ean)+'?product_type=all&cc=br&lc=pt&tags_lc=pt&fields='+encodeURIComponent(fields),
-      'https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(ean)+'.json?fields='+encodeURIComponent(fields),
-      'https://world.openbeautyfacts.org/api/v2/product/'+encodeURIComponent(ean)+'.json?fields='+encodeURIComponent(fields),
-      'https://world.openproductsfacts.org/api/v2/product/'+encodeURIComponent(ean)+'.json?fields='+encodeURIComponent(fields)
-    ];
-    const names=await Promise.all(urls.map(async url=>{
-      try{
-        const controller=new AbortController();
-        const timeout=setTimeout(()=>controller.abort(),3500);
-        let response;
-        try{response=await fetch(url,{method:'GET',headers:{Accept:'application/json'},cache:'no-store',signal:controller.signal});}
-        finally{clearTimeout(timeout);}
-        if(!response.ok)return '';
-        const data=await response.json();
-        return getPublicProductName(data?.product);
-      }catch(_){return '';}
-    }));
-    const name=names.find(value=>!!value)||null;
-    productNameLookupCache[ean]=name;
-    return name;
+    const fields='code,product_name,product_name_pt,product_name_en,abbreviated_product_name,generic_name,generic_name_pt,generic_name_en,brands';
+    const primary='https://world.openfoodfacts.org/api/v3/product/'+encodeURIComponent(ean)+'?product_type=food&cc=br&lc=pt&tags_lc=pt&fields='+encodeURIComponent(fields);
+    let name=await fetchPublicProductName(primary);
+    if(!name){
+      const fallback='https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(ean)+'.json?fields='+encodeURIComponent(fields);
+      name=await fetchPublicProductName(fallback);
+    }
+    if(!name){
+      const beauty='https://world.openbeautyfacts.org/api/v2/product/'+encodeURIComponent(ean)+'.json?fields='+encodeURIComponent(fields);
+      name=await fetchPublicProductName(beauty);
+    }
+    if(!name){
+      const other='https://world.openproductsfacts.org/api/v2/product/'+encodeURIComponent(ean)+'.json?fields='+encodeURIComponent(fields);
+      name=await fetchPublicProductName(other);
+    }
+    productNameLookupCache[ean]=name||null;
+    return name||null;
   }
   async function prepareProductForCollection(){
     hideMessage();
@@ -297,7 +304,7 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
     const needsPublicLookup=!oldName||/^Produto EAN\s/i.test(oldName);
     selectedProduct={id:product?product.id:'ean_'+ean,ean,name:needsPublicLookup?'':oldName,sectionId:product?.sectionId||'',unit:product?.unit||'UN',stock:Number(product?.stock||0),isNew:!product,isLookingUpName:needsPublicLookup,externalNameFound:false};
     $('selectedProductName').textContent=needsPublicLookup?'Buscando nome do produto…':oldName;
-    $('selectedProductMeta').textContent='EAN '+ean;
+    $('selectedProductMeta').textContent='EAN '+ean+(needsPublicLookup?' · Consultando base pública…':'');
     $('selectedUnit').value=selectedProduct.unit;
     $('quantityInput').value='';
     $('selectedProductCard').classList.remove('hidden');
@@ -308,7 +315,7 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
       if(token!==productNameLookupToken||!selectedProduct||selectedProduct.ean!==ean)return;
       selectedProduct.isLookingUpName=false;selectedProduct.externalNameFound=!!publicName;selectedProduct.name=publicName||oldName||('Produto EAN '+ean);
       $('selectedProductName').textContent=selectedProduct.name;
-      $('selectedProductMeta').textContent='EAN '+ean+(publicName?' · Nome identificado automaticamente':'');
+      $('selectedProductMeta').textContent='EAN '+ean+(publicName?' · Nome identificado na base pública':' · Nome não encontrado nas bases públicas consultadas');
       $('addItemBtn').disabled=false;$('addAndCollectNextBtn').disabled=false;
     }
   }
