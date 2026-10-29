@@ -134,6 +134,17 @@ button.menu-option:hover{background:#dce8ff}
 button.install-menu-option[hidden]{display:none!important}
 @media(max-width:520px){.hamburger-button{width:50px;height:50px;min-height:50px}.app-menu{width:min(300px,90vw)}}
 
+/* MASTER 2.6 · Multiplicador de embalagens e total de unidades */
+.packaging-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.packaging-grid label{font-size:11px;line-height:1.25;letter-spacing:.025em;color:#315c9f;min-height:29px}
+.packaging-grid input{min-width:0;min-height:66px;padding:10px 8px;border:2px solid #b8cdf4;border-radius:14px;text-align:center;font-size:24px;font-weight:850;color:#0047AB}
+.quantity-total-box{display:flex;flex-direction:column;align-items:center;gap:5px;margin-top:12px;padding:14px;border:2px solid #b8cdf4;border-radius:16px;background:linear-gradient(145deg,#eaf1ff,#fff);text-align:center}
+.quantity-total-box>span{font-size:11px;font-weight:900;letter-spacing:.1em;color:#315c9f}
+.quantity-total-box strong{font-size:34px;line-height:1.1;color:#0047AB}
+.quantity-total-box small{font-size:12px;color:#61718a;overflow-wrap:anywhere}
+.collection-package{display:block;margin-top:5px;color:#315c9f;font-size:12px;font-weight:650;line-height:1.35}
+@media(max-width:520px){.packaging-grid{gap:8px}.packaging-grid label{font-size:10px;min-height:28px}.packaging-grid input{min-height:62px;font-size:23px}.quantity-total-box{padding:12px}.quantity-total-box strong{font-size:32px}}
+
 </style>
 </head>
 <body>
@@ -175,7 +186,14 @@ button.install-menu-option[hidden]{display:none!important}
     <button id="manualEanBtn" type="button" class="manual-ean-button">ENVIAR</button>
   </div>
 </div>
-<div id="selectedProductCard" class="product-found hidden"><div class="product-name" id="selectedProductName"></div><div class="product-meta" id="selectedProductMeta"></div><div class="quantity-entry"><label for="quantityInput">QUANTIDADE ENCONTRADA</label><input id="quantityInput" type="number" min="0.001" step="0.001" inputmode="decimal" placeholder="0" aria-label="Quantidade encontrada"></div><input id="selectedUnit" class="hidden" readonly><div class="actions collector-secondary-actions"><button id="addItemBtn" class="big-action add-primary" type="button"><span class="big-action-icon" aria-hidden="true">＋</span><span>ADICIONAR À LISTA</span></button><button id="addAndCollectNextBtn" class="big-action add-next" type="button"><span class="big-action-icon" aria-hidden="true">↻</span><span>ADICIONAR E LER PRÓXIMO</span></button></div></div>
+<div id="selectedProductCard" class="product-found hidden"><div class="product-name" id="selectedProductName"></div><div class="product-meta" id="selectedProductMeta"></div><div class="quantity-entry">
+  <div class="packaging-grid">
+    <div><label for="packageCountInput">QUANTIDADE DE EMBALAGENS</label><input id="packageCountInput" type="number" min="0" step="1" inputmode="numeric" placeholder="Ex.: 10" aria-label="Quantidade de embalagens"></div>
+    <div><label for="unitsPerPackageInput">UNIDADES POR EMBALAGEM</label><input id="unitsPerPackageInput" type="number" min="1" step="1" inputmode="numeric" value="1" aria-label="Unidades por embalagem"></div>
+  </div>
+  <div class="quantity-total-box"><span>QUANTIDADE FINAL</span><strong id="finalQuantityPreview">0 un</strong><small id="quantityEquation">Informe a quantidade de embalagens e as unidades por embalagem.</small></div>
+  <input id="quantityInput" class="hidden" type="number" min="0.001" step="0.001" aria-label="Quantidade final calculada">
+</div><input id="selectedUnit" class="hidden" readonly><div class="actions collector-secondary-actions"><button id="addItemBtn" class="big-action add-primary" type="button"><span class="big-action-icon" aria-hidden="true">＋</span><span>ADICIONAR À LISTA</span></button><button id="addAndCollectNextBtn" class="big-action add-next" type="button"><span class="big-action-icon" aria-hidden="true">↻</span><span>ADICIONAR E LER PRÓXIMO</span></button></div></div>
 
 </div>
 <div class="card">
@@ -186,7 +204,7 @@ button.install-menu-option[hidden]{display:none!important}
 </div>
 
 </section>
-<footer>IDEAL Controle de Estoque · Coleta MASTER 2.5</footer>
+<footer>IDEAL Controle de Estoque · Coleta MASTER 2.6</footer>
 </main>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
@@ -247,7 +265,7 @@ button.install-menu-option[hidden]{display:none!important}
     const key=collectionDraftKey();if(!key)return;
     try{
       if(!collectionItems.length){localStorage.removeItem(key);if($('draftStatus'))$('draftStatus').textContent='Nenhum rascunho pendente neste dispositivo.';return;}
-      localStorage.setItem(key,JSON.stringify({savedAt:new Date().toISOString(),items:collectionItems.map(item=>({id:item.id,ean:item.ean,name:item.name,sectionId:item.sectionId,unit:item.unit,currentStock:item.currentStock,quantity:item.quantity,isNew:!!item.isNew,externalNameFound:!!item.externalNameFound}))}));
+      localStorage.setItem(key,JSON.stringify({savedAt:new Date().toISOString(),items:collectionItems.map(item=>({id:item.id,ean:item.ean,name:item.name,sectionId:item.sectionId,unit:item.unit,currentStock:item.currentStock,quantity:item.quantity,packageCount:item.packageCount,unitsPerPackage:item.unitsPerPackage,packagingEdited:!!item.packagingEdited,isNew:!!item.isNew,externalNameFound:!!item.externalNameFound}))}));
       if($('draftStatus'))$('draftStatus').textContent='Rascunho salvo neste dispositivo · '+fmt(collectionItems.length)+' produto(s).';
     }catch(_){if($('draftStatus'))$('draftStatus').textContent='Não foi possível salvar o rascunho neste dispositivo.';}
   }
@@ -264,7 +282,7 @@ button.install-menu-option[hidden]{display:none!important}
         const id=product?product.id:(item.id||'ean_'+ean);
         const storedName=String(product?.name||'');
         const keepResolvedName=!!item.externalNameFound&&/^Produto EAN\s/i.test(storedName)&&!!item.name;
-        restored.push({id,ean,name:keepResolvedName?item.name:(product?.name||item.name||'Produto EAN '+ean),sectionId:product?.sectionId||item.sectionId||'',unit:product?.unit||item.unit||'UN',currentStock:product?Number(product.stock||0):Number(item.currentStock||0),quantity,isNew:!product,externalNameFound:!!item.externalNameFound});
+        restored.push({id,ean,name:keepResolvedName?item.name:(product?.name||item.name||'Produto EAN '+ean),sectionId:product?.sectionId||item.sectionId||'',unit:'UN',currentStock:product?Number(product.stock||0):Number(item.currentStock||0),quantity,packageCount:Number(item.packageCount??quantity),unitsPerPackage:Number(item.unitsPerPackage??1),packagingEdited:!!item.packagingEdited,isNew:!product,externalNameFound:!!item.externalNameFound});
       });
       collectionItems=restored;
       if($('draftStatus'))$('draftStatus').textContent=restored.length?'Rascunho recuperado · '+fmt(restored.length)+' produto(s). Confira antes de enviar.':'Nenhum produto válido no rascunho salvo.';
@@ -358,21 +376,42 @@ button.install-menu-option[hidden]{display:none!important}
     $('selectedProductName').textContent=needsPublicLookup?'Buscando nome do produto…':oldName;
     $('selectedProductMeta').textContent='EAN '+ean+(needsPublicLookup?' · Consultando base pública…':'');
     $('selectedUnit').value=selectedProduct.unit;
-    $('quantityInput').value='';
+    $('packageCountInput').value='';$('unitsPerPackageInput').value='1';$('quantityInput').value='';
     $('selectedProductCard').classList.remove('hidden');
     $('addItemBtn').disabled=needsPublicLookup;$('addAndCollectNextBtn').disabled=needsPublicLookup;
-    $('quantityInput').focus();
+    updateCalculatedQuantity();$('packageCountInput').focus();
     if(needsPublicLookup){
       const publicName=await lookupPublicProductName(ean);
       if(token!==productNameLookupToken||!selectedProduct||selectedProduct.ean!==ean)return;
       selectedProduct.isLookingUpName=false;selectedProduct.externalNameFound=!!publicName;selectedProduct.name=publicName||oldName||('Produto EAN '+ean);
       $('selectedProductName').textContent=selectedProduct.name;
       $('selectedProductMeta').textContent='EAN '+ean+(publicName?' · Nome identificado na base pública':' · Nome não encontrado nas bases públicas consultadas');
-      $('addItemBtn').disabled=false;$('addAndCollectNextBtn').disabled=false;
+      updateCalculatedQuantity();
     }
   }
+  function updateCalculatedQuantity(){
+    const packagesRaw=$('packageCountInput').value;
+    const unitsRaw=$('unitsPerPackageInput').value;
+    const packages=Number(packagesRaw),units=Number(unitsRaw);
+    const validPackages=packagesRaw!==''&&Number.isFinite(packages)&&packages>=0;
+    const validUnits=unitsRaw!==''&&Number.isFinite(units)&&units>0;
+    const total=validPackages&&validUnits?packages*units:0;
+    $('quantityInput').value=total>0?String(total):'';
+    $('finalQuantityPreview').textContent=fmt(total)+' un';
+    $('quantityEquation').textContent=validPackages&&validUnits&&packages>0
+      ?fmt(packages)+' embalagens × '+fmt(units)+' un = '+fmt(total)+' un'
+      :'Informe a quantidade de embalagens e as unidades por embalagem.';
+    const validTotal=Number.isFinite(total)&&total>0;
+    const lookupPending=!!selectedProduct?.isLookingUpName;
+    $('addItemBtn').disabled=busy||!selectedProduct||lookupPending||!validTotal;
+    $('addAndCollectNextBtn').disabled=busy||!selectedProduct||lookupPending||!validTotal;
+    return {packages,units,total,validTotal};
+  }
   function renderCollection(){
-    $('collectionTable').innerHTML=collectionItems.map(item=>'<div class="collection-row"><div><strong class="collection-product">'+safe(item.name)+'</strong><span class="collection-ean">EAN '+safe(item.ean)+'</span></div><div><input class="collection-quantity" data-quantity="'+safe(item.id)+'" type="number" min="0.001" step="0.001" value="'+safe(item.quantity)+'" aria-label="Quantidade coletada de '+safe(item.name)+'"></div><button class="remove-item" type="button" data-remove="'+safe(item.id)+'" aria-label="Remover '+safe(item.name)+'" title="Remover">×</button></div>').join('')||'<div class="collection-empty">A lista está vazia. Toque em “Ler código de barras” para começar.</div>';
+    $('collectionTable').innerHTML=collectionItems.map(item=>{
+      const packagingInfo=item.packagingEdited?'Quantidade final ajustada manualmente':fmt(item.packageCount??item.quantity)+' embalagens × '+fmt(item.unitsPerPackage??1)+' un';
+      return '<div class="collection-row"><div><strong class="collection-product">'+safe(item.name)+'</strong><span class="collection-ean">EAN '+safe(item.ean)+'</span><span class="collection-package">'+safe(packagingInfo)+' = '+safe(fmt(item.quantity))+' un</span></div><div><input class="collection-quantity" data-quantity="'+safe(item.id)+'" type="number" min="0.001" step="0.001" value="'+safe(item.quantity)+'" aria-label="Quantidade final em unidades de '+safe(item.name)+'"></div><button class="remove-item" type="button" data-remove="'+safe(item.id)+'" aria-label="Remover '+safe(item.name)+'" title="Remover">×</button></div>';
+    }).join('')||'<div class="collection-empty">A lista está vazia. Toque em “Ler código de barras” para começar.</div>';
     $('collectionCount').textContent=fmt(collectionItems.length)+' produto(s)';
     $('metricProducts').textContent=fmt(collectionItems.length);$('metricBalances').textContent=fmt(collectionItems.length);
     $('metricChanges').textContent=fmt(collectionItems.filter(item=>Number(item.quantity)!==Number(item.currentStock)).length);
@@ -381,20 +420,21 @@ button.install-menu-option[hidden]{display:none!important}
     if(!busy&&$('collectionStatus'))$('collectionStatus').textContent=collectionItems.length?fmt(collectionItems.length)+' produto(s) aguardando transmissão.':'Pronto para coletar.';
   }
   function addSelectedProduct(continueScanning=false){
-    if(!selectedProduct){showMessage('Leia o código de barras.','error');return;}
+    if(!selectedProduct){showMessage('Leia ou digite o código EAN.','error');return;}
     if(selectedProduct.isLookingUpName){showMessage('Aguarde a identificação do nome do produto.','error');return;}
-    const quantity=Number($('quantityInput').value);
-    if(!Number.isFinite(quantity)||quantity<=0){showMessage('Informe a quantidade encontrada.','error');$('quantityInput').focus();return;}
+    const calculated=updateCalculatedQuantity();
+    if(!calculated.validTotal){showMessage('Informe a quantidade de embalagens e quantas unidades há em cada embalagem.','error');$('packageCountInput').focus();return;}
     const product=selectedProduct;
-    collectionItems.push({id:product.id,ean:normalizeEan(product.ean),name:product.name||'Produto EAN '+product.ean,sectionId:product.sectionId||'',unit:product.unit||'UN',currentStock:Number(product.stock||0),quantity,isNew:!!product.isNew,externalNameFound:!!product.externalNameFound});
-    selectedProduct=null;$('selectedProductCard').classList.add('hidden');$('eanInput').value='';$('quantityInput').value='';
-    $('addItemBtn').disabled=false;$('addAndCollectNextBtn').disabled=false;
+    collectionItems.push({id:product.id,ean:normalizeEan(product.ean),name:product.name||'Produto EAN '+product.ean,sectionId:product.sectionId||'',unit:'UN',currentStock:Number(product.stock||0),quantity:calculated.total,packageCount:calculated.packages,unitsPerPackage:calculated.units,packagingEdited:false,isNew:!!product.isNew,externalNameFound:!!product.externalNameFound});
+    selectedProduct=null;$('selectedProductCard').classList.add('hidden');$('eanInput').value='';
+    $('packageCountInput').value='';$('unitsPerPackageInput').value='1';$('quantityInput').value='';
+    updateCalculatedQuantity();
     saveCollectionDraft();renderCollection();
     if(continueScanning){hideMessage();startCamera();}else showMessage('Adicionado à lista.','success');
   }
   async function sendCollection(){
     if(busy||!collectionItems.length)return;
-    if(!window.confirm('Enviar '+collectionItems.length+' produto(s) e substituir seus saldos pelas quantidades coletadas? Os demais produtos não serão modificados.'))return;
+    if(!window.confirm('Transmitir '+collectionItems.length+' produto(s)? Será enviado o total final em unidades calculado por embalagens × unidades por embalagem. Os demais produtos não serão modificados.'))return;
     busy=true;renderCollection();$('collectionStatus').textContent='Transmitindo '+fmt(collectionItems.length)+' produto(s) ao Firestore para atualizar o dashboard...';
     let sent=0;
     try{
@@ -465,6 +505,8 @@ button.install-menu-option[hidden]{display:none!important}
   $('collectBtn').addEventListener('click',startCamera);$('stopCameraBtn').addEventListener('click',stopCamera);
   $('eanInput').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();prepareProductForCollection();}});
   $('manualEanBtn').addEventListener('click',prepareProductForCollection);
+  $('packageCountInput').addEventListener('input',updateCalculatedQuantity);
+  $('unitsPerPackageInput').addEventListener('input',updateCalculatedQuantity);
   $('addItemBtn').addEventListener('click',()=>addSelectedProduct(false));
   $('addAndCollectNextBtn').addEventListener('click',()=>addSelectedProduct(true));
   $('sendBtn').addEventListener('click',sendCollection);
@@ -473,6 +515,9 @@ button.install-menu-option[hidden]{display:none!important}
     const input=event.target.closest('[data-quantity]');if(!input)return;
     const item=collectionItems.find(entry=>entry.id===input.dataset.quantity);if(!item)return;
     item.quantity=input.value===''?NaN:Number(input.value);
+    item.packagingEdited=true;item.packageCount=Number.isFinite(item.quantity)?item.quantity:0;item.unitsPerPackage=1;
+    const details=input.closest('.collection-row')?.querySelector('.collection-package');
+    if(details)details.textContent='Quantidade final ajustada manualmente = '+fmt(item.quantity)+' un';
     input.setCustomValidity(!Number.isFinite(item.quantity)||item.quantity<=0?'Informe um saldo maior que zero.':'');
     $('metricChanges').textContent=fmt(collectionItems.filter(entry=>Number.isFinite(Number(entry.quantity))&&Number(entry.quantity)!==Number(entry.currentStock)).length);
     saveCollectionDraft();
