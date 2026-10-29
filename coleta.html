@@ -500,6 +500,7 @@ button.install-menu-option[hidden]{display:none!important}
   }
     async function sendCollection(){
     if(busy||!collectionItems.length)return;
+    if(editingCollectionId){showMessage('Salve ou cancele a edição do produto antes de transmitir a coleta.','error');return;}
     if(!window.confirm('Transmitir '+collectionItems.length+' produto(s)? Será enviado o total final em unidades calculado por embalagens × unidades por embalagem. Os demais produtos não serão modificados.'))return;
     busy=true;renderCollection();$('collectionStatus').textContent='Transmitindo '+fmt(collectionItems.length)+' produto(s) ao Firestore para atualizar o dashboard...';
     let sent=0;
@@ -577,7 +578,7 @@ button.install-menu-option[hidden]{display:none!important}
   $('addItemBtn').addEventListener('click',()=>addSelectedProduct(false));
   $('addAndCollectNextBtn').addEventListener('click',()=>addSelectedProduct(true));
   $('sendBtn').addEventListener('click',sendCollection);
-  $('clearBtn').addEventListener('click',()=>{if(collectionItems.length&&window.confirm('Limpar todos os produtos da coleta sem gravar no banco?')){collectionItems=[];saveCollectionDraft();renderCollection();$('collectionStatus').textContent='Lista limpa. Nenhuma alteração foi enviada.';}});
+  $('clearBtn').addEventListener('click',()=>{if(collectionItems.length&&window.confirm('Limpar todos os produtos da coleta sem gravar no banco?')){collectionItems=[];editingCollectionId='';saveCollectionDraft();renderCollection();$('collectionStatus').textContent='Lista limpa. Nenhuma alteração foi enviada.';}});
   $('collectionTable').addEventListener('input',event=>{
     const input=event.target.closest('[data-quantity]');if(!input)return;
     const item=collectionItems.find(entry=>entry.id===input.dataset.quantity);if(!item)return;
@@ -628,7 +629,7 @@ button.install-menu-option[hidden]{display:none!important}
   }catch(err){showMessage('Erro ao iniciar o Firebase: '+err.message,'error');}
   auth.onAuthStateChanged(async user=>{
     stopCamera();
-    if(!user){stopDataListeners();currentUserId='';draftRestored=false;products=[];sections=[];collectionItems=[];selectedProduct=null;$('authPanel').classList.remove('hidden');$('appPanel').classList.add('hidden');$('userBar').classList.add('hidden');$('email').value='';$('password').value='';renderCollection();return;}
+    if(!user){stopDataListeners();currentUserId='';draftRestored=false;products=[];sections=[];collectionItems=[];editingCollectionId='';selectedProduct=null;$('authPanel').classList.remove('hidden');$('appPanel').classList.add('hidden');$('userBar').classList.add('hidden');$('email').value='';$('password').value='';renderCollection();return;}
     try{await loadProfile(user);hideMessage();attachDataListeners();}
     catch(err){$('authPanel').classList.remove('hidden');$('appPanel').classList.add('hidden');showMessage(err.message||'Falha ao verificar seu perfil.','error');}
   });
