@@ -1759,16 +1759,17 @@
   }
   async function createSection(e){
     e.preventDefault();
+    const form=e.currentTarget;
+    const quick=form.id==='quickSectionForm';
     try{
       await requireRole('gerente');
-      const quick=e.currentTarget.id==='quickSectionForm';
       const name=$(quick?'quickSectionName':'sectionName').value.trim();
       const description=$(quick?'quickSectionDescription':'sectionDescription').value.trim();
       if(!name)throw new Error('Informe o nome da seção.');
       if(state.sections.some(s=>normalizeLookupText(s.name)===normalizeLookupText(name)))throw new Error('Já existe uma seção com esse nome.');
       const ref=await db.collection('sections').add({name,description,createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:state.user.uid});
       await recordAudit('section_created','section',ref.id,'Seção cadastrada: '+name,{sectionName:name,description:description});
-      e.currentTarget.reset();
+      form.reset();
       message('Seção cadastrada: '+name+'.','success');
     }catch(err){message(err.message,'error');}
   }
