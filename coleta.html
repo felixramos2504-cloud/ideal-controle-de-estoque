@@ -105,6 +105,17 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
  .transmit-primary{min-height:82px}
 }
 
+
+/* MASTER 2.4 · Digitação manual de EAN */
+.manual-ean-entry{margin:16px 0 8px;padding:14px;border:1px solid #d8e4f8;border-radius:16px;background:#f8faff}
+.manual-ean-entry label{display:block;margin:0 0 8px;font-size:12px;font-weight:850;letter-spacing:.06em;color:#315c9f}
+.manual-ean-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
+#eanInput{min-width:0;width:100%;min-height:58px;padding:12px 14px;border:2px solid #c9dbff;border-radius:13px;background:#fff;color:#17345e;font-size:18px;font-weight:750;letter-spacing:.04em}
+#eanInput::placeholder{font-size:13px;font-weight:500;letter-spacing:0;color:#7a8baa}
+.manual-ean-button{min-height:58px;padding:10px 14px;border-radius:13px;background:#0047AB;color:#fff;font-size:13px;font-weight:850;white-space:nowrap}
+.manual-ean-button:active{transform:scale(.98)}
+@media(max-width:420px){.manual-ean-entry{padding:11px}.manual-ean-row{grid-template-columns:1fr}.manual-ean-button{min-height:56px;width:100%;font-size:14px}#eanInput{font-size:18px;min-height:58px}}
+
 </style>
 </head>
 <body>
@@ -128,7 +139,13 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
   <div id="reader"></div>
   <div class="scanner-footer"><span>Leitura de EAN</span><button id="stopCameraBtn" type="button" class="camera-close hidden">Fechar câmera</button></div>
 </div>
-<div class="hidden" aria-hidden="true"><input id="eanInput" inputmode="numeric" autocomplete="off" tabindex="-1"></div>
+<div class="manual-ean-entry">
+  <label for="eanInput">OU DIGITE O CÓDIGO EAN</label>
+  <div class="manual-ean-row">
+    <input id="eanInput" inputmode="numeric" autocomplete="off" enterkeyhint="go" placeholder="Digite ou cole o código de barras" aria-label="Digite o código EAN">
+    <button id="manualEanBtn" type="button" class="manual-ean-button">CONSULTAR EAN</button>
+  </div>
+</div>
 <div id="selectedProductCard" class="product-found hidden"><div class="product-name" id="selectedProductName"></div><div class="product-meta" id="selectedProductMeta"></div><div class="quantity-entry"><label for="quantityInput">QUANTIDADE ENCONTRADA</label><input id="quantityInput" type="number" min="0.001" step="0.001" inputmode="decimal" placeholder="0" aria-label="Quantidade encontrada"></div><input id="selectedUnit" class="hidden" readonly><div class="actions collector-secondary-actions"><button id="addItemBtn" class="big-action add-primary" type="button"><span class="big-action-icon" aria-hidden="true">＋</span><span>ADICIONAR À LISTA</span></button><button id="addAndCollectNextBtn" class="big-action add-next" type="button"><span class="big-action-icon" aria-hidden="true">↻</span><span>ADICIONAR E LER PRÓXIMO</span></button></div></div>
 
 </div>
@@ -140,7 +157,7 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
 </div>
 
 </section>
-<footer>IDEAL Controle de Estoque · Coleta MASTER 2.3</footer>
+<footer>IDEAL Controle de Estoque · Coleta MASTER 2.4</footer>
 </main>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
@@ -404,6 +421,7 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
   $('logoutBtn').addEventListener('click',()=>auth.signOut());
   $('collectBtn').addEventListener('click',startCamera);$('stopCameraBtn').addEventListener('click',stopCamera);
   $('eanInput').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();prepareProductForCollection();}});
+  $('manualEanBtn').addEventListener('click',prepareProductForCollection);
   $('addItemBtn').addEventListener('click',()=>addSelectedProduct(false));
   $('addAndCollectNextBtn').addEventListener('click',()=>addSelectedProduct(true));
   $('sendBtn').addEventListener('click',sendCollection);
