@@ -148,7 +148,8 @@ button.install-menu-option[hidden]{display:none!important}
 @media(max-width:520px){.hamburger-button{width:50px;height:50px;min-height:50px}.app-menu{width:min(300px,90vw)}}
 
 /* MASTER 2.6 · Multiplicador de embalagens e total de unidades */
-.packaging-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.collection-product-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}.collection-product-fields input,.collection-product-fields select{min-height:46px}@media(max-width:520px){.collection-product-fields{grid-template-columns:1fr}}
+  .packaging-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .packaging-grid label{font-size:11px;line-height:1.25;letter-spacing:.025em;color:#315c9f;min-height:29px}
 .packaging-grid input{min-width:0;min-height:66px;padding:10px 8px;border:2px solid #b8cdf4;border-radius:14px;text-align:center;font-size:24px;font-weight:850;color:#0047AB}
 .quantity-total-box{display:flex;flex-direction:column;align-items:center;gap:5px;margin-top:12px;padding:14px;border:2px solid #b8cdf4;border-radius:16px;background:linear-gradient(145deg,#eaf1ff,#fff);text-align:center}
@@ -199,7 +200,12 @@ button.install-menu-option[hidden]{display:none!important}
     <button id="manualEanBtn" type="button" class="manual-ean-button">ENVIAR</button>
   </div>
 </div>
-<div id="selectedProductCard" class="product-found hidden"><div class="product-name" id="selectedProductName"></div><div class="product-meta" id="selectedProductMeta"></div><div class="quantity-entry">
+<div id="selectedProductCard" class="product-found hidden"><div class="product-name" id="selectedProductName"></div><div class="product-meta" id="selectedProductMeta"></div>
+<div class="collection-product-fields">
+  <div><label for="selectedProductNameInput">NOME DO PRODUTO</label><input id="selectedProductNameInput" type="text" maxlength="160" autocomplete="off" placeholder="Digite o nome correto do produto"></div>
+  <div><label for="selectedProductSection">SEÇÃO DO PRODUTO</label><select id="selectedProductSection"><option value="">Selecione a seção</option></select></div>
+</div>
+<div class="quantity-entry">
   <div class="packaging-grid">
     <div><label for="packageCountInput">QUANTIDADE DE EMBALAGENS</label><input id="packageCountInput" type="number" min="0" step="1" inputmode="numeric" placeholder="Ex.: 10" aria-label="Quantidade de embalagens"></div>
     <div><label for="unitsPerPackageInput">UNIDADES POR EMBALAGEM</label><input id="unitsPerPackageInput" type="number" min="1" step="1" inputmode="numeric" value="1" aria-label="Unidades por embalagem"></div>
@@ -388,6 +394,11 @@ button.install-menu-option[hidden]{display:none!important}
     selectedProduct={id:product?product.id:'ean_'+ean,ean,name:needsPublicLookup?'':oldName,sectionId:product?.sectionId||'',unit:product?.unit||'UN',stock:Number(product?.stock||0),isNew:!product,isLookingUpName:needsPublicLookup,externalNameFound:false};
     $('selectedProductName').textContent=needsPublicLookup?'Buscando nome do produto…':oldName;
     $('selectedProductMeta').textContent='EAN '+ean+(needsPublicLookup?' · Consultando base pública…':'');
+    renderSelectedProductSections(selectedProduct.sectionId);
+    $('selectedProductNameInput').value=oldName||'';
+    $('selectedProductNameInput').placeholder=needsPublicLookup?'Aguardando busca ou digite o nome manualmente':'Digite o nome correto do produto';
+    $('selectedProductNameInput').disabled=false;
+    $('selectedProductSection').value=selectedProduct.sectionId||'';
     $('selectedUnit').value=selectedProduct.unit;
     $('packageCountInput').value='';$('unitsPerPackageInput').value='1';$('quantityInput').value='';
     $('selectedProductCard').classList.remove('hidden');
@@ -396,11 +407,28 @@ button.install-menu-option[hidden]{display:none!important}
     if(needsPublicLookup){
       const publicName=await lookupPublicProductName(ean);
       if(token!==productNameLookupToken||!selectedProduct||selectedProduct.ean!==ean)return;
-      selectedProduct.isLookingUpName=false;selectedProduct.externalNameFound=!!publicName;selectedProduct.name=publicName||oldName||('Produto EAN '+ean);
-      $('selectedProductName').textContent=selectedProduct.name;
-      $('selectedProductMeta').textContent='EAN '+ean+(publicName?' · Nome identificado na base pública':' · Nome não encontrado nas bases públicas consultadas');
+      selectedProduct.isLookingUpName=false;selectedProduct.externalNameFound=!!publicName;selectedProduct.name=publicName||oldName||'';
+      $('selectedProductName').textContent=selectedProduct.name||'Produto não identificado';
+      if(!String($('selectedProductNameInput').value||'').trim())$('selectedProductNameInput').value=selectedProduct.name;
+      $('selectedProductNameInput').placeholder=publicName?'Você pode corrigir o nome antes de adicionar':'EAN não encontrado: digite o nome do produto';
+      $('selectedProductMeta').textContent='EAN '+ean+(publicName?' · Nome identificado na base pública':' · EAN não encontrado: informe o nome e selecione a seção');
       updateCalculatedQuantity();
     }
+  }
+  function renderSelectedProductSections(selectedId=''){
+    const select=$('selectedProductSection');
+    if(!select)return;
+    const previous=selectedId||select.value||'';
+    select.innerHTML='<option value="">Selecione a seção</option>'+sections.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR')).map(section=>'<option value="'+safe(section.id)+'">'+safe(section.name)+'</option>').join('');
+    if(sections.some(section=>section.id===previous))select.value=previous;
+  }
+  function syncSelectedProductFields(){
+    if(!selectedProduct)return;
+    const typedName=String($('selectedProductNameInput').value||'').trim().slice(0,160);
+    selectedProduct.name=typedName;
+    selectedProduct.nameEdited=typedName!==String(products.find(p=>normalizeEan(p.ean)===normalizeEan(selectedProduct.ean))?.name||'');
+    selectedProduct.sectionId=$('selectedProductSection').value||'';
+    $('selectedProductName').textContent=typedName||'Informe o nome do produto';
   }
   function updateCalculatedQuantity(){
     const packagesRaw=$('packageCountInput').value;
@@ -442,8 +470,11 @@ button.install-menu-option[hidden]{display:none!important}
     if(selectedProduct.isLookingUpName){showMessage('Aguarde a identificação do nome do produto.','error');return;}
     const calculated=updateCalculatedQuantity();
     if(!calculated.validTotal){showMessage('Informe a quantidade de embalagens e quantas unidades há em cada embalagem.','error');$('packageCountInput').focus();return;}
+    syncSelectedProductFields();
     const product=selectedProduct;
-    collectionItems.push({id:product.id,ean:normalizeEan(product.ean),name:product.name||'Produto EAN '+product.ean,sectionId:product.sectionId||'',unit:'UN',currentStock:Number(product.stock||0),quantity:calculated.total,packageCount:calculated.packages,unitsPerPackage:calculated.units,packagingEdited:false,isNew:!!product.isNew,externalNameFound:!!product.externalNameFound});
+    if(!String(product.name||'').trim()){showMessage('EAN não encontrado. Digite o nome do produto antes de adicionar.','error');$('selectedProductNameInput').focus();return;}
+    if(!String(product.sectionId||'')){showMessage('Selecione a seção do produto antes de adicionar à lista.','error');$('selectedProductSection').focus();return;}
+    collectionItems.push({id:product.id,ean:normalizeEan(product.ean),name:product.name, nameEdited:!!product.nameEdited,sectionId:product.sectionId,unit:'UN',currentStock:Number(product.stock||0),quantity:calculated.total,packageCount:calculated.packages,unitsPerPackage:calculated.units,packagingEdited:false,isNew:!!product.isNew,externalNameFound:!!product.externalNameFound});
     selectedProduct=null;$('selectedProductCard').classList.add('hidden');$('eanInput').value='';
     $('packageCountInput').value='';$('unitsPerPackageInput').value='1';$('quantityInput').value='';
     updateCalculatedQuantity();
@@ -516,6 +547,7 @@ button.install-menu-option[hidden]{display:none!important}
           const existing=byEan||(byId&&normalizeEan(byId.ean)===itemEan?byId:null);
           if(existing){
             const updateData={stock:Number(item.quantity),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:auth.currentUser.uid};
+            if(item.sectionId&&item.sectionId!==String(existing.sectionId||''))updateData.sectionId=item.sectionId;
             const existingName=String(existing.name||'');
             const collectedName=String(item.name||'').trim();
             if(item.nameEdited&&collectedName)updateData.name=collectedName.slice(0,160);
@@ -527,7 +559,7 @@ button.install-menu-option[hidden]{display:none!important}
             const ref=db.collection('products').doc(newId);
             const collectedName=String(item.name||'').trim();
             const productName=(item.nameEdited||item.externalNameFound)&&collectedName&&!/^Produto EAN\s/i.test(collectedName)?collectedName.slice(0,160):'Produto EAN '+itemEan;
-            batch.set(ref,{ean:itemEan,name:productName,sectionId:'',unit:'UN',stock:Number(item.quantity),createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:auth.currentUser.uid,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:auth.currentUser.uid});
+            batch.set(ref,{ean:itemEan,name:productName,sectionId:String(item.sectionId||''),unit:'UN',stock:Number(item.quantity),createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:auth.currentUser.uid,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:auth.currentUser.uid});
           }
         });
         await batch.commit();sent+=chunk.length;$('collectionStatus').textContent='Enviados '+fmt(sent)+' de '+fmt(collectionItems.length)+' produto(s)...';
@@ -552,7 +584,7 @@ button.install-menu-option[hidden]{display:none!important}
   }
   function attachDataListeners(){
     stopDataListeners();loadingProducts=true;$('collectBtn').disabled=true;$('sendBtn').disabled=true;
-    dataUnsubs.push(db.collection('sections').orderBy('name').onSnapshot(snapshot=>{sections=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));renderCollection();},err=>showMessage('Não foi possível ler seções: '+err.message,'error')));
+    dataUnsubs.push(db.collection('sections').orderBy('name').onSnapshot(snapshot=>{sections=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));renderSelectedProductSections(selectedProduct?.sectionId||'');if(selectedProduct)$('selectedProductSection').value=selectedProduct.sectionId||'';renderCollection();},err=>showMessage('Não foi possível ler seções: '+err.message,'error')));
     dataUnsubs.push(db.collection('products').onSnapshot(snapshot=>{
       products=snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));loadingProducts=false;$('collectBtn').disabled=false;
       if(!draftRestored){restoreCollectionDraft();draftRestored=true;}
@@ -573,6 +605,8 @@ button.install-menu-option[hidden]{display:none!important}
   $('collectBtn').addEventListener('click',startCamera);$('stopCameraBtn').addEventListener('click',stopCamera);
   $('eanInput').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();prepareProductForCollection();}});
   $('manualEanBtn').addEventListener('click',prepareProductForCollection);
+  $('selectedProductNameInput').addEventListener('input',()=>{syncSelectedProductFields();});
+  $('selectedProductSection').addEventListener('change',syncSelectedProductFields);
   $('packageCountInput').addEventListener('input',updateCalculatedQuantity);
   $('unitsPerPackageInput').addEventListener('input',updateCalculatedQuantity);
   $('addItemBtn').addEventListener('click',()=>addSelectedProduct(false));
