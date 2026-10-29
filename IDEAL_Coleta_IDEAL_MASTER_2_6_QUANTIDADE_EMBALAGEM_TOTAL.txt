@@ -78,11 +78,21 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
 .product-name{font-size:24px;line-height:1.2;letter-spacing:-.02em;color:#12356b}
 .product-meta{font-size:12px;color:#6880a7;margin-top:7px;overflow-wrap:anywhere}
 .collection-list{display:flex;flex-direction:column;gap:10px;margin-top:10px}
-.collection-row{display:grid;grid-template-columns:minmax(0,1fr) 112px 44px;align-items:center;gap:10px;padding:12px;border:1px solid #d8e4f8;border-radius:14px;background:#fff}
+.collection-row{display:flex;flex-direction:column;align-items:stretch;gap:10px;padding:12px;border:1px solid #d8e4f8;border-radius:14px;background:#fff}
+.collection-row-main{display:grid;grid-template-columns:minmax(0,1fr) 118px;align-items:center;gap:10px}
 .collection-product{font-weight:800;font-size:15px;line-height:1.25;overflow-wrap:anywhere}
 .collection-ean{display:block;color:#6880a7;font-size:11px;margin-top:4px;overflow-wrap:anywhere}
-.collection-quantity{width:100%;min-height:52px;padding:8px;border:2px solid #c9dbff;border-radius:12px;text-align:center;font-size:19px;font-weight:800;color:#0047AB}
-.remove-item{width:44px;height:48px;min-height:48px;padding:4px;border-radius:12px;background:#fff0f0;color:#a51d2d;font-size:23px}
+.collection-quantity{width:100%;min-height:48px;padding:8px;border:2px solid #c9dbff;border-radius:12px;text-align:center;font-size:19px;font-weight:800;color:#0047AB}
+.collection-qty-label{display:block;margin:0 0 5px;font-size:10px;line-height:1.2;letter-spacing:.04em;color:#315c9f;text-align:center}
+.collection-row-actions{display:flex;gap:8px;flex-wrap:wrap}
+.collection-row-actions button{flex:1;min-width:110px;min-height:42px;padding:8px 12px;font-size:13px}
+.collection-edit-panel{padding-top:12px;border-top:1px solid #e1eaff}
+.collection-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.collection-edit-grid label{margin:4px 0;font-size:11px;line-height:1.3;color:#315c9f}
+.collection-edit-grid input{min-height:44px;padding:8px 10px}
+.collection-edit-actions{display:flex;gap:8px;margin-top:10px}
+.collection-edit-actions button{flex:1;min-height:44px;padding:8px;font-size:13px}
+.collection-edit-total{margin-top:10px;border:1px solid #b8cdf4;border-radius:12px;padding:10px;background:#f2f6ff;font-size:13px;font-weight:750;color:#0047AB}
 .collection-empty{padding:24px 14px;border:2px dashed #c9dbff;border-radius:16px;text-align:center;color:#6880a7;font-size:14px}
 .collection-status{margin-top:12px;padding:10px 12px;border-radius:12px;background:#eaf1ff;color:#315c9f;font-size:13px;overflow-wrap:anywhere}
 .transmit-primary{min-height:86px;font-size:17px}
@@ -98,10 +108,13 @@ main{max-width:760px;margin:12px auto;padding:0 12px 24px}
  .big-action-icon{width:48px;height:48px;font-size:33px;border-radius:14px}
  .product-name{font-size:22px}
  #quantityInput{font-size:29px;min-height:72px}
- .collection-row{grid-template-columns:minmax(0,1fr) 88px 40px;gap:7px;padding:9px}
+ .collection-row{gap:8px;padding:10px}
+ .collection-row-main{grid-template-columns:minmax(0,1fr) 88px;gap:8px}
  .collection-product{font-size:14px}
- .collection-quantity{min-height:48px;font-size:18px}
- .remove-item{width:40px;min-height:44px;height:44px}
+ .collection-quantity{min-height:46px;font-size:17px}
+ .collection-row-actions button{min-width:0;min-height:42px;padding:8px;font-size:12px}
+ .collection-edit-grid{grid-template-columns:1fr}
+ .collection-edit-actions{flex-direction:column}
  .transmit-primary{min-height:82px}
 }
 
@@ -204,7 +217,7 @@ button.install-menu-option[hidden]{display:none!important}
 </div>
 
 </section>
-<footer>IDEAL Controle de Estoque · Coleta MASTER 2.6</footer>
+<footer>IDEAL Controle de Estoque · Coleta MASTER 2.7</footer>
 </main>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
@@ -216,7 +229,7 @@ button.install-menu-option[hidden]{display:none!important}
   'use strict';
   const $=id=>document.getElementById(id);
   const allowedRoles=['colaborador','gerente','administrador'];
-  let auth,db,scanner=null,products=[],sections=[],selectedProduct=null,collectionItems=[],busy=false,loadingProducts=false,currentRole='',currentUserId='',draftRestored=false,dataUnsubs=[],deferredInstallPrompt=null,productNameLookupToken=0,productNameLookupCache={};
+  let auth,db,scanner=null,products=[],sections=[],selectedProduct=null,collectionItems=[],editingCollectionId='',busy=false,loadingProducts=false,currentRole='',currentUserId='',draftRestored=false,dataUnsubs=[],deferredInstallPrompt=null,productNameLookupToken=0,productNameLookupCache={};
   const appIsStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
   function showInstallHelp(){
     const help=$('installHelp');
@@ -265,7 +278,7 @@ button.install-menu-option[hidden]{display:none!important}
     const key=collectionDraftKey();if(!key)return;
     try{
       if(!collectionItems.length){localStorage.removeItem(key);if($('draftStatus'))$('draftStatus').textContent='Nenhum rascunho pendente neste dispositivo.';return;}
-      localStorage.setItem(key,JSON.stringify({savedAt:new Date().toISOString(),items:collectionItems.map(item=>({id:item.id,ean:item.ean,name:item.name,sectionId:item.sectionId,unit:item.unit,currentStock:item.currentStock,quantity:item.quantity,packageCount:item.packageCount,unitsPerPackage:item.unitsPerPackage,packagingEdited:!!item.packagingEdited,isNew:!!item.isNew,externalNameFound:!!item.externalNameFound}))}));
+      localStorage.setItem(key,JSON.stringify({savedAt:new Date().toISOString(),items:collectionItems.map(item=>({id:item.id,ean:item.ean,name:item.name,nameEdited:!!item.nameEdited,sectionId:item.sectionId,unit:item.unit,currentStock:item.currentStock,quantity:item.quantity,packageCount:item.packageCount,unitsPerPackage:item.unitsPerPackage,packagingEdited:!!item.packagingEdited,isNew:!!item.isNew,externalNameFound:!!item.externalNameFound}))}));
       if($('draftStatus'))$('draftStatus').textContent='Rascunho salvo neste dispositivo · '+fmt(collectionItems.length)+' produto(s).';
     }catch(_){if($('draftStatus'))$('draftStatus').textContent='Não foi possível salvar o rascunho neste dispositivo.';}
   }
@@ -282,7 +295,7 @@ button.install-menu-option[hidden]{display:none!important}
         const id=product?product.id:(item.id||'ean_'+ean);
         const storedName=String(product?.name||'');
         const keepResolvedName=!!item.externalNameFound&&/^Produto EAN\s/i.test(storedName)&&!!item.name;
-        restored.push({id,ean,name:keepResolvedName?item.name:(product?.name||item.name||'Produto EAN '+ean),sectionId:product?.sectionId||item.sectionId||'',unit:'UN',currentStock:product?Number(product.stock||0):Number(item.currentStock||0),quantity,packageCount:Number(item.packageCount??quantity),unitsPerPackage:Number(item.unitsPerPackage??1),packagingEdited:!!item.packagingEdited,isNew:!product,externalNameFound:!!item.externalNameFound});
+        restored.push({id,ean,name:item.nameEdited&&item.name?item.name:(keepResolvedName?item.name:(product?.name||item.name||'Produto EAN '+ean)),nameEdited:!!item.nameEdited,sectionId:product?.sectionId||item.sectionId||'',unit:'UN',currentStock:product?Number(product.stock||0):Number(item.currentStock||0),quantity,packageCount:Number(item.packageCount??quantity),unitsPerPackage:Number(item.unitsPerPackage??1),packagingEdited:!!item.packagingEdited,isNew:!product,externalNameFound:!!item.externalNameFound});
       });
       collectionItems=restored;
       if($('draftStatus'))$('draftStatus').textContent=restored.length?'Rascunho recuperado · '+fmt(restored.length)+' produto(s). Confira antes de enviar.':'Nenhum produto válido no rascunho salvo.';
@@ -409,8 +422,13 @@ button.install-menu-option[hidden]{display:none!important}
   }
   function renderCollection(){
     $('collectionTable').innerHTML=collectionItems.map(item=>{
+      const id=safe(item.id);
+      const editing=editingCollectionId===item.id;
       const packagingInfo=item.packagingEdited?'Quantidade final ajustada manualmente':fmt(item.packageCount??item.quantity)+' embalagens × '+fmt(item.unitsPerPackage??1)+' un';
-      return '<div class="collection-row"><div><strong class="collection-product">'+safe(item.name)+'</strong><span class="collection-ean">EAN '+safe(item.ean)+'</span><span class="collection-package">'+safe(packagingInfo)+' = '+safe(fmt(item.quantity))+' un</span></div><div><input class="collection-quantity" data-quantity="'+safe(item.id)+'" type="number" min="0.001" step="0.001" value="'+safe(item.quantity)+'" aria-label="Quantidade final em unidades de '+safe(item.name)+'"></div><button class="remove-item" type="button" data-remove="'+safe(item.id)+'" aria-label="Remover '+safe(item.name)+'" title="Remover">×</button></div>';
+      const editor=editing
+        ? '<div class="collection-edit-panel"><div class="collection-edit-grid"><div><label>Nome do produto</label><input data-edit-field="name" maxlength="160" value="'+safe(item.name)+'" aria-label="Editar nome do produto"></div><div><label>Código EAN</label><input data-edit-field="ean" inputmode="numeric" maxlength="13" value="'+safe(item.ean)+'" aria-label="Editar código EAN"></div><div><label>Quantidade de embalagens</label><input data-edit-field="packages" type="number" min="1" step="1" inputmode="numeric" value="'+safe(item.packageCount??item.quantity)+'" aria-label="Editar quantidade de embalagens"></div><div><label>Unidades por embalagem</label><input data-edit-field="units" type="number" min="1" step="1" inputmode="numeric" value="'+safe(item.unitsPerPackage??1)+'" aria-label="Editar unidades por embalagem"></div></div><div class="collection-edit-total">Quantidade final: <span data-edit-total>'+fmt(item.quantity)+' un</span></div><div class="collection-edit-actions"><button type="button" data-save-edit="'+id+'">Salvar edição</button><button type="button" class="secondary" data-cancel-edit="'+id+'">Cancelar</button></div></div>'
+        : '';
+      return '<article class="collection-row" data-item-row="'+id+'"><div class="collection-row-main"><div><strong class="collection-product">'+safe(item.name)+'</strong><span class="collection-ean">EAN '+safe(item.ean)+'</span><span class="collection-package">'+safe(packagingInfo)+' = '+safe(fmt(item.quantity))+' un</span></div><div><label class="collection-qty-label" for="collectionQty-'+id+'">TOTAL FINAL (UN)</label><input id="collectionQty-'+id+'" class="collection-quantity" data-quantity="'+id+'" type="number" min="0.001" step="0.001" value="'+safe(item.quantity)+'" aria-label="Quantidade final em unidades de '+safe(item.name)+'" '+(busy?'disabled':'')+'></div></div><div class="collection-row-actions"><button type="button" class="secondary" data-edit-item="'+id+'" '+(busy?'disabled':'')+'>'+(editing?'Fechar edição':'Editar produto')+'</button><button type="button" class="danger" data-remove="'+id+'" '+(busy?'disabled':'')+'>Excluir produto</button></div>'+editor+'</article>';
     }).join('')||'<div class="collection-empty">A lista está vazia. Toque em “Ler código de barras” para começar.</div>';
     $('collectionCount').textContent=fmt(collectionItems.length)+' produto(s)';
     $('metricProducts').textContent=fmt(collectionItems.length);$('metricBalances').textContent=fmt(collectionItems.length);
@@ -432,7 +450,55 @@ button.install-menu-option[hidden]{display:none!important}
     saveCollectionDraft();renderCollection();
     if(continueScanning){hideMessage();startCamera();}else showMessage('Adicionado à lista.','success');
   }
-  async function sendCollection(){
+  function getEditedCollectionValues(row){
+    const name=String(row.querySelector('[data-edit-field="name"]')?.value||'').trim().slice(0,160);
+    const ean=normalizeEan(row.querySelector('[data-edit-field="ean"]')?.value||'');
+    const packagesRaw=row.querySelector('[data-edit-field="packages"]')?.value??'';
+    const unitsRaw=row.querySelector('[data-edit-field="units"]')?.value??'';
+    const packages=Number(packagesRaw),units=Number(unitsRaw);
+    if(!name)throw new Error('Informe o nome do produto.');
+    if(!validEan(ean)||!eanChecksum(ean))throw new Error('EAN inválido. Confira os 8 ou 13 dígitos e o dígito verificador.');
+    if(collectionItems.some(item=>item.id!==editingCollectionId&&normalizeEan(item.ean)===ean))throw new Error('Esse EAN já está em outro produto desta lista.');
+    if(packagesRaw===''||!Number.isInteger(packages)||packages<1)throw new Error('Informe uma quantidade de embalagens inteira maior que zero.');
+    if(unitsRaw===''||!Number.isInteger(units)||units<1)throw new Error('Informe as unidades por embalagem com um número inteiro maior que zero.');
+    const total=packages*units;
+    if(!Number.isFinite(total)||total<=0)throw new Error('A quantidade final calculada é inválida.');
+    return {name,ean,packages,units,total};
+  }
+  function updateEditQuantityPreview(row){
+    const packagesRaw=row.querySelector('[data-edit-field="packages"]')?.value??'';
+    const unitsRaw=row.querySelector('[data-edit-field="units"]')?.value??'';
+    const packages=Number(packagesRaw),units=Number(unitsRaw);
+    const valid=packagesRaw!==''&&unitsRaw!==''&&Number.isInteger(packages)&&packages>0&&Number.isInteger(units)&&units>0;
+    const total=valid?packages*units:0;
+    const preview=row.querySelector('[data-edit-total]');
+    if(preview)preview.textContent=fmt(total)+' un'+(valid?' · '+fmt(packages)+' embalagens × '+fmt(units)+' un':'');
+  }
+  function saveCollectionItemEdit(button){
+    try{
+      const id=button.dataset.saveEdit,row=button.closest('[data-item-row]');
+      const item=collectionItems.find(entry=>entry.id===id);
+      if(!item||!row)throw new Error('Não encontrei o produto que você está editando.');
+      editingCollectionId=id;
+      const values=getEditedCollectionValues(row);
+      const oldEan=normalizeEan(item.ean),nameChanged=values.name!==item.name,eanChanged=values.ean!==oldEan;
+      const matched=products.find(product=>normalizeEan(product.ean)===values.ean);
+      item.name=values.name;
+      item.nameEdited=!!item.nameEdited||nameChanged||eanChanged;
+      item.ean=values.ean;
+      if(matched){
+        item.id=matched.id;item.sectionId=matched.sectionId||'';item.currentStock=Number(matched.stock||0);item.isNew=false;
+      }else if(eanChanged){
+        item.id='ean_'+values.ean;item.sectionId='';item.currentStock=0;item.isNew=true;
+      }
+      item.packageCount=values.packages;item.unitsPerPackage=values.units;item.quantity=values.total;item.packagingEdited=false;
+      item.externalNameFound=!!item.externalNameFound||!!item.nameEdited;
+      editingCollectionId='';
+      saveCollectionDraft();renderCollection();
+      showMessage('Produto editado na lista. Confira antes de transmitir ao dashboard.','success');
+    }catch(err){showMessage(err.message||'Não foi possível editar o produto.','error');}
+  }
+    async function sendCollection(){
     if(busy||!collectionItems.length)return;
     if(!window.confirm('Transmitir '+collectionItems.length+' produto(s)? Será enviado o total final em unidades calculado por embalagens × unidades por embalagem. Os demais produtos não serão modificados.'))return;
     busy=true;renderCollection();$('collectionStatus').textContent='Transmitindo '+fmt(collectionItems.length)+' produto(s) ao Firestore para atualizar o dashboard...';
@@ -451,14 +517,15 @@ button.install-menu-option[hidden]{display:none!important}
             const updateData={stock:Number(item.quantity),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:auth.currentUser.uid};
             const existingName=String(existing.name||'');
             const collectedName=String(item.name||'').trim();
-            if(item.externalNameFound&&/^Produto EAN\s/i.test(existingName)&&collectedName&&!/^Produto EAN\s/i.test(collectedName))updateData.name=collectedName.slice(0,160);
+            if(item.nameEdited&&collectedName)updateData.name=collectedName.slice(0,160);
+            else if(item.externalNameFound&&/^Produto EAN\s/i.test(existingName)&&collectedName&&!/^Produto EAN\s/i.test(collectedName))updateData.name=collectedName.slice(0,160);
             batch.update(db.collection('products').doc(existing.id),updateData);
           }else{
             const newId='ean_'+itemEan,occupied=freshProducts.get(newId);
             if(occupied&&normalizeEan(occupied.ean)!==itemEan)throw new Error('Conflito no identificador do EAN '+item.ean+'. Nenhuma linha desse lote foi enviada; avise a gerência.');
             const ref=db.collection('products').doc(newId);
             const collectedName=String(item.name||'').trim();
-            const productName=item.externalNameFound&&collectedName&&!/^Produto EAN\s/i.test(collectedName)?collectedName.slice(0,160):'Produto EAN '+itemEan;
+            const productName=(item.nameEdited||item.externalNameFound)&&collectedName&&!/^Produto EAN\s/i.test(collectedName)?collectedName.slice(0,160):'Produto EAN '+itemEan;
             batch.set(ref,{ean:itemEan,name:productName,sectionId:'',unit:'UN',stock:Number(item.quantity),createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:auth.currentUser.uid,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:auth.currentUser.uid});
           }
         });
@@ -467,7 +534,7 @@ button.install-menu-option[hidden]{display:none!important}
       try{
         await db.collection('auditLogs').add({action:'stock_collection_sent',entityType:'products',entityId:'collection',summary:'Coleta de estoque enviada: '+sent+' produto(s)',details:{rowsProcessed:sent,items:collectionItems.map(item=>({productName:item.name,ean:item.ean,newStock:Number(item.quantity)}))},userId:auth.currentUser.uid,userEmail:String(auth.currentUser.email||''),role:currentRole,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
       }catch(auditError){console.warn('Não foi possível registrar a auditoria da coleta:',auditError);}
-      collectionItems=[];selectedProduct=null;$('selectedProductCard').classList.add('hidden');$('eanInput').value='';
+      collectionItems=[];editingCollectionId='';selectedProduct=null;$('selectedProductCard').classList.add('hidden');$('eanInput').value='';
       saveCollectionDraft();renderCollection();const transmittedAt=new Date().toLocaleString('pt-BR');$('collectionStatus').textContent='Transmissão concluída às '+transmittedAt+'. Os saldos foram gravados no Firestore; o dashboard recebe as alterações automaticamente em tempo real.';
       showMessage(fmt(sent)+' produto(s) transmitidos. O dashboard principal receberá os novos saldos em tempo real.','success');
     }catch(err){
@@ -488,7 +555,7 @@ button.install-menu-option[hidden]{display:none!important}
     dataUnsubs.push(db.collection('products').onSnapshot(snapshot=>{
       products=snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));loadingProducts=false;$('collectBtn').disabled=false;
       if(!draftRestored){restoreCollectionDraft();draftRestored=true;}
-      collectionItems=collectionItems.map(item=>{const current=products.find(p=>p.id===item.id)||products.find(p=>normalizeEan(p.ean)===normalizeEan(item.ean));const keepResolvedName=current&&item.externalNameFound&&/^Produto EAN\s/i.test(String(current.name||''))&&item.name;return current?{...item,id:current.id,isNew:false,name:keepResolvedName?item.name:(current.name||item.name),ean:normalizeEan(current.ean||item.ean),sectionId:current.sectionId||item.sectionId,unit:current.unit||item.unit,currentStock:Number(current.stock||0)}:item;});
+      collectionItems=collectionItems.map(item=>{const current=products.find(p=>p.id===item.id)||products.find(p=>normalizeEan(p.ean)===normalizeEan(item.ean));const keepResolvedName=current&&item.externalNameFound&&/^Produto EAN\s/i.test(String(current.name||''))&&item.name;return current?{...item,id:current.id,isNew:false,name:item.nameEdited&&item.name?item.name:(keepResolvedName?item.name:(current.name||item.name)),ean:normalizeEan(current.ean||item.ean),sectionId:current.sectionId||item.sectionId,unit:current.unit||item.unit,currentStock:Number(current.stock||0)}:item;});
       renderCollection();saveCollectionDraft();
     },err=>{loadingProducts=false;$('collectBtn').disabled=true;renderCollection();showMessage('Não foi possível carregar o catálogo do estoque: '+err.message,'error');}));
   }
@@ -523,7 +590,37 @@ button.install-menu-option[hidden]{display:none!important}
     saveCollectionDraft();
     $('sendBtn').disabled=busy||!collectionItems.length||loadingProducts||collectionItems.some(entry=>!Number.isFinite(Number(entry.quantity))||Number(entry.quantity)<=0);
   });
-  $('collectionTable').addEventListener('click',event=>{const button=event.target.closest('[data-remove]');if(button){collectionItems=collectionItems.filter(item=>item.id!==button.dataset.remove);saveCollectionDraft();renderCollection();}});
+  $('collectionTable').addEventListener('input',event=>{
+    const row=event.target.closest('[data-item-row]');
+    if(row&&event.target.matches('[data-edit-field="packages"],[data-edit-field="units"]'))updateEditQuantityPreview(row);
+  });
+  $('collectionTable').addEventListener('click',event=>{
+    const editButton=event.target.closest('[data-edit-item]');
+    if(editButton){
+      if(busy)return;
+      const id=editButton.dataset.editItem;
+      editingCollectionId=editingCollectionId===id?'':id;
+      renderCollection();
+      const row=Array.from($('collectionTable').querySelectorAll('[data-item-row]')).find(entry=>entry.dataset.itemRow===id);
+      row?.querySelector('[data-edit-field="name"]')?.focus();
+      return;
+    }
+    const saveButton=event.target.closest('[data-save-edit]');
+    if(saveButton){if(!busy)saveCollectionItemEdit(saveButton);return;}
+    const cancelButton=event.target.closest('[data-cancel-edit]');
+    if(cancelButton){editingCollectionId='';renderCollection();return;}
+    const deleteButton=event.target.closest('[data-remove]');
+    if(deleteButton){
+      if(busy)return;
+      const item=collectionItems.find(entry=>entry.id===deleteButton.dataset.remove);
+      if(!item)return;
+      if(!window.confirm('Excluir "'+item.name+'" da lista de coleta? O produto será removido somente desta lista local. Nenhuma alteração será enviada ao estoque até você transmitir a coleta.'))return;
+      collectionItems=collectionItems.filter(entry=>entry.id!==deleteButton.dataset.remove);
+      if(editingCollectionId===deleteButton.dataset.remove)editingCollectionId='';
+      saveCollectionDraft();renderCollection();
+      showMessage('Produto excluído da lista de coleta. O estoque oficial não foi alterado.','success');
+    }
+  });
   try{
     if(!window.IDEAL_FIREBASE_CONFIG||!window.IDEAL_FIREBASE_CONFIG.apiKey||String(window.IDEAL_FIREBASE_CONFIG.apiKey).includes('COLOQUE_'))throw new Error('firebase-config.js ainda não está configurado.');
     if(!firebase.apps.length)firebase.initializeApp(window.IDEAL_FIREBASE_CONFIG);
