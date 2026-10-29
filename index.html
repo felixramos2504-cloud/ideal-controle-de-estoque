@@ -411,15 +411,22 @@
         <div class="actions"><button id="downloadBackupBtn" type="button">Gerar e baixar backup JSON</button></div>
         <div id="backupStatus" class="muted small" style="margin-top:10px">Nenhum backup gerado nesta sessão.</div>
       </section>
+      <section class="card" style="margin-top:14px;border:1px solid #f0b4b4">
+        <h3>2. Limpeza de produtos sem seção</h3>
+        <p class="muted small">Localiza somente produtos cujo campo de seção está vazio ou não existe. Primeiro confira a lista; a exclusão é permanente e não remove produtos que estejam associados a uma seção.</p>
+        <div class="actions"><button id="previewProductsWithoutSectionBtn" type="button" class="secondary">Localizar produtos sem seção</button><button id="deleteProductsWithoutSectionBtn" type="button" class="danger" disabled>Excluir produtos encontrados</button></div>
+        <div id="productsWithoutSectionStatus" class="muted small" style="margin-top:10px">Nenhuma verificação executada.</div>
+        <div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Produto</th><th>EAN</th><th>Saldo</th><th>Identificador</th></tr></thead><tbody id="productsWithoutSectionTable"><tr><td colspan="4">Clique em “Localizar produtos sem seção” para conferir antes de excluir.</td></tr></tbody></table></div>
+      </section>
       <section class="card" style="margin-top:14px">
-        <h3>2. Verificação do cadastro</h3>
+        <h3>3. Verificação do cadastro</h3>
         <p class="muted small">Procura EAN duplicado ou inválido, seção inexistente, saldo negativo ou inválido, nomes de seção repetidos e produtos sem nome.</p>
         <div class="actions"><button id="runIntegrityBtn" type="button">Verificar integridade agora</button><button id="exportIntegrityCsv" type="button" class="secondary" disabled>Exportar resultado CSV</button></div>
         <div id="integrityStatus" class="muted small" style="margin-top:10px">A verificação ainda não foi executada.</div>
         <div id="integritySummary" class="integrity-summary"></div>
         <div class="tablewrap"><table><thead><tr><th>Gravidade</th><th>Item</th><th>Problema encontrado</th></tr></thead><tbody id="integrityTable"><tr><td colspan="3">Execute a verificação para ver os resultados.</td></tr></tbody></table></div>
       </section>
-      <p class="muted small">A verificação é uma fotografia dos dados no momento da execução. Corrija os avisos manualmente e rode a conferência novamente. O sistema não corrige nem apaga registros automaticamente.</p>
+      <p class="muted small">A verificação é uma fotografia dos dados no momento da execução. Confira os avisos manualmente e rode a conferência novamente.</p>
     </section>
 
     <section id="tab-analysis" class="panel hidden">
@@ -1427,6 +1434,88 @@
     const warnings=issues.filter(issue=>issue.severity==='warning').length;
     return {issues:issues,summary:{products:products.length,sections:sections.length,errors:errors,warnings:warnings,eanDuplicates:issues.filter(i=>i.code==='duplicate_ean').length},checkedAt:new Date()};
   }
+  let productsWithoutSectionPreview=[];
+  async function previewProductsWithoutSection(){
+    const button=$('previewProductsWithoutSectionBtn');
+    if(button.disabled)return;
+    button.disabled=true;
+    $('deleteProductsWithoutSectionBtn').disabled=true;
+    $('productsWithoutSectionStatus').textContent='Consultando produtos no Firestore...';
+    $('productsWithoutSectionTable').innerHTML='<tr><td colspan="4">Carregando...</td></tr>';
+    productsWithoutSectionPreview=[];
+    try{
+      await requireRole('administrador');
+      const snap=await db.collection('products').get();
+      productsWithoutSectionPreview=snap.docs.map(doc=>({id:doc.id,...doc.data()}))
+        .filter(p=>!String(p.sectionId||'').trim())
+        .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));
+      $('productsWithoutSectionStatus').textContent=productsWithoutSectionPreview.length
+        ?'Encontrados '+fmt(productsWithoutSectionPreview.length)+' produto(s) sem seção. Confira a lista abaixo antes de excluir.'
+        :'Nenhum produto sem seção foi encontrado. Nada precisa ser excluído.';
+      $('productsWithoutSectionTable').innerHTML=productsWithoutSectionPreview.map(p=>'<tr><td>'+safe(p.name||'Produto sem nome')+'</td><td>'+safe(p.ean||'—')+'</td><td>'+safe(fmt(Number(p.stock||0))+' '+String(p.unit||'UN'))+'</td><td><span class="small">'+safe(p.id)+'</span></td></tr>').join('')||'<tr><td colspan="4">Nenhum produto sem seção.</td></tr>';
+      $('deleteProductsWithoutSectionBtn').disabled=!productsWithoutSectionPreview.length;
+    }catch(err){
+      $('productsWithoutSectionStatus').textContent='Falha ao consultar. Verifique o acesso de administrador.';
+      $('productsWithoutSectionTable').innerHTML='<tr><td colspan="4">Não foi possível carregar os produtos.</td></tr>';
+      message('Não foi possível localizar produtos sem seção: '+(err.message||err),'error');
+    }finally{button.disabled=false;}
+  }
+  async function deleteProductsWithoutSection(){
+    const button=$('deleteProductsWithoutSectionBtn');
+    if(button.disabled||!productsWithoutSectionPreview.length)return;
+    try{
+      await requireRole('administrador');
+      const expected=productsWithoutSectionPreview.slice();
+      const answer=window.prompt('ATENÇÃO: serão excluídos permanentemente '+expected.length+' produto(s) sem seção. Esta ação não pode ser desfeita. Para confirmar, digite EXCLUIR.');
+      if(answer!=='EXCLUIR')return;
+      button.disabled=true;
+      $('previewProductsWithoutSectionBtn').disabled=true;
+      $('productsWithoutSectionStatus').textContent='Conferindo novamente e excluindo os produtos confirmados...';
+      const fresh=await db.collection('products').get();
+      const toDelete=fresh.docs.filter(doc=>{
+        const data=doc.data();
+        return !String(data.sectionId||'').trim()&&expected.some(p=>p.id===doc.id);
+      });
+      if(toDelete.length!==expected.length){
+        productsWithoutSectionPreview=[];
+        $('productsWithoutSectionStatus').textContent='Os dados mudaram desde a prévia. Nada foi excluído. Faça uma nova verificação.';
+        $('productsWithoutSectionTable').innerHTML='<tr><td colspan="4">A lista mudou; execute a verificação novamente.</td></tr>';
+        message('A lista mudou desde a conferência. Por segurança, nada foi excluído.','error');
+        return;
+      }
+      let deleted=0;
+      for(let offset=0;offset<toDelete.length;offset+=400){
+        const batch=db.batch();
+        toDelete.slice(offset,offset+400).forEach(doc=>batch.delete(doc.ref));
+        await batch.commit();
+        deleted+=Math.min(400,toDelete.length-offset);
+        $('productsWithoutSectionStatus').textContent='Excluindo... '+fmt(deleted)+' de '+fmt(toDelete.length);
+      }
+      try{
+        await db.collection('auditLogs').add({
+          action:'products_without_section_deleted',
+          entityType:'products',
+          entityId:'bulk_cleanup',
+          summary:'Limpeza administrativa: '+deleted+' produto(s) sem seção excluído(s)',
+          details:{deletedCount:deleted,productIds:toDelete.map(doc=>doc.id),products:toDelete.map(doc=>({id:doc.id,name:doc.data().name||'',ean:doc.data().ean||''}))},
+          userId:auth.currentUser.uid,
+          userEmail:String(auth.currentUser.email||''),
+          role:state.role,
+          createdAt:firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }catch(auditErr){console.warn('Falha ao registrar auditoria da limpeza:',auditErr);}
+      productsWithoutSectionPreview=[];
+      $('productsWithoutSectionStatus').textContent='Concluído: '+fmt(deleted)+' produto(s) sem seção excluído(s).';
+      $('productsWithoutSectionTable').innerHTML='<tr><td colspan="4">Limpeza concluída. Execute uma nova verificação para conferir.</td></tr>';
+      message(fmt(deleted)+' produto(s) sem seção excluído(s). Os produtos com seção foram preservados.','success');
+    }catch(err){
+      $('productsWithoutSectionStatus').textContent='Não foi possível concluir a exclusão. Confira as permissões do Firebase.';
+      message('Falha na limpeza: '+(err.message||err),'error');
+    }finally{
+      button.disabled=!productsWithoutSectionPreview.length;
+      $('previewProductsWithoutSectionBtn').disabled=false;
+    }
+  }
   async function runIntegrityCheck(){
     const btn=$('runIntegrityBtn');
     if(btn.disabled)return;
@@ -2045,6 +2134,8 @@
     $('logoutBtn').addEventListener('click',()=>auth.signOut());
     $('managedUserForm').addEventListener('submit',createManagedUser);
     $('downloadBackupBtn').addEventListener('click',downloadSystemBackup);
+    $('previewProductsWithoutSectionBtn').addEventListener('click',previewProductsWithoutSection);
+    $('deleteProductsWithoutSectionBtn').addEventListener('click',deleteProductsWithoutSection);
     $('runIntegrityBtn').addEventListener('click',runIntegrityCheck);
     $('exportIntegrityCsv').addEventListener('click',exportIntegrityCsv);
     $('analysisPeriod').addEventListener('change',renderAnalysis);
