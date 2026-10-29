@@ -158,12 +158,68 @@
     @media(max-width:620px){nav.module-launcher{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}nav.module-launcher button{min-height:100px;border-radius:13px;padding:11px 5px;font-size:12px}nav.module-launcher button .module-icon{width:40px;height:40px;border-radius:12px;font-size:22px}.module-launcher-heading h2{font-size:19px}.launcher-hint{font-size:9px;padding:6px 8px}}
     @media(max-width:390px){nav.module-launcher{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
+
+    /* MASTER 4.2 · Tela inicial por seções e menu recolhível */
+    .header-tools{display:flex;align-items:center;gap:10px}
+    .header-role{background:#ffffff1f;color:#fff;border:1px solid #ffffff40}
+    .menu-toggle{min-width:48px;min-height:44px;background:#ffffff20;color:#fff;border:1px solid #ffffff55;border-radius:12px;font-size:26px;line-height:1;box-shadow:none}
+    .menu-toggle:hover{background:#ffffff35}
+    .home-sections{margin:4px 0 18px}
+    .home-sections-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:6px 0 18px}
+    .home-sections-heading h2{font-size:clamp(24px,3vw,32px);margin:0;color:#12315d}
+    .home-sections-heading p{margin:6px 0 0}
+    .quick-section-form{background:#fff;border:1px solid #cbdcff;border-radius:16px;padding:16px;margin:0 0 18px;box-shadow:0 5px 18px #0047ab0b}
+    .quick-section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .quick-section-fields{display:grid;grid-template-columns:1.1fr 1.1fr auto;align-items:end;gap:12px}
+    .quick-section-fields label{margin-top:10px}
+    .quick-section-action{padding-bottom:1px}
+    .quick-section-action button{min-height:43px;white-space:nowrap}
+    .section-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+    .section-tile{display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:12px;min-width:0;min-height:168px;padding:18px;background:linear-gradient(155deg,#fff,#f5f8ff);color:#16345f;text-align:left;border:1px solid #d4e2fb;border-radius:20px;box-shadow:0 6px 20px #0e3b8110;white-space:normal}
+    .section-tile:hover{border-color:#78a4f5;background:#fff;transform:translateY(-2px)}
+    .section-tile-top{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%}
+    .section-tile-icon{display:grid;place-items:center;width:64px;height:64px;flex:0 0 64px;font-size:38px;line-height:1;background:#e7efff;border-radius:18px}
+    .section-tile-arrow{font-size:25px;color:#4775bd;font-weight:700}
+    .section-tile-name{font-size:18px;font-weight:800;line-height:1.25;overflow-wrap:anywhere}
+    .section-tile-meta{display:block;color:#667b9a;font-size:12px;font-weight:600;margin-top:5px}
+    .selected-section-panel{margin-top:0;border-top:4px solid #0047AB}
+    .selected-section-heading{align-items:flex-start;margin-bottom:10px}
+    #sectionProductTable td{vertical-align:middle}
+    #sectionProductTable td:nth-child(2){font-weight:800;color:#003b95;white-space:nowrap}
+    .module-menu{position:fixed;top:82px;right:max(12px,calc((100vw - 1180px)/2));z-index:10000;width:min(420px,calc(100vw - 24px));max-height:calc(100dvh - 98px);overflow:auto;padding:16px;background:#fff;border:1px solid #cbdcff;border-radius:18px;box-shadow:0 20px 60px #06275b30}
+    .module-menu-user{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+    #userBar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 10px;background:#f4f7ff;border:1px solid #e0e9fb;border-radius:10px}
+    #userEmail{min-width:0;overflow-wrap:anywhere;font-size:12px;color:#385477}
+    .home-menu-button{display:flex;align-items:center;justify-content:flex-start;gap:10px;width:100%;text-align:left}
+    .home-menu-button .module-icon{font-size:22px}
+    .module-menu .module-launcher-heading{margin:0 0 10px}
+    .module-menu .module-launcher-heading h2{font-size:17px}
+    .module-menu nav.module-launcher{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0}
+    .module-menu nav.module-launcher button{min-height:82px;padding:9px 7px;border-radius:12px;font-size:12px;gap:6px}
+    .module-menu nav.module-launcher button .module-icon{width:34px;height:34px;font-size:20px;border-radius:10px}
+    @media(max-width:900px){.section-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media(max-width:620px){
+      .header-tools{gap:7px}.header-role{font-size:11px}
+      .home-sections-heading{margin-bottom:13px}
+      .section-tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+      .section-tile{min-height:146px;padding:13px;border-radius:16px}
+      .section-tile-icon{width:54px;height:54px;flex-basis:54px;font-size:31px;border-radius:15px}
+      .section-tile-name{font-size:15px}
+      .quick-section-fields{grid-template-columns:1fr;gap:3px}
+      .quick-section-action button{width:100%}
+      .module-menu{top:72px;right:10px;width:calc(100vw - 20px);max-height:calc(100dvh - 84px)}
+    }
+    @media(max-width:360px){.section-tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.section-tile{min-height:132px;padding:10px}.section-tile-icon{width:48px;height:48px;flex-basis:48px;font-size:28px}}
+
   </style>
 </head>
 <body>
 <header>
-  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 4.1 · Histórico de inventários e contagens</small></div>
-  <div id="userBar" class="hidden"><span id="userEmail"></span> <button id="logoutBtn" class="secondary">Sair</button></div>
+  <div><h1>IDEAL Controle de Estoque</h1><small>MASTER 4.2 · Seções em destaque</small></div>
+  <div id="headerTools" class="header-tools hidden">
+    <span id="roleBadge" class="badge header-role">Perfil: verificando</span>
+    <button id="menuToggle" type="button" class="menu-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="moduleMenu">☰</button>
+  </div>
 </header>
 <main>
   <div id="message" class="notice hidden" role="status"></div>
@@ -179,8 +235,37 @@
   </section>
 
   <section id="appPanel" class="hidden">
-    <div class="panel app-dashboard-panel">
-      <div class="section-title"><div><div class="dashboard-overline">VISÃO GERAL · ESTOQUE EM TEMPO REAL</div><h2 style="margin:0">Painel de estoque</h2><span class="muted small">Resumo atualizado automaticamente conforme as alterações do estoque.</span></div><span id="roleBadge" class="badge">Perfil: verificando</span></div>
+    <section id="homeSections" class="home-sections">
+      <div class="home-sections-heading">
+        <div>
+          <div class="dashboard-overline">ESTOQUE IDEAL</div>
+          <h2>Seções do estoque</h2>
+          <p class="muted">Abra uma seção para consultar os produtos e suas quantidades atuais.</p>
+        </div>
+      </div>
+      <form id="quickSectionForm" class="quick-section-form hidden">
+        <div class="quick-section-title"><strong>Cadastrar nova seção</strong><span class="muted small">Disponível para gerência e administração</span></div>
+        <div class="quick-section-fields">
+          <div><label for="quickSectionName">Nome da seção *</label><input id="quickSectionName" required maxlength="100" placeholder="Ex.: Mercearia"></div>
+          <div><label for="quickSectionDescription">Descrição (opcional)</label><input id="quickSectionDescription" maxlength="200" placeholder="Detalhe da seção"></div>
+          <div class="quick-section-action"><button type="submit">＋ Cadastrar seção</button></div>
+        </div>
+      </form>
+      <div id="homeSectionsGrid" class="section-tiles" aria-live="polite"><div class="dashboard-empty">Carregando seções...</div></div>
+    </section>
+    <section id="selectedSectionPanel" class="panel selected-section-panel hidden">
+      <div class="section-title selected-section-heading">
+        <div><div class="dashboard-overline">CONSULTA DE COMPRAS</div><h2 id="selectedSectionTitle" style="margin:0">Seção</h2><p class="muted small">Produtos cadastrados e quantidade atual no estoque.</p></div>
+        <button id="backToSectionsBtn" type="button" class="secondary">← Voltar às seções</button>
+      </div>
+      <div class="formgrid report-controls">
+        <div><label for="sectionProductSearch">Pesquisar produto / EAN</label><input id="sectionProductSearch" placeholder="Digite o nome ou código de barras"></div>
+      </div>
+      <div id="sectionProductSummary" class="report-summary"></div>
+      <div class="tablewrap"><table><thead><tr><th>Produto / EAN</th><th>Quantidade atual</th><th>Última atualização</th></tr></thead><tbody id="sectionProductTable"><tr><td colspan="3">Selecione uma seção.</td></tr></tbody></table></div>
+    </section>
+    <div class="panel app-dashboard-panel hidden">
+      <div class="section-title"><div><div class="dashboard-overline">VISÃO GERAL · ESTOQUE EM TEMPO REAL</div><h2 style="margin:0">Painel de estoque</h2><span class="muted small">Resumo atualizado automaticamente conforme as alterações do estoque.</span></div></div>
       <div id="dashboardKpis" class="grid" style="margin-top:16px">
         <div class="card dashboard-kpi kpi-good"><div class="kpi-label">Produtos com saldo</div><div id="statAvailable" class="stat">—</div><div class="kpi-note">Itens atualmente no estoque</div></div>
         <div class="card dashboard-kpi"><div class="kpi-label">Seções com produtos</div><div id="statSections" class="stat">—</div><div class="kpi-note">Seções com saldo cadastrado</div></div>
@@ -224,21 +309,27 @@
       </div>
     </div>
 
-    <div class="module-launcher-heading"><div><h2>Acesso rápido</h2><p class="muted small">Toque em um ícone para abrir a área desejada.</p></div><span class="launcher-hint">MÓDULOS DO SISTEMA</span></div>
-    <nav class="module-launcher" aria-label="Módulos">
-      <button data-tab="products"><span class="module-icon" aria-hidden="true">📦</span><span class="module-label">Produtos</span></button>
-      <button data-tab="sections" class="secondary"><span class="module-icon" aria-hidden="true">🗂️</span><span class="module-label">Seções</span></button>
-      <button data-tab="count" class="secondary"><span class="module-icon" aria-hidden="true">🔢</span><span class="module-label">Contagem rápida</span></button>
-      <button data-tab="inventory" class="secondary"><span class="module-icon" aria-hidden="true">📋</span><span class="module-label">Inventário completo</span></button>
-      <button data-tab="report" class="secondary"><span class="module-icon" aria-hidden="true">📊</span><span class="module-label">Relatório de estoque</span></button>
-      <button data-tab="history" class="secondary"><span class="module-icon" aria-hidden="true">🕘</span><span class="module-label">Histórico de contagens</span></button>
-      <button id="usersTabBtn" data-tab="users" class="secondary hidden"><span class="module-icon" aria-hidden="true">👥</span><span class="module-label">Usuários</span></button>
-      <button id="auditTabBtn" data-tab="audit" class="secondary hidden"><span class="module-icon" aria-hidden="true">🛡️</span><span class="module-label">Auditoria</span></button>
-      <button id="backupTabBtn" data-tab="backup" class="secondary hidden"><span class="module-icon" aria-hidden="true">💾</span><span class="module-label">Backup</span></button>
-      <button id="analysisTabBtn" data-tab="analysis" class="secondary hidden"><span class="module-icon" aria-hidden="true">📈</span><span class="module-label">Análise gerencial</span></button>
-    </nav>
+    <div id="moduleMenu" class="module-menu hidden" aria-label="Menu do sistema">
+      <div class="module-menu-user">
+        <div id="userBar" class="hidden"><span id="userEmail"></span><button id="logoutBtn" type="button" class="secondary">Sair</button></div>
+        <button id="homeMenuBtn" type="button" class="secondary home-menu-button"><span class="module-icon" aria-hidden="true">🏠</span><span class="module-label">Início · Seções</span></button>
+      </div>
+      <div class="module-launcher-heading"><div><h2>Menu do sistema</h2><p class="muted small">Acesse as outras ferramentas por aqui.</p></div></div>
+      <nav class="module-launcher" aria-label="Módulos">
+        <button data-tab="products" type="button"><span class="module-icon" aria-hidden="true">📦</span><span class="module-label">Produtos</span></button>
+        <button data-tab="sections" type="button" class="secondary"><span class="module-icon" aria-hidden="true">🗂️</span><span class="module-label">Seções</span></button>
+        <button data-tab="count" type="button" class="secondary"><span class="module-icon" aria-hidden="true">🔢</span><span class="module-label">Contagem rápida</span></button>
+        <button data-tab="inventory" type="button" class="secondary"><span class="module-icon" aria-hidden="true">📋</span><span class="module-label">Inventário completo</span></button>
+        <button data-tab="report" type="button" class="secondary"><span class="module-icon" aria-hidden="true">📊</span><span class="module-label">Relatório de estoque</span></button>
+        <button data-tab="history" type="button" class="secondary"><span class="module-icon" aria-hidden="true">🕘</span><span class="module-label">Histórico de contagens</span></button>
+        <button id="usersTabBtn" data-tab="users" type="button" class="secondary hidden"><span class="module-icon" aria-hidden="true">👥</span><span class="module-label">Usuários</span></button>
+        <button id="auditTabBtn" data-tab="audit" type="button" class="secondary hidden"><span class="module-icon" aria-hidden="true">🛡️</span><span class="module-label">Auditoria</span></button>
+        <button id="backupTabBtn" data-tab="backup" type="button" class="secondary hidden"><span class="module-icon" aria-hidden="true">💾</span><span class="module-label">Backup</span></button>
+        <button id="analysisTabBtn" data-tab="analysis" type="button" class="secondary hidden"><span class="module-icon" aria-hidden="true">📈</span><span class="module-label">Análise gerencial</span></button>
+      </nav>
+    </div>
 
-    <section id="tab-products" class="panel">
+    <section id="tab-products" class="panel hidden">
       <h2>Cadastro de produtos</h2>
       <section id="bulkStockImportPanel" class="card dashboard-card" style="margin:14px 0 18px">
         <div class="section-title"><div><h3 style="margin:0">Alimentar estoque por planilha</h3><p class="muted small" style="margin:5px 0 0">Importe em lote os produtos que você tem no estoque para montar a base de compras.</p></div><span class="badge">Gerência / administrador</span></div>
@@ -442,7 +533,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const state = { user:null, role:null, products:[], productsLoaded:false, sections:[], counts:[], countsLive:[], countsBaseline:[], countsOlder:[], countsNextCursor:null, countsHasMore:false, countsLoadingMore:false, countsInitialized:false, finishedInventories:[], inventoriesLive:[], inventoriesBaseline:[], inventoriesOlder:[], inventoriesNextCursor:null, inventoriesHasMore:false, inventoriesLoadingMore:false, inventoriesInitialized:false, users:[], usersLoaded:false, auditLogs:[], auditLive:[], auditBaseline:[], auditOlder:[], auditNextCursor:null, auditHasMore:false, auditLoadingMore:false, auditInitialized:false, auditLoaded:false, auditUpdatedAt:null, integrityIssues:[], integritySummary:null, integrityCheckedAt:null, inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{}, eanLookupToken:0, eanLookupCache:{}, stockUpdatedAt:null, historyUpdatedAt:null };
+  const state = { user:null, role:null, homeSectionId:null, products:[], productsLoaded:false, sections:[], counts:[], countsLive:[], countsBaseline:[], countsOlder:[], countsNextCursor:null, countsHasMore:false, countsLoadingMore:false, countsInitialized:false, finishedInventories:[], inventoriesLive:[], inventoriesBaseline:[], inventoriesOlder:[], inventoriesNextCursor:null, inventoriesHasMore:false, inventoriesLoadingMore:false, inventoriesInitialized:false, users:[], usersLoaded:false, auditLogs:[], auditLive:[], auditBaseline:[], auditOlder:[], auditNextCursor:null, auditHasMore:false, auditLoadingMore:false, auditInitialized:false, auditLoaded:false, auditUpdatedAt:null, integrityIssues:[], integritySummary:null, integrityCheckedAt:null, inventory:null, inventoryItems:[], scanners:{}, scannerCaptured:{}, eanLookupToken:0, eanLookupCache:{}, stockUpdatedAt:null, historyUpdatedAt:null };
   const roleRank = { colaborador:1, gerente:2, administrador:3 };
   function message(text, type='notice') { const el=$('message'); el.textContent=text; el.className='notice '+(type==='error'?'error':type==='success'?'success':''); el.classList.remove('hidden'); window.scrollTo({top:0,behavior:'smooth'}); }
   function clearMessage(){ $('message').classList.add('hidden'); }
@@ -672,7 +763,69 @@
     state.scannerCaptured[key]=false;
     if(!Object.keys(state.scanners).length) document.body.classList.remove('scanner-open');
   }
-  function setTab(tab){ if(tab==='users'&&state.role!=='administrador')tab='products'; if(tab==='backup'&&state.role!=='administrador')tab='products'; if(tab==='audit'&&!['administrador','gerente'].includes(state.role))tab='products'; if(tab==='analysis'&&!['administrador','gerente'].includes(state.role))tab='products'; ['products','sections','count','inventory','report','history','users','audit','backup','analysis'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==tab)); document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('secondary',b.dataset.tab!==tab)}); if(tab==='report')renderStockReport(); if(tab==='history')renderHistory(); if(tab==='users')renderUsers(); if(tab==='audit')renderAudit(); if(tab==='backup')renderIntegrity(); if(tab==='analysis')renderAnalysis(); }
+  function showHomeSections(){
+    $('homeSections').classList.remove('hidden');
+    $('selectedSectionPanel').classList.add('hidden');
+    ['products','sections','count','inventory','report','history','users','audit','backup','analysis'].forEach(t=>$('tab-'+t).classList.add('hidden'));
+    $('moduleMenu').classList.add('hidden');
+    $('menuToggle').setAttribute('aria-expanded','false');
+    renderHomeSections();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function openHomeSection(sectionId){
+    if(!state.sections.some(s=>s.id===sectionId))return;
+    state.homeSectionId=sectionId;
+    $('homeSections').classList.add('hidden');
+    $('selectedSectionPanel').classList.remove('hidden');
+    ['products','sections','count','inventory','report','history','users','audit','backup','analysis'].forEach(t=>$('tab-'+t).classList.add('hidden'));
+    $('moduleMenu').classList.add('hidden');
+    $('menuToggle').setAttribute('aria-expanded','false');
+    $('sectionProductSearch').value='';
+    renderSelectedSection();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function setTab(tab){ if(tab==='users'&&state.role!=='administrador')tab='products'; if(tab==='backup'&&state.role!=='administrador')tab='products'; if(tab==='audit'&&!['administrador','gerente'].includes(state.role))tab='products'; if(tab==='analysis'&&!['administrador','gerente'].includes(state.role))tab='products'; $('homeSections').classList.add('hidden');$('selectedSectionPanel').classList.add('hidden');['products','sections','count','inventory','report','history','users','audit','backup','analysis'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==tab));document.querySelectorAll('nav button[data-tab]').forEach(b=>{b.classList.toggle('secondary',b.dataset.tab!==tab)});$('moduleMenu').classList.add('hidden');$('menuToggle').setAttribute('aria-expanded','false'); if(tab==='report')renderStockReport(); if(tab==='history')renderHistory(); if(tab==='users')renderUsers(); if(tab==='audit')renderAudit(); if(tab==='backup')renderIntegrity(); if(tab==='analysis')renderAnalysis(); }
+  function sectionIcon(sectionNameValue){
+    const n=normalizeLookupText(sectionNameValue);
+    if(/horti|fruta|verdura/.test(n))return '🥬';
+    if(/acougue|carne|frango/.test(n))return '🥩';
+    if(/padaria|pao|confeitaria/.test(n))return '🥖';
+    if(/bebida|refrigerante|suco/.test(n))return '🥤';
+    if(/limpeza|detergente|higiene/.test(n))return '🧹';
+    if(/perfum|cosmet|beleza/.test(n))return '🧴';
+    if(/leite|latic|queijo|frios/.test(n))return '🥛';
+    if(/biscoito|bolacha/.test(n))return '🍪';
+    if(/mercearia|macarrao|grao|farinh|arroz|feijao/.test(n))return '🛒';
+    if(/bomboniere|doce|chocolate|salgad|bala/.test(n))return '🍬';
+    if(/racao|pet|animal/.test(n))return '🐾';
+    if(/descart/.test(n))return '🥡';
+    if(/bazar|utilidade|sandalia/.test(n))return '🧺';
+    if(/congel|sorvete/.test(n))return '🧊';
+    if(/papel|escritorio/.test(n))return '📎';
+    return '📦';
+  }
+  function renderHomeSections(){
+    const grid=$('homeSectionsGrid');if(!grid)return;
+    const sections=state.sections.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));
+    grid.innerHTML=sections.map(section=>{
+      const products=state.products.filter(p=>p.sectionId===section.id);
+      const stocked=products.filter(p=>Number(p.stock||0)>0).length;
+      return '<button type="button" class="section-tile" data-home-section="'+safe(section.id)+'"><span class="section-tile-top"><span class="section-tile-icon" aria-hidden="true">'+sectionIcon(section.name)+'</span><span class="section-tile-arrow" aria-hidden="true">›</span></span><span><span class="section-tile-name">'+safe(section.name)+'</span><span class="section-tile-meta">'+fmt(products.length)+' produto(s) · '+fmt(stocked)+' com saldo</span></span></button>';
+    }).join('')||'<div class="dashboard-empty">Ainda não há seções cadastradas. A gerência pode cadastrar uma nova seção nesta tela.</div>';
+  }
+  function renderSelectedSection(){
+    const title=$('selectedSectionTitle'),table=$('sectionProductTable'),summary=$('sectionProductSummary');
+    if(!title||!table||!summary)return;
+    const section=state.sections.find(s=>s.id===state.homeSectionId);
+    if(!section){table.innerHTML='<tr><td colspan="3">Esta seção não está mais disponível. Volte e escolha outra seção.</td></tr>';summary.innerHTML='';title.textContent='Seção';return;}
+    title.textContent=section.name;
+    const query=$('sectionProductSearch').value.trim().toLocaleLowerCase('pt-BR');
+    const all=state.products.filter(p=>p.sectionId===section.id).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR'));
+    const rows=all.filter(p=>!query||String(p.name||'').toLocaleLowerCase('pt-BR').includes(query)||String(p.ean||'').includes(query));
+    const stocked=all.filter(p=>Number(p.stock||0)>0).length;
+    summary.innerHTML='<span>Produtos cadastrados <strong>'+fmt(all.length)+'</strong></span><span>Produtos com saldo <strong>'+fmt(stocked)+'</strong></span><span>Exibidos na pesquisa <strong>'+fmt(rows.length)+'</strong></span>';
+    table.innerHTML=rows.map(p=>'<tr><td><strong>'+safe(p.name||'Produto sem nome')+'</strong><br><span class="muted small">EAN: '+safe(p.ean||'Sem EAN')+'</span></td><td>'+fmt(p.stock)+' '+safe(p.unit||'UN')+'</td><td>'+safe(p.updatedAt?dateFmt(p.updatedAt):'—')+'</td></tr>').join('')||'<tr><td colspan="3">Nenhum produto encontrado nesta seção.</td></tr>';
+  }
   function getStockStatus(product){
     const stock=Number(product.stock||0);
     if(stock<=0)return {code:'zero',label:'Sem estoque',pill:'zero'};
@@ -991,6 +1144,8 @@
     renderDashboard();
     renderStockReport();
     renderHistory();
+    renderHomeSections();
+    renderSelectedSection();
   }
   function renderProducts(){
     const q=$('productSearch').value.trim().toLocaleLowerCase('pt-BR');
@@ -998,6 +1153,8 @@
     $('productsTable').innerHTML=list.map(p=>`<tr><td><strong>${safe(p.name)}</strong><br><span class="muted small">${safe(p.ean||'Sem EAN')}</span></td><td>${safe(sectionName(p.sectionId))}</td><td>${fmt(p.stock)} ${safe(p.unit||'UN')}</td><td><div class="actions"><button class="secondary" data-edit="${safe(p.id)}" type="button">Editar</button></div></td></tr>`).join('')||'<tr><td colspan="4">Nenhum produto encontrado.</td></tr>';
     renderDashboard();
     renderStockReport();
+    renderHomeSections();
+    renderSelectedSection();
   }
   function renderCounts(){
     $('countsTable').innerHTML=state.counts.slice(0,50).map(c=>`<tr><td>${safe(dateFmt(c.createdAt))}</td><td>${safe(c.productName)}</td><td>${fmt(c.systemStock)}</td><td>${fmt(c.countedQty)}</td><td>${fmt(Number(c.countedQty)-Number(c.systemStock))}</td><td>${safe(c.userEmail||'')}</td></tr>`).join('')||'<tr><td colspan="6">Nenhuma contagem registrada.</td></tr>';
@@ -1586,21 +1743,35 @@
     const role=profile.role;
     if(!roleRank[role]) throw new Error('Perfil inválido. Contate o administrador.');
     state.role=role; $('roleBadge').textContent='Perfil: '+role; $('userEmail').textContent=user.email||'Usuário'; $('userBar').classList.remove('hidden');
-    document.querySelectorAll('[data-tab="sections"],#sectionForm,#finishInventoryBtn,#bulkStockImportPanel').forEach(el=>{el.classList.toggle('hidden',roleRank[role]<roleRank.gerente)});
+    document.querySelectorAll('[data-tab="sections"],#sectionForm,#quickSectionForm,#finishInventoryBtn,#bulkStockImportPanel').forEach(el=>{el.classList.toggle('hidden',roleRank[role]<roleRank.gerente)});
     $('usersTabBtn').classList.toggle('hidden',role!=='administrador');
     $('auditTabBtn').classList.toggle('hidden',!['administrador','gerente'].includes(role));
     $('backupTabBtn').classList.toggle('hidden',role!=='administrador');
     $('analysisTabBtn').classList.toggle('hidden',!['administrador','gerente'].includes(role));
     $('tab-users').classList.add('hidden');$('tab-audit').classList.add('hidden');$('tab-backup').classList.add('hidden');$('tab-analysis').classList.add('hidden');
     restoreInventoryDraft(user);
-    $('appPanel').classList.remove('hidden'); $('authPanel').classList.add('hidden'); attachListeners();
+    $('appPanel').classList.remove('hidden'); $('authPanel').classList.add('hidden'); $('headerTools').classList.remove('hidden'); attachListeners(); showHomeSections();
   }
   async function onAuth(user){
     stopListeners(); state.user=user; state.role=null; state.products=[]; state.productsLoaded=false; state.sections=[]; state.counts=[];state.countsLive=[];state.countsBaseline=[];state.countsOlder=[];state.countsNextCursor=null;state.countsHasMore=false;state.countsLoadingMore=false;state.countsInitialized=false;state.finishedInventories=[];state.inventoriesLive=[];state.inventoriesBaseline=[];state.inventoriesOlder=[];state.inventoriesNextCursor=null;state.inventoriesHasMore=false;state.inventoriesLoadingMore=false;state.inventoriesInitialized=false; state.users=[]; state.usersLoaded=false; state.auditLogs=[];state.auditLive=[];state.auditBaseline=[];state.auditOlder=[];state.auditNextCursor=null;state.auditHasMore=false;state.auditLoadingMore=false;state.auditInitialized=false; state.auditLoaded=false; state.auditUpdatedAt=null; state.integrityIssues=[];state.integritySummary=null;state.integrityCheckedAt=null;state.inventory=null; state.inventoryItems=[]; state.stockUpdatedAt=null; state.historyUpdatedAt=null;
-    if(!user){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.add('hidden');return;}
+    if(!user){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.add('hidden');$('headerTools').classList.add('hidden');$('moduleMenu').classList.add('hidden');return;}
     try{await loadRole(user);clearMessage();}catch(e){$('appPanel').classList.add('hidden');$('authPanel').classList.remove('hidden');$('userBar').classList.remove('hidden');$('userEmail').textContent=user.email||'';message(e.message,'error');}
   }
-  async function createSection(e){e.preventDefault();try{await requireRole('gerente');const name=$('sectionName').value.trim();if(!name)throw new Error('Informe o nome da seção.');const description=$('sectionDescription').value.trim();const ref=await db.collection('sections').add({name,description,createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:state.user.uid});await recordAudit('section_created','section',ref.id,'Seção cadastrada: '+name,{sectionName:name,description:description});$('sectionForm').reset();message('Seção cadastrada.','success');}catch(err){message(err.message,'error');}}
+  async function createSection(e){
+    e.preventDefault();
+    try{
+      await requireRole('gerente');
+      const quick=e.currentTarget.id==='quickSectionForm';
+      const name=$(quick?'quickSectionName':'sectionName').value.trim();
+      const description=$(quick?'quickSectionDescription':'sectionDescription').value.trim();
+      if(!name)throw new Error('Informe o nome da seção.');
+      if(state.sections.some(s=>normalizeLookupText(s.name)===normalizeLookupText(name)))throw new Error('Já existe uma seção com esse nome.');
+      const ref=await db.collection('sections').add({name,description,createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:state.user.uid});
+      await recordAudit('section_created','section',ref.id,'Seção cadastrada: '+name,{sectionName:name,description:description});
+      e.currentTarget.reset();
+      message('Seção cadastrada: '+name+'.','success');
+    }catch(err){message(err.message,'error');}
+  }
   let bulkStockImportRows=[],bulkStockImportFileName='',bulkStockImportReady=false,bulkStockImportBusy=false;
   function stockCsvDelimiter(headerLine){
     const semicolon=(headerLine.match(/;/g)||[]).length;
@@ -1859,7 +2030,7 @@
     $('userSearch').addEventListener('input',renderUsers);
     $('usersTable').addEventListener('click',e=>{const btn=e.target.closest('[data-user-save]');if(btn)saveManagedUser(btn);});
     $('usersTable').addEventListener('change',e=>{const row=e.target.closest('[data-user-row]');if(row&&e.target.matches('[data-user-active]')){const label=e.target.closest('label');if(label)label.lastChild.textContent=e.target.checked?' Ativo':' Desativado';}});
-    $('productForm').addEventListener('submit',saveProduct);$('sectionForm').addEventListener('submit',createSection);
+    $('productForm').addEventListener('submit',saveProduct);$('sectionForm').addEventListener('submit',createSection);$('quickSectionForm').addEventListener('submit',createSection);
     $('downloadStockTemplateBtn').addEventListener('click',downloadStockTemplate);
     $('prepareStockImportBtn').addEventListener('click',prepareStockImport);
     $('importStockBatchBtn').addEventListener('click',importStockBatch);
@@ -1872,7 +2043,12 @@
       $('bulkStockImportTable').innerHTML='<tr><td colspan="7">A prévia aparecerá após conferir a planilha.</td></tr>';
       renderStockImportControls();
     });
-    $('productSearch').addEventListener('input',renderProducts);document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+    $('productSearch').addEventListener('input',renderProducts);document.querySelectorAll('nav button[data-tab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+    $('menuToggle').addEventListener('click',()=>{const isOpening=$('moduleMenu').classList.contains('hidden');$('moduleMenu').classList.toggle('hidden');$('menuToggle').setAttribute('aria-expanded',String(isOpening));});
+    $('homeMenuBtn').addEventListener('click',showHomeSections);
+    $('homeSectionsGrid').addEventListener('click',e=>{const tile=e.target.closest('[data-home-section]');if(tile)openHomeSection(tile.dataset.homeSection);});
+    $('backToSectionsBtn').addEventListener('click',showHomeSections);
+    $('sectionProductSearch').addEventListener('input',renderSelectedSection);
     $('reportSearch').addEventListener('input',renderStockReport);
     $('stockReportSection').addEventListener('change',renderStockReport);
     $('dashboardOpenProducts').addEventListener('click',()=>{setTab('products');window.scrollTo({top:0,behavior:'smooth'});$('pEan').focus();});
