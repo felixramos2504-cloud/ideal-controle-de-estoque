@@ -1,8 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 512 512" role="img" aria-label="Coleta IDEAL">
-<rect width="512" height="512" rx="112" fill="#0047AB"/>
-<circle cx="256" cy="256" r="186" fill="#ffffff" opacity=".08"/>
-<path d="M115 151h45l29 177c4 24 22 40 46 40h119c22 0 41-15 46-37l26-115H174" fill="none" stroke="#ffffff" stroke-width="21" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M204 222v92M228 222v92M250 222v92M278 222v92M302 222v92M327 222v92M350 222v92" stroke="#ffffff" stroke-width="11" stroke-linecap="round"/>
-<circle cx="224" cy="405" r="18" fill="#bfdbfe"/><circle cx="357" cy="405" r="18" fill="#bfdbfe"/>
-<path d="M194 115h124" stroke="#bfdbfe" stroke-width="18" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 512 512">
+<title>Coleta IDEAL</title>
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0878ff"/><stop offset=".55" stop-color="#0047ab"/><stop offset="1" stop-color="#062f85"/></linearGradient>
+ <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#168bff"/><stop offset="1" stop-color="#003bb5"/></linearGradient>
+ <linearGradient id="device" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#485569"/><stop offset=".45" stop-color="#171f2d"/><stop offset="1" stop-color="#080d16"/></linearGradient>
+ <linearGradient id="beam" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#73e7ff" stop-opacity="0"/><stop offset=".5" stop-color="#8df4ff"/><stop offset="1" stop-color="#73e7ff" stop-opacity="0"/></linearGradient>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="15" stdDeviation="13" flood-color="#001b52" flood-opacity=".45"/></filter>
+</defs>
+<rect width="512" height="512" rx="112" fill="url(#bg)"/>
+<path d="M0 365 365 0h147v160L160 512H0Z" fill="#39a5ff" opacity=".12"/>
+<circle cx="256" cy="256" r="190" fill="#a9e8ff" opacity=".09"/>
+<circle cx="256" cy="256" r="167" fill="none" stroke="#a5e9ff" stroke-width="15" opacity=".85" stroke-dasharray="780 270" stroke-linecap="round" transform="rotate(-36 256 256)"/>
+<g filter="url(#shadow)" transform="rotate(-8 265 260)">
+ <!-- rugged handheld barcode scanner -->
+ <path d="M185 91 Q185 65 212 65h132q30 0 37 29l27 66 34 206q5 29-23 38l-25 8-15 35q-7 17-26 17H217q-26 0-31-25l-19-87q-4-19-4-40V115q0-24 22-24Z" fill="url(#device)" stroke="#64748b" stroke-width="7"/>
+ <path d="M207 87h130q20 0 25 20l26 61H187V108q0-21 20-21Z" fill="#101827" stroke="#64748b" stroke-width="5"/>
+ <rect x="232" y="98" width="62" height="11" rx="5.5" fill="#12b8ff"/>
+ <path d="M190 177h176l32 185q3 18-16 23l-24 6-12 32H223l-19-87q-4-16-4-34Z" fill="#0c1422" stroke="#758398" stroke-width="5"/>
+ <path d="M211 193h143l26 157H229Z" fill="url(#screen)" stroke="#9acbff" stroke-width="5" stroke-linejoin="round"/>
+ <path d="M231 219h20m-20 0v20m91-20h-20m20 0v20M231 323h20m-20 0v-20m91 20h-20m20 0v-20" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+ <g fill="#fff">
+  <rect x="247" y="241" width="7" height="58" rx="2"/><rect x="260" y="241" width="4" height="58" rx="2"/><rect x="270" y="241" width="9" height="58" rx="2"/><rect x="285" y="241" width="4" height="58" rx="2"/><rect x="294" y="241" width="7" height="58" rx="2"/><rect x="307" y="241" width="4" height="58" rx="2"/><rect x="316" y="241" width="8" height="58" rx="2"/><rect x="330" y="241" width="4" height="58" rx="2"/>
+ </g>
+ <rect x="216" y="267" width="124" height="7" rx="3.5" fill="url(#beam)"/>
+ <path d="M211 348h134" stroke="#0c1422" stroke-width="9"/>
+ <rect x="226" y="375" width="37" height="24" rx="8" fill="#66758a" stroke="#9caec4" stroke-width="3"/>
+ <rect x="271" y="371" width="39" height="29" rx="9" fill="#078cff" stroke="#8bdcff" stroke-width="4"/>
+ <rect x="319" y="375" width="37" height="24" rx="8" fill="#66758a" stroke="#9caec4" stroke-width="3"/>
+ <g fill="#2b3545" stroke="#8494aa" stroke-width="3">
+  <rect x="220" y="410" width="35" height="22" rx="7"/><rect x="266" y="410" width="35" height="22" rx="7"/><rect x="312" y="410" width="35" height="22" rx="7"/>
+  <rect x="224" y="440" width="35" height="20" rx="7"/><rect x="270" y="440" width="35" height="20" rx="7"/><rect x="316" y="440" width="35" height="20" rx="7"/>
+ </g>
+ <path d="M177 163h-10q-14 0-14 15v110" fill="none" stroke="#25bfff" stroke-width="11" stroke-linecap="round"/>
+</g>
+<path d="M177 113h70" stroke="#d7f7ff" stroke-width="10" stroke-linecap="round" opacity=".9"/>
 </svg>
